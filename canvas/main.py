@@ -2,11 +2,13 @@ import os
 import re
 import asyncio
 import base64
+import json
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import requests
@@ -116,22 +118,11 @@ async def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
     try:
-        print("AUTH STEP 1: Request received")
-
         token = creds.credentials
-
-        print("AUTH STEP 2: Token extracted")
-        print(f"Token length: {len(token)}")
-
-        print("AUTH STEP 3: Starting Firebase verification")
-
         decoded_token = auth.verify_id_token(
             token,
             check_revoked=False
         )
-
-        print("AUTH STEP 4: Verification successful")
-        print(f"UID: {decoded_token.get('uid')}")
 
         return {
             "uid": decoded_token["uid"],
@@ -139,18 +130,15 @@ async def get_current_user(
         }
 
     except Exception as e:
-        print(f"AUTH ERROR: {repr(e)}")
         raise HTTPException(
             status_code=401,
             detail=f"Invalid or expired token: {str(e)}"
         )
     
-
 def clean_ai_html(raw_html: str) -> str:
     clean = raw_html.strip()
     clean = re.sub(r"^```[a-zA-Z]*\s*\n", "", clean, flags=re.IGNORECASE)
     clean = re.sub(r"\n?\s*```$", "", clean)
-    # Strip stray thinking blocks just in case the AI ignored the system prompt
     clean = re.sub(r"<think>.*?</think>", "", clean, flags=re.DOTALL)
     return clean.strip()
 
@@ -197,24 +185,22 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     user_data["projects"] = combined_projects
     return user_data
 
-
+# --- NON-STREAMING GENERATOR (Kept for React or fallback) ---
 async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> tuple[str, str]:
-    # 🔥 UPGRADED PROMPT: Anti-laziness, strict completeness, and high-end design directives
     system_instruction = f"""
     You are an elite, top-tier web developer and UX/UI designer. 
     Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code.
 
     CRITICAL DIRECTIVES (YOU MUST FOLLOW THESE OR FAIL):
-    0. NO LAZINESS & NO PLACEHOLDERS: You MUST generate the ENTIRE website. Do NOT stop after the header. Do NOT use comments like "" or "/* Continue CSS */". Write every single line of code, including full body sections (Hero, Features, Testimonials, Footer, etc.) with dummy text/images if needed.
-    1. ZERO EXPLANATIONS: Absolutely NO markdown commentary, introductory/concluding remarks, or conversational text.
-    2. STRICTLY NO THINKING: Do NOT generate <think> tags, chain-of-thought, or internal reasoning. Begin the output directly with the code.
-    3. ALL-IN-ONE-FILE: You MUST combine all HTML, CSS, and JavaScript into ONE single file. Place CSS inside <style> tags and JavaScript inside <script> tags right before the closing </body> tag.
-    4. NO CODE BLOCKS: Do NOT wrap the code inside markdown code blocks (e.g., DO NOT write ```html). Output completely RAW, executable plain text.
-    5. PREMIUM DESIGN: Construct highly polished, elegant, and modern user interfaces using the Tailwind CSS CDN (<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>) or native advanced CSS. Ensure Z-index is correct, mobile responsiveness is perfect, and JS functions flawlessly without errors.
-    6. If you output a single word of text outside the executable codebase, or if you truncate the code, the parsing engine will crash. Output the full DOM.
+    0. NO LAZINESS & NO PLACEHOLDERS: You MUST generate the ENTIRE website. Do NOT stop after the header.
+    1. ZERO EXPLANATIONS: Absolutely NO markdown commentary.
+    2. STRICTLY NO THINKING: Do NOT generate <think> tags.
+    3. ALL-IN-ONE-FILE: Combine all HTML, CSS, and JS into ONE file.
+    4. NO CODE BLOCKS: Output completely RAW, executable plain text. Do not wrap in ```html.
+    5. PREMIUM DESIGN: Use Tailwind CSS CDN.
+    6. Ensure the code is complete.
     """
 
-    # 1. Build the unified payload
     messages_ai = [{"role": "system", "content": system_instruction}]
     
     if images:
@@ -226,57 +212,15 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
-    # ✨ 2. PRIMARY: GLM 5.2 ✨ 
     try:
         glm_model = "accounts/fireworks/models/kimi-k2p7-code"
         response = await client_fireworks.chat.completions.create(
-            model=glm_model, 
-            messages=messages_ai, 
-            max_tokens=15000,   # INCREASED: Give it a massive buffer for full websites
-            temperature=0.2,    # Slightly bumped to allow for more creative design variations
-            presence_penalty=0.1, # Encourages the model to write new content rather than repeating
-            timeout=180.0       # INCREASED: Give it plenty of time to write the whole DOM
+            model=glm_model, messages=messages_ai, max_tokens=15000, temperature=0.2, presence_penalty=0.1, timeout=180.0
         )
         return clean_ai_html(response.choices[0].message.content), "glm-5p2"
-    
     except Exception as e:
         print(f"GLM 5.2 Failed/Timed Out: {e}")
-        
-        # ✨ 3. MICRO-FALLBACK: High-Quality Llama on Fireworks ✨
-        try:
-            if images:
-                raise ValueError("Skipping Fireworks Vision (On-Demand Only) -> Routing to Gemini")
-                
-            backup_model = "accounts/fireworks/models/llama-v3p1-70b-instruct" 
-            
-            response = await client_fireworks.chat.completions.create(
-                model=backup_model, 
-                messages=messages_ai, 
-                max_tokens=8000,    # INCREASED: Llama 3.1 70B can handle 8k outputs
-                temperature=0.2,
-                timeout=90.0 
-            )
-            return clean_ai_html(response.choices[0].message.content), backup_model.split("/")[-1]
-        except Exception as backup_e:
-            print(f"Fireworks Backup Failed: {backup_e}")
 
-    # 4. SECONDARY: Groq Fallback
-    try:
-        if images:
-            raise ValueError("Groq does not support image generation via this endpoint structure.")
-            
-        response = await client_groq.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": prompt}],
-            max_tokens=8000,        # INCREASED from 4000
-            temperature=0.2,
-            timeout=45.0 
-        )
-        return clean_ai_html(response.choices[0].message.content), "llama3.3-70b"
-    except Exception as e:
-        print(f"Groq Failed: {e}")
-
-    # 5. TERTIARY: Gemini Fallback (Final Safety Net & Vision Handler)
     try:
         gemini_model = genai.GenerativeModel(model_name='gemini-1.5-pro-latest', system_instruction=system_instruction)
         gemini_content = [prompt]
@@ -285,17 +229,83 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
                  if "," in b64_img: b64_img = b64_img.split(",")[1]
                  gemini_content.append({"mime_type": "image/jpeg", "data": base64.b64decode(b64_img)})
                  
-        # Increased max_output_tokens for Gemini to ensure it doesn't stop halfway
-        generation_config = genai.types.GenerationConfig(
-            temperature=0.2,
-            max_output_tokens=8192 
-        )
+        generation_config = genai.types.GenerationConfig(temperature=0.2, max_output_tokens=8192)
         response = await gemini_model.generate_content_async(gemini_content, generation_config=generation_config)
         return clean_ai_html(response.text), "gemini-1.5-pro"
     except Exception as e:
         print(f"Gemini Failed: {e}")
 
-    raise HTTPException(status_code=503, detail="All AI models timed out or are unavailable. Please try a shorter prompt or smaller image.")
+    raise HTTPException(status_code=503, detail="All AI models timed out.")
+
+# --- STREAMING GENERATOR ---
+async def stream_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html"):
+    system_instruction = f"""
+    You are an elite, top-tier web developer and UX/UI designer. 
+    Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code.
+
+    CRITICAL DIRECTIVES:
+    0. NO LAZINESS & NO PLACEHOLDERS.
+    1. ZERO EXPLANATIONS.
+    2. STRICTLY NO THINKING TAGS.
+    3. ALL-IN-ONE-FILE.
+    4. NO CODE BLOCKS (Do not start with ```html).
+    5. PREMIUM DESIGN using Tailwind.
+    """
+
+    # If we have images, route directly to Gemini for streaming
+    if images:
+        try:
+            gemini_model = genai.GenerativeModel(model_name='gemini-1.5-pro-latest', system_instruction=system_instruction)
+            gemini_content = [prompt]
+            for b64_img in images:
+                if "," in b64_img: b64_img = b64_img.split(",")[1]
+                gemini_content.append({"mime_type": "image/jpeg", "data": base64.b64decode(b64_img)})
+            
+            response = await gemini_model.generate_content_async(
+                gemini_content, 
+                generation_config=genai.types.GenerationConfig(temperature=0.2, max_output_tokens=8192),
+                stream=True
+            )
+            
+            async for chunk in response:
+                if chunk.text:
+                    yield f"data: {json.dumps({'chunk': chunk.text})}\n\n"
+            
+            yield f"data: {json.dumps({'done': True})}\n\n"
+            return
+            
+        except Exception as e:
+            print(f"Gemini Streaming Failed: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            return
+
+    # If no images, use Fireworks streaming
+    messages_ai = [
+        {"role": "system", "content": system_instruction},
+        {"role": "user", "content": prompt}
+    ]
+
+    try:
+        glm_model = "accounts/fireworks/models/kimi-k2p7-code"
+        stream = await client_fireworks.chat.completions.create(
+            model=glm_model, 
+            messages=messages_ai, 
+            max_tokens=15000,   
+            temperature=0.2,    
+            presence_penalty=0.1,
+            stream=True
+        )
+        
+        async for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                content = chunk.choices[0].delta.content
+                yield f"data: {json.dumps({'chunk': content})}\n\n"
+                
+        yield f"data: {json.dumps({'done': True})}\n\n"
+        
+    except Exception as e:
+        print(f"Fireworks Streaming Failed: {e}")
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
 
 # ---------------- API ENDPOINTS ----------------
@@ -313,6 +323,47 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     email = current_user.get("email", "")
     return get_user_profile(uid, email)
 
+# NEW: Streaming Endpoint
+@app.post("/generate/stream")
+async def generate_code_stream_endpoint(req: GenerateRequest, current_user: dict = Depends(get_current_user)):
+    uid = current_user['uid']
+    user_ref = db.collection("users").document(uid)
+    user_doc = user_ref.get()
+    
+    user_data = user_doc.to_dict() if user_doc.exists else {}
+    
+    credit_cost = 20 if req.image_data else 1
+    if req.target_language == 'react': credit_cost = 0 
+    if req.existing_html: credit_cost = 1 
+        
+    if user_data.get('credits', 0) < credit_cost:
+        raise HTTPException(status_code=402, detail="Insufficient credits")
+        
+    if credit_cost > 0:
+        user_ref.update({"credits": firestore.Increment(-credit_cost)})
+        
+    try:
+        final_prompt = req.prompt
+        if req.existing_html:
+            final_prompt = f"Modify the following HTML based on this request: '{req.prompt}'.\n\nExisting HTML:\n{req.existing_html}"
+        if req.is_punjabi_mode:
+            final_prompt = f"Understand this Punjabi context and build the site: {req.prompt}"
+
+        return StreamingResponse(
+            stream_with_fallback(
+                prompt=final_prompt, 
+                images=req.image_data, 
+                target_lang=req.target_language or "html"
+            ),
+            media_type="text/event-stream"
+        )
+        
+    except Exception as e:
+        if credit_cost > 0:
+            user_ref.update({"credits": firestore.Increment(credit_cost)})
+        raise HTTPException(status_code=500, detail=str(e))
+
+# OLD: Standard Generator Endpoint (Retained for backward compatibility)
 @app.post("/generate/")
 async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
@@ -432,7 +483,6 @@ async def upload_image_endpoint(
     
     return {"url": public_url, "user_profile": get_user_profile(uid)}
 
-
 # --- Deployment & Publishing ---
 @app.post("/users/{user_id}/projects/{timestamp}/publish")
 async def publish_external_endpoint(user_id: str, timestamp: str, content: dict = Body(...), current_user: dict = Depends(get_current_user)):
@@ -546,40 +596,27 @@ async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dic
 async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     return {"new_html": req.get("new_outer_html")}
 
-
-from fastapi.responses import HTMLResponse
-from fastapi import Request
-
-# ... (rest of your existing endpoints) ...
-
 @app.get("/{full_path:path}")
 async def serve_sitee_subdomains(request: Request, full_path: str):
     """
     Catch-all route to serve published HTML based on the subdomain.
     This MUST be at the very bottom of your routes so it doesn't block /generate or /users.
     """
-    # 1. Get the domain the user is trying to visit (e.g., car-race-app.sitee.in)
     host = request.headers.get("host", "").split(":")[0]
 
-    # Ignore direct IP visits or the base render URL so your API still works
     if "onrender.com" in host or host == "127.0.0.1" or host == "localhost":
         return {"message": "Sitee API is running"}
 
     target_url = f"https://{host}"
 
     try:
-        # 2. Search all 'projects' subcollections in Firestore for a matching published_url
         projects = db.collection_group("projects").where("published_url", "==", target_url).limit(1).stream()
         
-        # 3. If we find it, extract the HTML and return it as a real webpage
         for proj in projects:
             proj_data = proj.to_dict()
             html_content = proj_data.get("html", "<h1>Empty Project</h1>")
-            
-            # Return as HTMLResponse so the browser renders it as a website, not JSON
             return HTMLResponse(content=html_content, status_code=200)
             
-        # 4. If no project matches that URL
         return HTMLResponse(
             content=f"""
             <div style='font-family: sans-serif; text-align: center; margin-top: 50px;'>
