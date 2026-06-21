@@ -33,10 +33,15 @@ from firebase_admin import credentials, auth, firestore, storage
 
 app = FastAPI(title="Sitee AI Backend", version="6.0.8")
 
-# Setup CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=[
+        "https://sitee-7nuk.vercel.app",
+        "https://www.sitee.in",
+        "https://canvas.sitee.in",
+        "http://localhost:3000",
+        "http://localhost:5173"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
