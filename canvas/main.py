@@ -145,7 +145,7 @@ async def get_current_user(
             detail=f"Invalid or expired token: {str(e)}"
         )
     
-    
+
 def clean_ai_html(raw_html: str) -> str:
     clean = raw_html.strip()
     clean = re.sub(r"^```[a-zA-Z]*\s*\n", "", clean, flags=re.IGNORECASE)
@@ -546,6 +546,54 @@ async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dic
 async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     return {"new_html": req.get("new_outer_html")}
 
+
+from fastapi.responses import HTMLResponse
+from fastapi import Request
+
+# ... (rest of your existing endpoints) ...
+
+@app.get("/{full_path:path}")
+async def serve_sitee_subdomains(request: Request, full_path: str):
+    """
+    Catch-all route to serve published HTML based on the subdomain.
+    This MUST be at the very bottom of your routes so it doesn't block /generate or /users.
+    """
+    # 1. Get the domain the user is trying to visit (e.g., car-race-app.sitee.in)
+    host = request.headers.get("host", "").split(":")[0]
+
+    # Ignore direct IP visits or the base render URL so your API still works
+    if "onrender.com" in host or host == "127.0.0.1" or host == "localhost":
+        return {"message": "Sitee API is running"}
+
+    target_url = f"https://{host}"
+
+    try:
+        # 2. Search all 'projects' subcollections in Firestore for a matching published_url
+        projects = db.collection_group("projects").where("published_url", "==", target_url).limit(1).stream()
+        
+        # 3. If we find it, extract the HTML and return it as a real webpage
+        for proj in projects:
+            proj_data = proj.to_dict()
+            html_content = proj_data.get("html", "<h1>Empty Project</h1>")
+            
+            # Return as HTMLResponse so the browser renders it as a website, not JSON
+            return HTMLResponse(content=html_content, status_code=200)
+            
+        # 4. If no project matches that URL
+        return HTMLResponse(
+            content=f"""
+            <div style='font-family: sans-serif; text-align: center; margin-top: 50px;'>
+                <h1>404 - Site Not Found</h1>
+                <p>No project is published at <b>{target_url}</b></p>
+                <a href='https://www.sitee.in' style='color: #3B82F6;'>Build your own at Sitee.in</a>
+            </div>
+            """, 
+            status_code=404
+        )
+
+    except Exception as e:
+        print(f"Subdomain Routing Error: {e}")
+        return HTMLResponse(content="<h1>500 - Internal Server Error</h1>", status_code=500)
 
 if __name__ == "__main__":
     import uvicorn
