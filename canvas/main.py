@@ -112,14 +112,40 @@ class GenerateRequest(BaseModel):
 
 # ---------------- HELPER FUNCTIONS ----------------
 
-async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+async def get_current_user(
+    creds: HTTPAuthorizationCredentials = Depends(security)
+) -> dict:
     try:
-        token = creds.credentials
-        decoded_token = auth.verify_id_token(token)
-        return {"uid": decoded_token['uid'], "email": decoded_token.get("email", "")}
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid or expired token: {str(e)}")
+        print("AUTH STEP 1: Request received")
 
+        token = creds.credentials
+
+        print("AUTH STEP 2: Token extracted")
+        print(f"Token length: {len(token)}")
+
+        print("AUTH STEP 3: Starting Firebase verification")
+
+        decoded_token = auth.verify_id_token(
+            token,
+            check_revoked=False
+        )
+
+        print("AUTH STEP 4: Verification successful")
+        print(f"UID: {decoded_token.get('uid')}")
+
+        return {
+            "uid": decoded_token["uid"],
+            "email": decoded_token.get("email", "")
+        }
+
+    except Exception as e:
+        print(f"AUTH ERROR: {repr(e)}")
+        raise HTTPException(
+            status_code=401,
+            detail=f"Invalid or expired token: {str(e)}"
+        )
+    
+    
 def clean_ai_html(raw_html: str) -> str:
     clean = raw_html.strip()
     clean = re.sub(r"^```[a-zA-Z]*\s*\n", "", clean, flags=re.IGNORECASE)
