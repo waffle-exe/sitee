@@ -698,120 +698,116 @@ async function handleGenerateClick() {
     promptInput.value = '';
     autoResizePrompt.call(promptInput);
 }
-async function generateWebsite(prompt, container, iframe, imageData = null) {
-    const preview = container.querySelector('.preview');
-    const loading = container.querySelector('.loading');
-    const stats = container.querySelector('.stats');
-    const startTime = Date.now();
-    document.body.classList.add('generating');
 
-    // 1. HIDE DELETE BUTTON AT START
-    const deleteBtn = container.querySelector('.delete-btn');
-    if (deleteBtn) deleteBtn.style.display = 'none';
 
-    // Create a local controller for this specific generation
-    const localController = new AbortController();
-    const signal = localController.signal;
+async function generateWebsite(promptText, images = null) {
+    // 1. Setup UI (Disable buttons, show loader)
+    const generateBtn = document.getElementById('generate');
+    generateBtn.disabled = true;
+    document.body.classList.add('generating'); // Triggers your blob CSS animations
 
-    // Add Stop Button logic
-    if (!loading.querySelector('.stop-btn')) {
-        const stopBtn = document.createElement('button');
-        stopBtn.className = 'stop-btn';
-        stopBtn.textContent = 'Stop Generation';
-        stopBtn.onclick = () => {
-            localController.abort();
-        };
-        loading.appendChild(stopBtn);
-    }
-
-    let timerInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const creditCost = (imageData && imageData.data) ? 20 : 1;
-        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Credit Used: ${creditCost}</span>`;
-    }, 1000);
+    // (Assuming you create a new target element for the code/HTML here)
+    // const targetCodeElement = document.getElementById('code-editor-content');
+    // targetCodeElement.textContent = ''; 
+    let accumulatedCode = "";
 
     try {
-        const requestBody = {
-            prompt: prompt,
-            is_chat_mode: false,
-            user_id: currentUser.id,
-            is_punjabi_mode: currentMode === 'canvas-pa'
-        };
-        if (imageData && imageData.data && imageData.size) {
-            requestBody.image_data = imageData.data;
-            requestBody.image_size_bytes = imageData.size;
-        }
-
-        const response = await fetch(`${backendUrl}/generate/`, {
+        // 2. Call the new streaming endpoint
+        const response = await fetch('http://localhost:8000/generate/stream', {
             method: 'POST',
-            headers: await getAuthHeaders(),
-            body: JSON.stringify(requestBody),
-            signal: signal 
+            headers: {
+                'Content-Type': 'application/json',
+                // 'Authorization': `Bearer ${userToken}` // Add your Firebase auth token here
+            },
+            body: JSON.stringify({
+                prompt: promptText,
+                target_language: "html",
+                // user_id: currentUserId,
+                // image_data: images
+            })
         });
 
         if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
+            const err = await response.json();
+            throw new Error(err.detail || "Failed to generate");
         }
 
-        const result = await response.json();
+        // 3. Turn off the main loader as soon as the first byte arrives
+        document.body.classList.remove('generating');
 
-        if (result.fallback_used) {
-            showNotification("Our main Sitee Model is busy! Switched to a faster model.");
-        }
+        // 4. Initialize the Stream Reader
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
 
-        if (result.user_profile) {
-            currentUser = result.user_profile;
-        }
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-        const htmlCode = result.html;
-        
-        iframe.onload = () => {
-            if (loading) loading.style.display = 'none';
+            // Decode the raw bytes into a string
+            const chunkString = decoder.decode(value, { stream: true });
             
-            if (document.querySelectorAll('.loading[style*="display: flex"]').length === 0) {
-                document.body.classList.remove('generating');
-            }
-            
-            // 2. SHOW DELETE BUTTON WHEN DONE
-            if (deleteBtn) deleteBtn.style.display = 'flex';
+            // SSE chunks are separated by double newlines
+            const events = chunkString.split('\n\n');
 
-            handleIframeLinks(iframe);
-            makeIframeImagesEditable(iframe);
-            if (currentMode === 'visual-edit') {
-                enableEditingInIframe(iframe);
+            for (const event of events) {
+                if (event.startsWith('data: ')) {
+                    try {
+                        // Parse the JSON data from the event
+                        const data = JSON.parse(event.slice(6));
+                        
+                        if (data.error) {
+                            console.error("Backend Error:", data.error);
+                            // Show your red error notification here
+                            break;
+                        }
+                        
+                        if (data.done) {
+                            console.log("Stream successfully completed!");
+                            break;
+                        }
+                        
+                        if (data.chunk) {
+                            accumulatedCode += data.chunk;
+                            
+                            // 5. Frontend Regex Cleanup (Strips ```html if the AI disobeys)
+                            let displayCode = accumulatedCode
+                                .replace(/^
+```[a-z]*\n/gi, '')
+                                .replace(/```$/g, '');
+                                
+                            // 6. Update the UI in real-time
+                            // targetCodeElement.textContent = displayCode;
+                            
+                            // Auto-scroll the chat container so the user sees the text typing
+                            const chatContainer = document.getElementById('chat-container');
+                            if (chatContainer) {
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore parsing errors for incomplete chunks
+                        console.warn("JSON Parse skipped for chunk:", e);
+                    }
+                }
             }
-            disableIframeContextMenu(iframe);
-            pushStateForIframe(iframe);
-        };
-        
-        iframe.srcdoc = htmlCode;
-        const savedProject = await saveProject(prompt, htmlCode);
-        if (savedProject) {
-            container.dataset.timestamp = savedProject.timestamp;
         }
 
-        updateCreditDisplay();
-        checkCreditStatus();
+        // 7. Post-Generation Actions
+        // Apply syntax highlighting once fully generated
+        if (window.hljs) {
+            // hljs.highlightElement(targetCodeElement);
+        }
+        
+        // Push the final 'displayCode' into your iframe preview
+        // updateIframePreview(accumulatedCode);
 
     } catch (error) {
-        if (error.name === 'AbortError') {
-            console.log('Generation stopped by user');
-            showNotification('Generation stopped.', 'info');
-            container.remove(); 
-        } else {
-            console.error("Error generating website:", error);
-            preview.innerHTML = `<div style="color: var(--error-color); padding: 1rem;">Error: ${error.message}</div>`;
-            promptInput.value = prompt;
-            
-            // 3. SHOW DELETE BUTTON ON ERROR (So user can delete the failed window)
-            if (deleteBtn) deleteBtn.style.display = 'flex';
-        }
+        console.error("Generation failed:", error);
+        // showNotification("Generation failed. Please try again.", "error");
     } finally {
-        clearInterval(timerInterval);
-        if (document.querySelectorAll('.loading').length <= 1) {
-             document.body.classList.remove('generating');
-        }
+        // Reset UI state
+        generateBtn.disabled = false;
+        document.body.classList.remove('generating');
     }
 }
 
