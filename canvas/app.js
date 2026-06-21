@@ -294,9 +294,9 @@ window.openPromptModal = (source) => {
     } else if (source.tagName) {
         // Option 2: Passed a button element (from Chat)
         // Try to find the hidden span sibling first
-        const wrapper = source.closest('.message-content');
+        const wrapper = source.closest('.message-content'); 
         const hiddenSpan = wrapper ? wrapper.querySelector('.raw-prompt-data') : null;
-
+        
         if (hiddenSpan) {
             textToShow = hiddenSpan.textContent;
         } else {
@@ -307,7 +307,7 @@ window.openPromptModal = (source) => {
 
     const promptViewerModal = document.getElementById('prompt-viewer-modal');
     const promptViewerContent = document.getElementById('prompt-viewer-content');
-
+    
     promptViewerContent.textContent = textToShow;
     promptViewerModal.style.display = 'flex';
 };
@@ -683,29 +683,21 @@ async function handleGenerateClick() {
             showNotification("Could not process one or more images.", "error");
         }
 
-    }  else {
-        // Text-only generation logic
+    } else {
+        // This is the existing logic for text-only generation.
         if (!userPrompt) return;
 
         let finalPrompt = userPrompt;
         if (selectedTheme) {
             finalPrompt = `${userPrompt} in a ${selectedTheme.name} style.`;
         }
-        
-        // REMOVE this old call:
-        // createSiteContainer(finalPrompt);
-        
-        // ADD this new call:
-        generateWebsiteLive(finalPrompt); 
-        
+        createSiteContainer(finalPrompt);
         promptSuggestions.classList.add('hidden');
     }
 
     promptInput.value = '';
     autoResizePrompt.call(promptInput);
 }
-
-
 async function generateWebsite(prompt, container, iframe, imageData = null) {
     const preview = container.querySelector('.preview');
     const loading = container.querySelector('.loading');
@@ -754,7 +746,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             method: 'POST',
             headers: await getAuthHeaders(),
             body: JSON.stringify(requestBody),
-            signal: signal
+            signal: signal 
         });
 
         if (!response.ok) {
@@ -773,14 +765,14 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         }
 
         const htmlCode = result.html;
-
+        
         iframe.onload = () => {
             if (loading) loading.style.display = 'none';
-
+            
             if (document.querySelectorAll('.loading[style*="display: flex"]').length === 0) {
                 document.body.classList.remove('generating');
             }
-
+            
             // 2. SHOW DELETE BUTTON WHEN DONE
             if (deleteBtn) deleteBtn.style.display = 'flex';
 
@@ -792,7 +784,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             disableIframeContextMenu(iframe);
             pushStateForIframe(iframe);
         };
-
+        
         iframe.srcdoc = htmlCode;
         const savedProject = await saveProject(prompt, htmlCode);
         if (savedProject) {
@@ -806,19 +798,19 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         if (error.name === 'AbortError') {
             console.log('Generation stopped by user');
             showNotification('Generation stopped.', 'info');
-            container.remove();
+            container.remove(); 
         } else {
             console.error("Error generating website:", error);
             preview.innerHTML = `<div style="color: var(--error-color); padding: 1rem;">Error: ${error.message}</div>`;
             promptInput.value = prompt;
-
+            
             // 3. SHOW DELETE BUTTON ON ERROR (So user can delete the failed window)
             if (deleteBtn) deleteBtn.style.display = 'flex';
         }
     } finally {
         clearInterval(timerInterval);
         if (document.querySelectorAll('.loading').length <= 1) {
-            document.body.classList.remove('generating');
+             document.body.classList.remove('generating');
         }
     }
 }
@@ -958,7 +950,7 @@ function appendTurn(turn, isLoading = false) {
     // 2. Add the Direct Copy Button
     const toolsDiv = document.createElement('div');
     toolsDiv.className = 'user-message-tools';
-    toolsDiv.contentEditable = "false";
+    toolsDiv.contentEditable = "false"; 
 
     const copyBtn = document.createElement('button');
     copyBtn.className = 'user-tool-btn';
@@ -968,14 +960,14 @@ function appendTurn(turn, isLoading = false) {
         </svg>
         Copy
     `;
-
+    
     copyBtn.onclick = (e) => {
         e.stopPropagation();
         navigator.clipboard.writeText(turn.prompt).then(() => {
             const originalHTML = copyBtn.innerHTML;
             copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="#4ADE80" viewBox="0 0 16 16"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg> Copied!`;
             copyBtn.style.color = "#4ADE80";
-
+            
             setTimeout(() => {
                 copyBtn.innerHTML = originalHTML;
                 copyBtn.style.color = "";
@@ -1129,16 +1121,16 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     if (projectData) {
         // Look for an existing window with this specific timestamp
         const existingWindow = document.querySelector(`.site-container[data-timestamp="${projectData.timestamp}"]`);
-
+        
         if (existingWindow) {
             // It is already open! Just bring it to the front.
             existingWindow.style.zIndex = getMaxZIndex() + 1;
-
+            
             // Optional: Highlight it briefly so the user knows where it is
             existingWindow.style.transition = "transform 0.1s";
             existingWindow.style.transform = "scale(1.02)";
             setTimeout(() => existingWindow.style.transform = "scale(1)", 100);
-
+            
             return; // STOP here. Do not create a new window.
         }
     }
@@ -1312,7 +1304,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     canvas.appendChild(container);
 
     const iframe = document.createElement('iframe');
-
+    
     iframe.sandbox = "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox";
     iframe.addEventListener('contextmenu', e => e.preventDefault());
     preview.appendChild(iframe);
@@ -1382,9 +1374,9 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
         }
     });
 
-    suggestionBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-
+    suggestionBtn.addEventListener('click', (e) => { 
+        e.stopPropagation(); 
+        
         // --- ✅ NEW: Check for Pro Plan ---
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
         if (plan !== 'pro') {
@@ -1393,24 +1385,24 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
         }
         // ----------------------------------
 
-        const timestamp = parseInt(container.dataset.timestamp);
-        if (!timestamp) {
-            showNotification("Please save the project before getting suggestions.", "error");
-            return;
-        }
-        handleSuggestionRequest(timestamp, iframe.srcdoc, false);
+        const timestamp = parseInt(container.dataset.timestamp); 
+        if (!timestamp) { 
+            showNotification("Please save the project before getting suggestions.", "error"); 
+            return; 
+        } 
+        handleSuggestionRequest(timestamp, iframe.srcdoc, false); 
     });
-
+    
     publishBtn.addEventListener('click', (e) => { e.stopPropagation(); publishModal.dataset.currentTimestamp = container.dataset.timestamp; publishChoiceView.style.display = 'block'; siteeDeployView.style.display = 'none'; netlifyDeployView.style.display = 'none'; publishModal.style.display = 'flex'; });
     // In your <script type="module">, inside createSiteContainer(), REPLACE the editBtn listener
 
-    editBtn.addEventListener('click', (e) => {
+   editBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-
+        
         // --- ✅ NEW: Allow Pro AND Creator ---
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
         if (currentUser && (plan === 'pro' || plan === 'creator')) {
-            // -------------------------------------
+        // -------------------------------------
             let htmlContent = getCleanIframeHtml(iframe);
             if (htmlContent) {
                 if (!htmlContent.trim().toLowerCase().startsWith('<!doctype html>')) {
@@ -1434,11 +1426,11 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     });
     copyBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-
+        
         // --- ✅ NEW: Allow Pro AND Creator ---
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
         if (currentUser && (plan === 'pro' || plan === 'creator')) {
-            // -------------------------------------
+        // -------------------------------------
             const codeToCopy = getCleanIframeHtml(iframe);
             if (codeToCopy) {
                 navigator.clipboard.writeText(codeToCopy)
@@ -2214,7 +2206,7 @@ function addProjectToSidebar(project) {
     nameSpan.style.textOverflow = "ellipsis";
     nameSpan.style.flex = "1";
     nameSpan.dataset.timestamp = project.timestamp;
-
+    
     nameSpan.addEventListener("click", () => {
         if (currentMode === 'chat') {
             document.querySelector('.mode-btn[data-mode="canvas-en"]')?.click();
@@ -2228,7 +2220,7 @@ function addProjectToSidebar(project) {
     copyBtn.title = "Copy Prompt";
     // Copy Icon SVG
     copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/></svg>`;
-
+    
     // Minimal styling
     copyBtn.style.background = "transparent";
     copyBtn.style.border = "none";
@@ -2249,7 +2241,7 @@ function addProjectToSidebar(project) {
             // Visual feedback: Switch to Checkmark icon
             const originalIcon = copyBtn.innerHTML;
             copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#4ADE80" viewBox="0 0 16 16"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>`;
-
+            
             // Show global notification
             showNotification("Prompt copied to clipboard!", "success");
 
@@ -2513,8 +2505,8 @@ function pushStateForIframe(iframe) {
 
     // --- FIX STARTS HERE ---
     // Update Global Toolbar Buttons
-    updateUndoRedoButtons();
-
+    updateUndoRedoButtons(); 
+    
     // Update Local Window Buttons (The ones on the site container header)
     if (container) {
         updateUndoRedoButtonsForContainer(container);
@@ -2522,7 +2514,11 @@ function pushStateForIframe(iframe) {
     // --- FIX ENDS HERE ---
 }
 
+/**
+ * A helper function to call before any modification is made to an element.
+ */
 
+// --- ADD THIS BLOCK for font selection ---
 
 function prepareToModifyElement() {
     if (currentlySelectedElementInIframe) {
@@ -2537,7 +2533,7 @@ function handleUndo(iframe) {
     const history = visualEditorHistories.get(timestamp);
 
     // Can't undo the very first state (initial load)
-    if (history && history.undoStack.length > 1) {
+    if (history && history.undoStack.length > 1) { 
         const currentState = history.undoStack.pop();
         history.redoStack.push(currentState);
         const stateToRestore = history.undoStack[history.undoStack.length - 1];
@@ -2546,9 +2542,9 @@ function handleUndo(iframe) {
         iframe.onload = () => {
             if (currentMode === 'visual-edit') enableEditingInIframe(iframe);
             triggerVisualUpdateSave(iframe); // Pass iframe explicitly
-
+            
             // --- FIX: Update both global and local buttons ---
-            updateUndoRedoButtons();
+            updateUndoRedoButtons(); 
             updateUndoRedoButtonsForContainer(container);
         };
     }
@@ -2568,7 +2564,7 @@ function handleRedo(iframe) {
         iframe.onload = () => {
             if (currentMode === 'visual-edit') enableEditingInIframe(iframe);
             triggerVisualUpdateSave(iframe); // Pass iframe explicitly
-
+            
             // --- FIX: Update both global and local buttons ---
             updateUndoRedoButtons();
             updateUndoRedoButtonsForContainer(container);
@@ -2579,17 +2575,17 @@ function handleRedo(iframe) {
 // A helper function to update the specific container's buttons
 function updateUndoRedoButtonsForContainer(container) {
     const timestamp = container.dataset.timestamp;
-
+    
     // Select the buttons specifically inside this container's header
-    const localUndoBtn = container.querySelector('.undo-btn');
-    const localRedoBtn = container.querySelector('.redo-btn');
+    const localUndoBtn = container.querySelector('.undo-btn'); 
+    const localRedoBtn = container.querySelector('.redo-btn'); 
 
     if (timestamp && visualEditorHistories.has(timestamp)) {
         const history = visualEditorHistories.get(timestamp);
-
+        
         // Undo is disabled if there is 1 or 0 items (initial state)
         if (localUndoBtn) localUndoBtn.disabled = history.undoStack.length <= 1;
-
+        
         // Redo is disabled if stack is empty
         if (localRedoBtn) localRedoBtn.disabled = history.redoStack.length === 0;
     } else {
@@ -2676,7 +2672,7 @@ function deleteSelectedElement() {
             // 1. Safety Check: Ensure element and iframe exist
             if (!elementToDelete.ownerDocument) return;
             const iframe = elementToDelete.ownerDocument.defaultView ? elementToDelete.ownerDocument.defaultView.frameElement : null;
-
+            
             // 2. Push state to history (Undo)
             if (iframe) pushStateForIframe(iframe);
 
@@ -2698,7 +2694,7 @@ function deleteSelectedElement() {
             // 6. Save Changes (Pass iframe explicitly since selection is now null)
             if (iframe) {
                 triggerVisualUpdateSave(iframe);
-
+                
                 // Update Undo/Redo buttons if the function exists
                 if (typeof updateUndoRedoButtons === 'function') {
                     // Temporarily help updateUndoRedoButtons find the context
@@ -2790,7 +2786,7 @@ function disableIframeContextMenu(iframe) {
     try {
         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
         if (iframeDoc) {
-            iframeDoc.addEventListener('contextmenu', e => e.preventDefault());
+           iframeDoc.addEventListener('contextmenu', e => e.preventDefault());
         }
     } catch (error) {
         // This might fail due to security policies, but is unlikely with srcdoc.
@@ -2868,9 +2864,9 @@ function enableEditingInIframe(iframe) {
 
         const clickListener = (e) => {
             // 1. Prevent Default: Stops links from navigating while editing
-            e.preventDefault();
+            e.preventDefault(); 
             // 2. Stop Propagation: Prevents the event from bubbling further
-            e.stopPropagation();
+            e.stopPropagation(); 
 
             // If a different element was already being edited, make it non-editable
             if (currentlySelectedElementInIframe) {
@@ -2899,13 +2895,13 @@ function enableEditingInIframe(iframe) {
             const borderRadius = parseInt(computedStyle.borderRadius, 10) || 0;
             document.getElementById('border-radius-slider').value = borderRadius;
             document.getElementById('border-radius-value').textContent = `${borderRadius}px`;
-
-            if (fontBtnText) {
-                fontBtnText.textContent = computedStyle.fontFamily.split(',')[0].replace(/"/g, '');
+            
+            if(fontBtnText) {
+                 fontBtnText.textContent = computedStyle.fontFamily.split(',')[0].replace(/"/g, '');
             }
 
             if (currentlySelectedElementInIframe.classList.contains('btn-sitee')) {
-                buttonStyleGroup.style.display = 'grid';
+                buttonStyleGroup.style.display = 'grid'; 
                 btnStyleFilled.classList.toggle('active', currentlySelectedElementInIframe.classList.contains('btn-sitee-filled'));
                 btnStyleOutline.classList.toggle('active', currentlySelectedElementInIframe.classList.contains('btn-sitee-outline'));
             } else {
@@ -2915,11 +2911,11 @@ function enableEditingInIframe(iframe) {
 
         const outsideClickListener = (e) => {
             // Improved check to ensure we don't deselect when clicking editor tools
-            if (!iframe.contains(e.target) &&
-                !selectionBox.contains(e.target) &&
+            if (!iframe.contains(e.target) && 
+                !selectionBox.contains(e.target) && 
                 !visualEditorPanel.contains(e.target) &&
                 !e.target.closest('.color-picker-wrapper')) { // Added safety for color pickers
-
+                
                 if (currentlySelectedElementInIframe) {
                     currentlySelectedElementInIframe.removeAttribute('contenteditable');
                 }
@@ -2934,15 +2930,15 @@ function enableEditingInIframe(iframe) {
         const dropListener = (e) => {
             e.preventDefault();
             e.stopPropagation(); // Ensure drop doesn't bubble
-
+            
             const componentType = e.dataTransfer.getData('text/plain');
             const dropTarget = doc.elementFromPoint(e.clientX, e.clientY);
 
             if (dropTarget && componentLibrary[componentType]) {
-                pushStateForIframe(iframe);
+                pushStateForIframe(iframe); 
                 const componentHTML = componentLibrary[componentType];
                 dropTarget.insertAdjacentHTML('afterend', componentHTML);
-                triggerVisualUpdateSave();
+                triggerVisualUpdateSave(); 
             }
         };
 
@@ -2958,7 +2954,7 @@ function enableEditingInIframe(iframe) {
         // Use 'true' (Capture Phase) to catch the click BEFORE the element handles it.
         // Also attach to 'doc' instead of 'doc.body' to ensure we catch everything.
         doc.addEventListener('click', clickListener, true);
-
+        
         document.addEventListener('click', outsideClickListener, true);
         doc.body.addEventListener('dragover', dragOverListener);
         doc.body.addEventListener('drop', dropListener);
@@ -3253,7 +3249,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     };
-    // Prompt Viewer Modal Listeners
+// Prompt Viewer Modal Listeners
     if (closePromptModalBtn) {
         closePromptModalBtn.addEventListener('click', () => {
             promptViewerModal.style.display = 'none';
@@ -3266,10 +3262,10 @@ document.addEventListener("DOMContentLoaded", () => {
             navigator.clipboard.writeText(text).then(() => {
                 const originalText = copyFullPromptBtn.innerText;
                 copyFullPromptBtn.innerText = "Copied!";
-                copyFullPromptBtn.style.backgroundColor = "#4ADE80";
+                copyFullPromptBtn.style.backgroundColor = "#4ADE80"; 
                 setTimeout(() => {
                     copyFullPromptBtn.innerText = originalText;
-                    copyFullPromptBtn.style.backgroundColor = "";
+                    copyFullPromptBtn.style.backgroundColor = ""; 
                 }, 2000);
             });
         });
@@ -3292,7 +3288,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Listen for a click on the panel's close button
     closeVisualEditorBtn.addEventListener('click', () => {
         // Set the mode back to canvas to close the panel and update the button
-        handleModeChange('canvas-en');
+        handleModeChange('canvas-en'); 
     });
 
     // Logic for switching tabs INSIDE the visual editor (Design, Elements, Apps)
@@ -3314,7 +3310,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     });
-
+    
     deployGithubBtn.addEventListener('click', () => {
         if (currentUser && currentUser.github_token) {
             showDeployMode();
@@ -3461,15 +3457,15 @@ document.addEventListener("DOMContentLoaded", () => {
             applyStyle('borderRadius', `${radius}px`);
         });
     }
-    signupForm.addEventListener('submit', (e) => {
+signupForm.addEventListener('submit', (e) => {
         e.preventDefault();
-
+        
         // --- 1. Get Button and Set Loading State ---
         const submitBtn = signupForm.querySelector('button[type="submit"]');
         const originalBtnText = submitBtn.textContent;
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>';
-
+        
         const email = document.getElementById('signup-email').value;
         const password = document.getElementById('signup-password').value;
         signupError.textContent = "";
@@ -3481,14 +3477,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     signupView.style.display = 'none';
                     verificationEmailDisplay.textContent = userCredential.user.email;
                     verificationView.style.display = 'block';
-
+                    
                     // Reset button for next time
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalBtnText;
                 });
             })
-            .catch((error) => {
-                signupError.textContent = error.message;
+            .catch((error) => { 
+                signupError.textContent = error.message; 
                 // --- Reset Button on Error ---
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalBtnText;
@@ -3525,15 +3521,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     submitBtn.textContent = originalBtnText;
                 }
             })
-            .catch((error) => {
-                loginError.textContent = error.message;
+            .catch((error) => { 
+                loginError.textContent = error.message; 
                 // --- Reset Button on Error ---
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalBtnText;
             });
     });
-
-    forgotPasswordForm.addEventListener('submit', (e) => {
+    
+forgotPasswordForm.addEventListener('submit', (e) => {
         e.preventDefault();
 
         // --- 1. Get Button and Set Loading State ---
@@ -3876,20 +3872,20 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- END: SITE SUBDOMAIN PUBLISH LOGIC ---
     // Modal Close/Cancel Buttons
     // --- FIX: Modal Stuck Issue ---
-    modalConfirmBtn.addEventListener('click', async () => {
-        try {
-            // Execute the specific action (delete, publish, etc.)
-            if (currentConfirmCallback) {
-                await currentConfirmCallback(); // Await ensures we catch async errors too
-            }
-        } catch (error) {
-            console.error("Error during confirmation action:", error);
-            showNotification("An error occurred, but the action may have completed.", "error");
-        } finally {
-            // This ALWAYS runs, ensuring the popup closes no matter what
-            hideConfirmationModal();
+modalConfirmBtn.addEventListener('click', async () => {
+    try {
+        // Execute the specific action (delete, publish, etc.)
+        if (currentConfirmCallback) {
+            await currentConfirmCallback(); // Await ensures we catch async errors too
         }
-    });
+    } catch (error) {
+        console.error("Error during confirmation action:", error);
+        showNotification("An error occurred, but the action may have completed.", "error");
+    } finally {
+        // This ALWAYS runs, ensuring the popup closes no matter what
+        hideConfirmationModal();
+    }
+});
 
     modalCancelBtn.addEventListener('click', hideConfirmationModal);
     closeFeedbackModalBtn.addEventListener('click', () => { feedbackModal.style.display = 'none'; });
@@ -4140,107 +4136,3 @@ Promise.all([minDelayPromise, pageLoadPromise]).then(() => {
         preloader.classList.add("hidden");
     }
 });
-
-async function generateWebsiteLive(promptText) {
-    // 1. SWITCH TO CHAT UI MODE
-    // This unhides the #chat-container so the thinking animation and code are visible
-    document.body.classList.add('chat-active');
-    openCodeEditor();
-
-    // 2. Prepare the UI elements
-    const thinkingUI = document.getElementById("thinking-ui");
-    const codeOutputContainer = document.getElementById("code-editor-content");
-    const editorContainer = document.getElementById("code-editor-container");
-
-    // Show thinking animation and clear previous code
-    if (thinkingUI) thinkingUI.style.display = "inline-flex";
-    if (codeOutputContainer) codeOutputContainer.textContent = "";
-
-    try {
-        // Use your dynamic backend URL and secure headers
-        const response = await fetch(`${backendUrl}/stream-generate/`, {
-            method: "POST",
-            headers: await getAuthHeaders(), // Replaced localStorage with your secure function
-            body: JSON.stringify({
-                prompt: promptText,
-                target_language: "html",
-                user_id: currentUser.id // Replaced the hardcoded string with your global state variable
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        // 3. Read the Server-Sent Events (SSE) Stream
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-
-        let isThinking = true;
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            // Decode the byte chunk into a string
-            const chunk = decoder.decode(value, { stream: true });
-
-            // SSE sends data chunks separated by newlines
-            const lines = chunk.split("\n");
-
-            for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                    // Hide the "Thinking" animation the millisecond the first text arrives
-                    if (isThinking) {
-                        if (thinkingUI) thinkingUI.style.display = "none";
-                        isThinking = false;
-                    }
-
-                    // Extract the JSON string
-                    const dataStr = line.replace("data: ", "").trim();
-                    if (!dataStr) continue;
-
-                    try {
-                        const parsedData = JSON.parse(dataStr);
-
-                        // Handle potential backend errors passed through the stream
-                        if (parsedData.error) {
-                            console.error("Backend Error:", parsedData.error);
-                            if (codeOutputContainer) codeOutputContainer.textContent += `\nError: ${parsedData.error}`;
-                            continue;
-                        }
-
-                        // Append the live text to the screen!
-                        if (parsedData.text) {
-                            if (codeOutputContainer) codeOutputContainer.textContent += parsedData.text;
-
-                            // Auto-scroll to the bottom of the code editor as it types
-                            if (editorContainer) {
-                                editorContainer.scrollTop = editorContainer.scrollHeight;
-                            }
-                        }
-                    } catch (e) {
-                        // This happens if a chunk gets split halfway through a JSON string. 
-                        // It will catch up on the next stream packet, so we can ignore it silently.
-                        // console.log("Waiting for next stream packet...");
-                    }
-                }
-            }
-        }
-
-        // 4. Highlight the code when finished (Since you are using highlight.js in your HTML)
-        if (window.hljs && codeOutputContainer) {
-            // Remove the highlighting class so it forces a re-highlight
-            codeOutputContainer.removeAttribute('data-highlighted');
-            hljs.highlightElement(codeOutputContainer);
-        }
-
-    } catch (error) {
-        console.error("Stream failed:", error);
-        // Ensure the thinking animation is hidden if the request fails
-        if (thinkingUI) thinkingUI.style.display = "none";
-        if (codeOutputContainer) {
-            codeOutputContainer.textContent += "\n\nConnection lost or failed to generate.";
-        }
-    }
-}
