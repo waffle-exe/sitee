@@ -10,9 +10,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import requests
-from fastapi.responses import StreamingResponse
-import json 
-
 
 # Set BASE_DIR first so we can securely locate files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -148,7 +145,7 @@ async def get_current_user(
             detail=f"Invalid or expired token: {str(e)}"
         )
     
-
+    
 def clean_ai_html(raw_html: str) -> str:
     clean = raw_html.strip()
     clean = re.sub(r"^```[a-zA-Z]*\s*\n", "", clean, flags=re.IGNORECASE)
@@ -548,99 +545,6 @@ async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dic
 @app.post("/apply-suggestion-fix/")
 async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     return {"new_html": req.get("new_outer_html")}
-
-
-from fastapi.responses import HTMLResponse
-from fastapi import Request
-
-# ... (rest of your existing endpoints) ...
-
-@app.get("/{full_path:path}")
-async def serve_sitee_subdomains(request: Request, full_path: str):
-    """
-    Catch-all route to serve published HTML based on the subdomain.
-    This MUST be at the very bottom of your routes so it doesn't block /generate or /users.
-    """
-    # 1. Get the domain the user is trying to visit (e.g., car-race-app.sitee.in)
-    host = request.headers.get("host", "").split(":")[0]
-
-    # Ignore direct IP visits or the base render URL so your API still works
-    if "onrender.com" in host or host == "127.0.0.1" or host == "localhost":
-        return {"message": "Sitee API is running"}
-
-    target_url = f"https://{host}"
-
-    try:
-        # 2. Search all 'projects' subcollections in Firestore for a matching published_url
-        projects = db.collection_group("projects").where("published_url", "==", target_url).limit(1).stream()
-        
-        # 3. If we find it, extract the HTML and return it as a real webpage
-        for proj in projects:
-            proj_data = proj.to_dict()
-            html_content = proj_data.get("html", "<h1>Empty Project</h1>")
-            
-            # Return as HTMLResponse so the browser renders it as a website, not JSON
-            return HTMLResponse(content=html_content, status_code=200)
-            
-        # 4. If no project matches that URL
-        return HTMLResponse(
-            content=f"""
-            <div style='font-family: sans-serif; text-align: center; margin-top: 50px;'>
-                <h1>404 - Site Not Found</h1>
-                <p>No project is published at <b>{target_url}</b></p>
-                <a href='https://www.sitee.in' style='color: #3B82F6;'>Build your own at Sitee.in</a>
-            </div>
-            """, 
-            status_code=404
-        )
-
-    except Exception as e:
-        print(f"Subdomain Routing Error: {e}")
-        return HTMLResponse(content="<h1>500 - Internal Server Error</h1>", status_code=500)
-
-
-async def generate_stream_generator(prompt: str, target_lang: str):
-    system_instruction = f"""
-    You are an elite web developer. 
-    Output valid, COMPLETE {target_lang.upper()} code.
-    ZERO explanations. NO markdown blocks.
-    """
-    
-    messages_ai = [
-        {"role": "system", "content": system_instruction}, 
-        {"role": "user", "content": prompt}
-    ]
-
-    try:
-        # Notice stream=True here
-        response = await client_fireworks.chat.completions.create(
-            model="accounts/fireworks/models/kimi-k2p7-code",
-            messages=messages_ai,
-            max_tokens=15000,
-            temperature=0.2,
-            stream=True 
-        )
-        
-        for chunk in response:
-            # Safely grab the delta content
-            content = chunk.choices[0].delta.content
-            if content:
-                # We yield the data in the Server-Sent Events (SSE) format
-                yield f"data: {json.dumps({'text': content})}\n\n"
-                
-    except Exception as e:
-        yield f"data: {json.dumps({'error': str(e)})}\n\n"
-
-# Create a new endpoint or update your existing /generate/ one
-@app.post("/stream-generate/")
-async def stream_generate_endpoint(req: GenerateRequest, current_user: dict = Depends(get_current_user)):
-    # Note: Credit deduction logic should go here just like your normal endpoint
-    
-    # Return the streaming response!
-    return StreamingResponse(
-        generate_stream_generator(req.prompt, req.target_language), 
-        media_type="text/event-stream"
-    )
 
 
 if __name__ == "__main__":
