@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="plan-price">${planData.symbol}0</div><br>
                     <p class="description">Perfect for getting started and exploring the platform.</p>
                     <ul class="plan-features">
-                        <li>${checkIcon} 25 AI Credits (One-Time)</li>
+                        <li>${checkIcon} 10 AI Credits (One-Time)</li>
                         <li>${checkIcon} Generate Unlimited Previews</li>
                         <li>${checkIcon} Sitee Branding</li>
                     </ul>
