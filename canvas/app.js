@@ -771,8 +771,7 @@ async function generateWebsite(promptText, images = null) {
                             
                             // 5. Frontend Regex Cleanup (Strips ```html if the AI disobeys)
                             let displayCode = accumulatedCode
-                                .replace(/^
-```[a-z]*\n/gi, '')
+                                .replace(/^```[a-z]*\n/gi, '')
                                 .replace(/```$/g, '');
                                 
                             // 6. Update the UI in real-time
