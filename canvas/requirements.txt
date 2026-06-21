@@ -4,3 +4,5 @@ python-dotenv
 requests
 pydantic
 python-multipart
+gunicorn
+uvicorn
