@@ -1,0 +1,3968 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sitee - Generate, Own, Launch</title>
+    <meta name="description"
+        content="Ideas are worthless. Execution is everything. We handle the execution. Your builder, your workflow, your code.">
+    <meta name="keywords"
+        content="AI website builder, code generation, source code generator, AI development, web design AI, frontend automation, Sitee.LLM, no-code to code">
+    <meta name="author" content="Sitee.in">
+    <link rel="canonical" href="https://www.sitee.in">
+    <link rel="icon" href="https://www.sitee.in/assets/img/ico.svg" type="image/x-icon">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.sitee.in/">
+    <meta property="og:title" content="Sitee - Generate, Own, Launch">
+    <meta property="og:description"
+        content="This is your license to operate at a speed no one else can match. Generate. Own. Launch. Before your competition even knows what hit them.">
+    <meta property="og:image" content="https://www.sitee.in/assets/img/dash.png">
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://www.sitee.in/">
+    <meta property="twitter:title" content="Sitee: AI-Powered Website Generation - Generate, Own, Launch">
+    <meta property="twitter:description"
+        content="This is your license to operate at a speed no one else can match. Generate. Own. Launch. Before your competition even knows what hit them.">
+    <meta property="twitter:image" content="https://www.sitee.in/assets/img/dash.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script type="application/ld+json">
+{
+"@context": "https://schema.org",
+"@type": "SoftwareApplication",
+"name": "Sitee",
+"applicationCategory": "DeveloperApplication",
+"operatingSystem": "Web",
+"description": "This is your license to operate at a speed no one else can match. Generate. Own. Launch. Before your competition even knows what hit them.",
+"url": "https://www.sitee.in",
+"author": {
+"@type": "Organization",
+"name": "Sitee"
+},
+"offers": {
+"@type": "Offer",
+"price": "0",
+"priceCurrency": "USD"
+}
+}
+</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.12/marked.min.js"></script>
+
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+        </script>
+
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --background-color: #0A0B0F;
+            --surface-color: rgba(255, 255, 255, 0.02);
+            --text-color: #F0F2F5;
+            --text-muted-color: #8A9A9E;
+            --accent-color: #3B82F6;
+            --accent-gradient: linear-gradient(90deg, #3B82F6, #EF4444);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --error-color: #E57373;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 15% 15%, hsla(217, 91%, 60%, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 75%, hsla(0, 84%, 60%, 0.15) 0%, transparent 40%);
+            z-index: -1;
+            transition: opacity 0.5s ease;
+        }
+
+        body.generating::before,
+        body.generating .blob,
+        body.chat-started::before,
+        body.chat-started .blob {
+            opacity: 0;
+        }
+
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.3;
+            transition: opacity 0.5s ease;
+        }
+
+        #blob1 {
+            width: 400px;
+            height: 400px;
+            background: hsla(217, 91%, 60%, 0.5);
+            top: -100px;
+            left: -100px;
+        }
+
+        #blob2 {
+            width: 300px;
+            height: 300px;
+            background: hsla(0, 84%, 60%, 0.5);
+            bottom: -50px;
+            right: -50px;
+        }
+
+        .glassy {
+            background-color: var(--surface-color);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 10px 50px var(--shadow-color);
+            background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
+        }
+
+        #login-modal,
+        #confirmation-modal,
+        #invite-modal,
+        #feedback-modal,
+        #ai-suggestion-modal,
+        #download-modal,
+        #edit-image-modal,
+        #github-deploy-modal,
+        #publish-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 11, 15, 0.5);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 1rem;
+        }
+
+        #confirmation-modal {
+            z-index: 12000;
+        }
+
+        #ai-suggestion-modal .modal-content {
+            max-width: 600px;
+        }
+
+        #edit-image-modal .modal-buttons {
+            margin-top: 1.5rem;
+        }
+
+        #suggestion-content {
+            text-align: left;
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            max-height: 60vh;
+            overflow-y: auto;
+            margin-top: 1rem;
+            border: 1px solid var(--border-color);
+            line-height: 1.6;
+        }
+
+        #suggestion-actions button {
+            background-color: var(--accent-color);
+            color: white;
+            flex: 0;
+            padding: 0.5rem 1rem;
+        }
+
+        .login-container,
+        .modal-content {
+            padding: 2rem;
+            border-radius: 16px;
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .login-container h2,
+        .modal-content h2 {
+            margin-bottom: 1rem;
+        }
+
+        .login-container p,
+        .modal-content p {
+            margin-bottom: 1.5rem;
+            color: var(--text-muted-color);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        #user-id-input,
+        .modal-input,
+        .modal-select {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+
+        #proceed-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s, opacity 0.2s;
+        }
+
+        #proceed-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #login-error {
+            color: var(--error-color);
+            font-size: 0.85rem;
+            height: 20px;
+            margin-top: -0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        #modal-confirm-btn,
+        #download-confirm-btn {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        #modal-confirm-btn.danger {
+            background-color: var(--error-color);
+        }
+
+        #modal-cancel-btn,
+        #download-cancel-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        #modal-confirm-btn,
+        #download-confirm-btn,
+        #edit-image-save-btn {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        #modal-cancel-btn,
+        #download-cancel-btn,
+        #edit-image-cancel-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .close-modal-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.75rem;
+            color: var(--text-muted-color);
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close-modal-btn:hover {
+            color: var(--text-color);
+        }
+
+        .invite-link-container {
+            display: flex;
+            margin-top: 1.5rem;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        #invite-link-input {
+            flex-grow: 1;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        #copy-invite-link-btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0 1rem;
+            border-radius: 0 7px 7px 0;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        #copy-invite-link-btn:hover {
+            background-color: #2563eb;
+        }
+
+        .refine-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            align-items: center;
+        }
+
+        .refine-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        .refine-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: background-color 0.2s;
+        }
+
+        .refine-btn:hover {
+            background-color: #2563eb;
+        }
+
+        .edit-image-form {
+            text-align: left;
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .edit-image-form label {
+            font-size: 0.9rem;
+            color: var(--text-muted-color);
+            font-weight: 500;
+        }
+
+        .or-divider {
+            text-align: center;
+            color: var(--text-muted-color);
+            margin: 0.5rem 0;
+            position: relative;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background-color: var(--border-color);
+        }
+
+        .or-divider::before {
+            left: 0;
+        }
+
+        .or-divider::after {
+            right: 0;
+        }
+
+        .file-upload-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: rgba(0, 0, 0, 0.2);
+            padding-left: 0.75rem;
+        }
+
+        #choose-file-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        #choose-file-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        #file-name-display {
+            color: var(--text-muted-color);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #download-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: left;
+        }
+
+        #download-form label {
+            font-size: 0.85rem;
+            color: var(--text-muted-color);
+            font-weight: 500;
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        body.loaded .app-container {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #sidebar {
+            width: 280px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease, opacity 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        #sidebar.collapsed {
+            margin-left: -280px;
+        }
+
+        .sidebar-header {
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .avatar-container {
+            position: relative;
+        }
+
+        .avatar-wrapper {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            padding: 2px;
+            border: 2px solid var(--accent-color);
+            box-shadow: inset 0 0 0 2px white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #user-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .avatar-dropdown {
+            position: absolute;
+            top: 110%;
+            left: 0;
+            width: 180px;
+            border-radius: 8px;
+            padding: 0.5rem;
+            z-index: 10;
+            display: none;
+            background-color: #0a0b0fc2;
+        }
+
+        .avatar-dropdown.show {
+            display: block;
+        }
+
+        .avatar-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .avatar-option:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .avatar-option img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-info {
+            flex-grow: 1;
+        }
+
+        .user-info h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .projects-title-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        #delete-all-btn {
+            background: none;
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #delete-all-btn:hover {
+            background: var(--error-color);
+            color: white;
+        }
+
+        #user-id,
+        #credit-display {
+            font-size: 0.75rem;
+            color: var(--text-muted-color);
+            word-break: break-all;
+        }
+
+        #credit-display {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-top: 4px;
+        }
+
+        #project-list {
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        #project-list:empty::before {
+            content: "Your generated projects will appear here.";
+            color: var(--text-muted-color);
+            font-style: italic;
+            font-size: 0.85rem;
+            display: block;
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .project-item {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .project-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        #sidebar-toggle {
+            position: fixed;
+            top: 1.5rem;
+            left: 295px;
+            z-index: 101;
+            color: var(--text-color);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: left 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        #sidebar.collapsed~#main-content #sidebar-toggle {
+            left: 1.5rem;
+            transform: rotate(180deg);
+        }
+
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        @keyframes premium-gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* --- ADD THESE NEW STYLES (e.g., after the @keyframes rule) --- */
+        .header-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            text-decoration: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            background-color: var(--surface-color);
+            /* Fallback for dashboard button */
+        }
+
+        .header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        #upgrade-btn {
+            background-size: 200% 200%;
+            animation: premium-gradient 5s ease infinite;
+        }
+
+        #canvas {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #canvas::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            transform: none;
+            background-image: url("https://www.sitee.in/assets/img/logo.svg");
+            background-repeat: no-repeat;
+            background-position: center 35%;
+            background-size: 50% auto;
+            opacity: 0.02;
+            filter: brightness(0) invert(1);
+            color: rgba(255, 255, 255, 0.025);
+            transition: left 0.3s ease, opacity 0.5s ease;
+        }
+
+        #prompt-suggestions {
+            position: absolute;
+            bottom: 10rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            transition: opacity 0.5s ease, transform 0.5s ease, pointer-events 0.5s;
+            width: 100%;
+            max-width: 700px;
+            justify-content: center;
+            padding: 0 1rem;
+        }
+
+        #prompt-suggestions.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .suggestion-card {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            min-height: 120px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            overflow: hidden;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .suggestion-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+        }
+
+        .suggestion-card span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .site-container {
+            position: absolute;
+            width: 350px;
+            height: 250px;
+            border-radius: 16px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+            resize: both;
+            overflow: hidden;
+            min-width: 250px;
+            min-height: 200px;
+        }
+
+        .site-container::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background-image:
+                linear-gradient(135deg, var(--text-muted-color) 33%, transparent 33%),
+                linear-gradient(135deg, transparent 33%, var(--text-muted-color) 66%, transparent 66%);
+            background-size: 6px 6px;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .site-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            cursor: move;
+        }
+
+        .review-tag {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted-color);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .preview {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
+        }
+
+        .loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted-color);
+            margin-top: 1rem;
+        }
+
+        /* Make sure your .publish-info rule looks like this */
+        .publish-info {
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            color: var(--text-muted-color);
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* --- ADD THIS NEW RULE --- */
+        .publish-info a+.share-btn {
+            margin-left: auto;
+        }
+
+        .publish-info a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .publish-info a:hover {
+            text-decoration: underline;
+        }
+
+        .share-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted-color);
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            border-radius: 4px;
+        }
+
+        .share-btn:hover {
+            color: var(--text-color);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .share-dropdown {
+            position: absolute;
+            bottom: 110%;
+            right: 0;
+            background-color: #1a1c23;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            z-index: 20;
+            width: 180px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+
+        .share-dropdown.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .share-dropdown-header {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted-color);
+            padding: 0.25rem 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .share-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+
+        .share-option:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .share-option svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #theme-selector-container {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 700px;
+            z-index: 101;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: left 0.3s ease, opacity 0.3s ease, bottom 0.2s ease-out;
+        }
+
+        #sidebar:not(.collapsed)~#main-content #theme-selector-container {
+            left: calc(50% + 140px);
+        }
+
+        #theme-selector-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background-color: var(--surface-color);
+            color: var(--text-muted-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        #theme-selector-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        #theme-dropdown {
+            position: absolute;
+            bottom: 110%;
+            left: 0;
+            width: 250px;
+            border-radius: 12px;
+            padding: 0.5rem;
+            display: none;
+            z-index: 102;
+        }
+
+        #theme-dropdown.show {
+            display: block;
+        }
+
+        .theme-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .theme-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        #controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 28px;
+            width: 100%;
+            /* Make it fill the new container */
+            position: relative;
+            /* Keep this for z-index stacking if needed */
+        }
+
+        #disclaimer-text {
+            font-size: 0.75rem;
+            /* 12px */
+            color: var(--text-muted-color);
+            text-align: center;
+            margin-top: 0.75rem;
+            /* 12px spacing */
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        /* This is the new container for the input bar and disclaimer */
+        #bottom-controls-container {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            width: 90%;
+            max-width: 700px;
+            z-index: 100;
+            transition: left 0.3s ease, transform 0.5s ease, opacity 0.3s ease;
+        }
+
+        /* We need to apply the 'loaded' transition to the new container */
+        body.loaded #bottom-controls-container {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* And update the sidebar-aware rule to target the new container */
+        #sidebar:not(.collapsed)~#main-content #bottom-controls-container {
+            left: calc(50% + 140px);
+        }
+
+        body.loaded #controls {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #sidebar:not(.collapsed)~#main-content #controls {
+            left: calc(50% + 140px);
+        }
+
+        #prompt {
+            flex: 1;
+            padding: 14px 15px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            outline: none;
+            resize: none;
+            overflow-y: hidden;
+            line-height: 1.4;
+            max-height: 150px;
+        }
+
+        #prompt:disabled {
+            cursor: not-allowed;
+            color: var(--text-muted-color);
+        }
+
+        #prompt.listening::placeholder {
+            color: transparent;
+        }
+
+        .action-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+        }
+
+        /* --- REPLACE THESE THREE RULES --- */
+
+        #controls {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            display: flex;
+            align-items: center;
+            /* CHANGED from flex-end */
+            gap: 10px;
+            padding: 8px 10px;
+            /* CHANGED from 10px */
+            border-radius: 28px;
+            width: 90%;
+            max-width: 700px;
+            z-index: 100;
+            transition: left 0.3s ease, transform 0.5s ease, opacity 0.3s ease;
+            position: relative;
+        }
+
+        /* Add this anywhere inside your <style> tag */
+        #image-preview-container {
+            display: none;
+            /* Initially hidden */
+            align-items: center;
+            gap: 8px;
+            padding: 4px;
+            margin-right: 8px;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+
+        #image-thumbnail {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        #remove-image-btn {
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted-color);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            line-height: 1;
+            padding: 0;
+            transition: all 0.2s;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+        }
+
+        #remove-image-btn:hover {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        #upload-btn {
+            background-color: transparent;
+            color: var(--text-muted-color);
+            border: 2px solid var(--accent-color);
+            box-shadow: inset 0 0 0 2px white;
+        }
+
+        #upload-btn:hover:not(:disabled) {
+            border-color: #f59e0b;
+        }
+
+        #generate {
+            background-color: transparent;
+            color: var(--text-muted-color);
+            border: 2px solid var(--accent-color);
+            box-shadow: inset 0 0 0 2px white;
+        }
+
+        #generate:hover:not(:disabled) {
+            background: var(--accent-gradient);
+            border-color: white;
+            color: white;
+            box-shadow: none;
+        }
+
+        #generate:disabled {
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #mic-btn {
+            background-color: transparent;
+            color: var(--text-muted-color);
+            border: 2px solid var(--accent-color);
+            box-shadow: inset 0 0 0 2px white;
+        }
+
+        #mic-btn:hover {
+            border-color: #EF4444;
+        }
+
+        #mic-btn.listening {
+            background: var(--accent-gradient);
+            border-color: white;
+            color: white;
+            box-shadow: none;
+        }
+
+        #input-visualizer {
+            position: absolute;
+            top: 0;
+            left: 15px;
+            right: 118px;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 13000;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .notification.success {
+            background-color: rgba(0, 255, 60, 0.263);
+        }
+
+        .notification.error {
+            background-color: rgba(255, 0, 25, 0.282);
+        }
+
+        .fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 5000 !important;
+            border-radius: 0 !important;
+            resize: none !important;
+        }
+
+        .fullscreen::after {
+            display: none;
+        }
+
+        body.site-fullscreen-active #sidebar-toggle,
+        body.site-fullscreen-active #invite-btn,
+        body.site-fullscreen-active #controls,
+        body.site-fullscreen-active #theme-selector-container,
+        body.site-fullscreen-active #sidebar {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #code-editor-modal {
+            position: fixed;
+            top: 0;
+            right: -500px;
+            width: 500px;
+            max-width: 90vw;
+            height: 100%;
+            background-color: var(--background-color);
+            backdrop-filter: none;
+            z-index: 1002;
+            transition: right 0.3s ease-out;
+            display: none;
+            flex-direction: column;
+            border-left: 1px solid var(--border-color);
+            box-shadow: -10px 0 30px var(--shadow-color);
+            border-radius: 16px 0 0 16px;
+            overflow: hidden;
+        }
+
+        #code-editor-modal.open {
+            right: 0;
+            display: flex;
+        }
+
+        .code-editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0.75rem 0.75rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        #code-editor-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .code-tab {
+            background: none;
+            border: none;
+            color: var(--text-muted-color);
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .code-tab:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+        }
+
+        .code-tab.active {
+            color: var(--text-color);
+            border-color: var(--accent-color);
+        }
+
+        #code-editor-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #code-editor-container {
+            flex: 1;
+            overflow: auto;
+            background-color: #1E1E1E;
+            padding: 1.5rem;
+        }
+
+        #code-editor-container pre,
+        #code-editor-container code {
+            margin: 0;
+            padding: 0 !important;
+            background: none !important;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+            outline: none;
+            caret-color: var(--text-color);
+        }
+
+        .close-editor-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-editor-btn:hover {
+            color: var(--text-color);
+        }
+
+        #mode-selector {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background-color: var(--surface-color);
+            padding: 6px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        #chat-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .turn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            max-width: 100%;
+        }
+
+        .message-wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .chat-message .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            object-fit: cover;
+        }
+
+        .message-content {
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            background-color: rgba(255, 255, 255, 0.05);
+            line-height: 1.6;
+            max-width: 100%;
+            overflow-x: hidden;
+            font-size: 1rem;
+        }
+
+        .user-message .message-content {
+            max-width: 90%;
+        }
+
+        .message-content p:not(:last-child) {
+            margin-bottom: 1em;
+        }
+
+        .message-content pre {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: rgba(0, 0, 0, 0.3);
+            overflow-x: auto;
+            position: relative;
+            max-width: 100%;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .message-content code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .user-message .message-wrapper {
+            align-items: flex-end;
+        }
+
+        .user-message .message-content {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            width: 100%;
+        }
+
+        .ai-message .avatar {
+            padding: 4px;
+            background: var(--accent-gradient);
+        }
+
+        .ai-message .message-wrapper {
+            align-items: flex-start;
+        }
+
+        .ai-message-header {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            margin-bottom: 0.5rem;
+            height: 28px;
+        }
+
+        .response-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted-color);
+        }
+
+        .nav-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted-color);
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .message-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .feedback-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted-color);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .edit-mode-btn {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .edit-mode-btn.save {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .edit-mode-btn.cancel {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .feedback-btn:hover,
+        .feedback-btn.active {
+            color: var(--text-color);
+        }
+
+        .feedback-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .copy-code-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted-color);
+            padding: 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s, color 0.2s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .copy-code-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .message-content pre:hover .copy-code-btn {
+            opacity: 1;
+        }
+
+        .copy-code-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+        }
+
+        #feedback-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            text-align: left;
+        }
+
+        #feedback-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.75rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        #submit-feedback-btn {
+            padding: 0.75rem;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .edit-prompt-container {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            align-items: center;
+            padding: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .edit-prompt-textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            resize: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            outline: none;
+            padding: 0.25rem;
+            max-height: 60px;
+        }
+
+        .edit-prompt-btn {
+            padding: 0 12px;
+            height: 25px;
+            border-radius: 4px;
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background-color 0.2s;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        body.chat-active #canvas {
+            padding-top: 5rem;
+            padding-bottom: 10rem;
+        }
+
+        body.chat-active #chat-container {
+            display: flex;
+        }
+
+        body.chat-active .site-container,
+        body.chat-active #prompt-suggestions,
+        body.chat-active #canvas::before {
+            display: none;
+        }
+
+        /* START: Visual Editor Toolbar Styles */
+        #visual-editor-toolbar {
+            position: fixed;
+            z-index: 9999;
+            padding: 6px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            /* Reduced gap slightly */
+            transition: top 0.1s, left 0.1s;
+        }
+
+        #visual-editor-toolbar .toolbar-section {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        #visual-editor-toolbar .color-picker-wrapper {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        #visual-editor-toolbar label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-color);
+            pointer-events: none;
+            /* Allows click to pass through to the input */
+            text-shadow: 0 0 2px black;
+        }
+
+        #visual-editor-toolbar input[type="color"] {
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            width: 32px;
+            /* Slightly larger to be easier to click */
+            height: 32px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        #visual-editor-toolbar .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background-color: var(--border-color);
+            margin: 0 4px;
+        }
+
+        #visual-editor-toolbar button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            padding: 0;
+        }
+
+        #visual-editor-toolbar button svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        #visual-editor-toolbar button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* START: Added styles for new buttons */
+        #visual-editor-toolbar #delete-element-btn:hover {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        /* END: Added styles for new buttons */
+
+        #visual-editor-toolbar #font-size-display {
+            font-size: 0.85rem;
+            width: 24px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* END: Visual Editor Toolbar Styles */
+
+        @media (max-width: 640px) {
+            #invite-btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+                top: 1rem;
+                right: 1rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .modal-buttons button {
+                flex: 1 1 0;
+            }
+        }
+
+        /* START: MODAL STYLES */
+        #auth-modal,
+        #dashboard-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 11, 15, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #auth-modal.active,
+        #dashboard-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .auth-container {
+            background: rgba(26, 26, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2.5rem;
+            border-radius: 22px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            transform: scale(0.95);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #auth-modal.active .auth-container,
+        #dashboard-modal.active .auth-container {
+            transform: scale(1);
+        }
+
+        .auth-container h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .auth-container p {
+            color: #b7b7c2;
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1rem;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+        }
+
+        .auth-input:focus {
+            border-color: #3B82F6;
+            outline: none;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 0.85rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background-color: #3B82F6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563EB;
+        }
+
+        .auth-switch {
+            color: #b7b7c2;
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+        }
+
+        .auth-switch a {
+            color: #60A5FA;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+
+        .auth-error {
+            color: #F87171;
+            min-height: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #dashboard-content {
+            text-align: left;
+            margin-top: 1.5rem;
+        }
+
+        #dashboard-content .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.95rem;
+        }
+
+        #dashboard-content .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        #dashboard-content .detail-label {
+            color: #a0aec0;
+        }
+
+        #dashboard-content .detail-value {
+            font-weight: 600;
+            color: #fff;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #logout-btn {
+            background: rgb(193, 37, 37);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #logout-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .close-modal-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 1.25rem;
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            font-size: 2.5rem !important;
+            font-weight: 200;
+            color: #8A9A9E;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+        .close-modal-btn:hover {
+            color: #ffffff;
+            transform: scale(1.1);
+        }
+
+        .forgot-password-link {
+            text-align: right;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .forgot-password-link a {
+            color: #9CA3AF;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .forgot-password-link a:hover {
+            color: #60A5FA;
+        }
+
+        .auth-success {
+            color: #4ADE80;
+            min-height: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* --- ADDED FOR STORAGE PROGRESS BAR --- */
+        .storage-progress-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .storage-progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted-color);
+            padding: 0 2px;
+        }
+
+        .storage-progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .storage-progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-gradient);
+            border-radius: 4px;
+            transition: width 0.5s ease-in-out;
+        }
+
+        /* Add this inside your main <style> tag */
+
+        #subdomain-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            justify-content: flex-start;
+        }
+
+        .suggestion-btn {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            background-color: var(--surface-color);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: var(--text-muted-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+        }
+
+        .suggestion-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-color);
+            color: var(--text-color);
+        }
+
+        /* --- END OF ADDED STYLES --- */
+    </style>
+    <style>
+        .preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0A0B0F;
+            /* Match body background */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        #loading-icon {
+            position: relative;
+            left: -15px;
+        }
+
+        #loading-icon svg {
+            width: 200px;
+            height: 200px;
+            animation: spin 2s linear infinite, pulse 1.5s ease-in-out infinite;
+        }
+
+        .preloader-text {
+            color: #F0F2F5;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            opacity: 0.8;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+        }
+
+        .preloader.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .preview.compare-mode {
+            display: flex;
+            gap: 5px;
+        }
+
+        .compare-pane {
+            position: relative;
+            width: 50%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .compare-pane iframe {
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+        }
+
+        .select-version-btn {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+            background-color: var(--accent-color);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            opacity: 0.8;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .select-version-btn:hover {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-2px);
+        }
+
+        /* --- ADD THESE STYLES FOR THE NEW PUBLISH MODAL --- */
+        .modal-btn-choice {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .modal-btn-choice:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-color);
+        }
+
+        .modal-btn-choice strong {
+            font-weight: 600;
+        }
+
+        .modal-btn-choice small {
+            font-size: 0.8rem;
+            color: var(--text-muted-color);
+        }
+
+        .subdomain-input-group {
+            display: flex;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            flex-wrap: nowrap;
+        }
+
+        .subdomain-input-group .modal-input {
+            border: none;
+            background: none;
+            margin-bottom: 0;
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .subdomain-suffix {
+            padding-right: 0.75rem;
+            color: var(--text-muted-color);
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+
+        .publish-status {
+            min-height: 20px;
+            font-size: 0.85rem;
+            text-align: left;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .publish-status.checking {
+            color: var(--text-muted-color);
+        }
+
+        .publish-status.available {
+            color: #4ADE80;
+        }
+
+        .publish-status.taken {
+            color: var(--error-color);
+        }
+
+        #sitee-publish-confirm-btn:disabled,
+        #vercel-publish-confirm-btn:disabled {
+            background-color: #555 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Add this CSS to your main <style> block in the <head> */
+        /* REPLACE your old #selection-box CSS with this */
+
+        #selection-box {
+            position: absolute;
+            border: 2px solid var(--accent-color);
+            z-index: 10001;
+            pointer-events: none;
+            /* Makes the box itself click-through */
+        }
+
+        #drag-handle {
+            position: absolute;
+            top: -24px;
+            left: 0;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: move;
+            pointer-events: all;
+            /* Makes the handle clickable */
+        }
+
+        #selection-box .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: white;
+            border: 1px solid var(--accent-color);
+            border-radius: 50%;
+            pointer-events: all;
+            /* Makes the handles clickable */
+        }
+
+        /* These styles for handles remain the same */
+        #handle-top-left {
+            top: -6px;
+            left: -6px;
+            cursor: nwse-resize;
+        }
+
+        #handle-top-right {
+            top: -6px;
+            right: -6px;
+            cursor: nesw-resize;
+        }
+
+        #handle-bottom-left {
+            bottom: -6px;
+            left: -6px;
+            cursor: nesw-resize;
+        }
+
+        #handle-bottom-right {
+            bottom: -6px;
+            right: -6px;
+            cursor: nwse-resize;
+        }
+
+        /* --- START: FEEDBACK WIDGET STYLES --- */
+        .feedback-widget {
+            margin-top: 0.75rem;
+            padding: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .feedback-widget.submitted {
+            opacity: 0.6;
+            pointer-events: none;
+            border-color: var(--accent-color);
+        }
+
+        .feedback-initial-prompt {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feedback-prompt-text {
+            color: var(--text-muted-color);
+            font-weight: 500;
+        }
+
+        .feedback-actions button {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted-color);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 0.25rem;
+        }
+
+        .feedback-actions button:hover:not(:disabled) {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            transform: scale(1.1);
+        }
+
+        .feedback-actions button:disabled {
+            cursor: not-allowed;
+        }
+
+        .feedback-actions button.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .feedback-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .feedback-details.hidden {
+            display: none;
+        }
+
+        .feedback-details-prompt {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .feedback-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .feedback-tag {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted-color);
+            padding: 3px 8px;
+            font-size: 0.75rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .feedback-tag:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: var(--text-color);
+        }
+
+        .feedback-tag.selected {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .feedback-comment {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 6px;
+            padding: 0.5rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            resize: vertical;
+            min-height: 50px;
+        }
+
+        .feedback-submit-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 6px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .feedback-submit-btn:hover {
+            background-color: #2563eb;
+        }
+
+        /* --- THE COMPLETE & FINAL MOBILE STYLESHEET --- */
+        @media (max-width: 768px) {
+
+            /* --- 1. General & Working Fixes --- */
+            #main-content {
+                overflow-x: hidden;
+            }
+
+            /* Smaller preview window to fit in the space */
+            .site-container {
+                width: 90vw !important;
+                height: 55vh !important;
+                top: 48% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                resize: none;
+            }
+
+            /* NEW FIX: This forces true fullscreen when the .fullscreen class is active */
+            .site-container.fullscreen {
+                width: 100vw !important;
+                height: 100vh !important;
+                top: 0 !important;
+                left: 0 !important;
+                transform: none !important;
+            }
+
+            .site-container::after {
+                display: none;
+            }
+
+            #header-buttons-container {
+                right: 1rem;
+                left: auto;
+                transform: none;
+            }
+
+            .header-btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            #sidebar {
+                position: fixed;
+                width: 85vw;
+                max-width: 320px;
+                height: 100%;
+                z-index: 1001;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+                margin-left: 0 !important;
+            }
+
+            #sidebar:not(.collapsed) {
+                transform: translateX(0);
+            }
+
+            #sidebar-toggle {
+                left: 1rem !important;
+                top: 1rem !important;
+                transform: none !important;
+                z-index: 1002;
+            }
+
+            body:has(#sidebar:not(.collapsed)) #main-content::after {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.6);
+                z-index: 1000;
+            }
+
+            /* --- 2. Final UI Stack (using your preferred spacing) --- */
+
+            #controls {
+                width: 95%;
+                padding: 5px !important;
+                gap: 5px !important;
+                border-radius: 40px !important;
+                bottom: 4.5rem !important;
+            }
+
+            #prompt {
+                font-size: 0.9rem !important;
+                padding: 8px 14px !important;
+            }
+
+            .action-btn {
+                width: 38px !important;
+                height: 38px !important;
+                flex-shrink: 0;
+            }
+
+            .action-btn svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            #theme-selector-container {
+                bottom: 8.5rem !important;
+                width: 90%;
+            }
+
+            #theme-selector-btn,
+            .mode-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            #prompt-suggestions {
+                bottom: 11.5rem !important;
+                width: 95%;
+                gap: 0.5rem;
+            }
+
+            .suggestion-card {
+                min-height: 75px;
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* --- Add this to your styles --- */
+        .loading {
+            flex-direction: column;
+            /* Stack spinner and button vertically */
+            gap: 15px;
+        }
+
+        .stop-btn {
+            padding: 8px 16px;
+            background-color: rgba(239, 68, 68, 0.8);
+            /* Red color */
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+            pointer-events: auto;
+            /* Ensure it is clickable */
+        }
+
+        .stop-btn:hover {
+            background-color: rgba(220, 38, 38, 1);
+            transform: translateY(-1px);
+        }
+
+
+.user-message:hover .user-message-tools {
+    opacity: 1;
+}
+        /* OLD: opacity: 0.6 */
+.user-message-tools {
+    position: absolute;
+    bottom: -25px; /* Move it slightly outside/below the bubble so it's obvious */
+    right: 0;
+    opacity: 1; /* Always visible */
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+/* Make the button look like a distinct pill/tag */
+.user-tool-btn {
+    background: rgba(59, 130, 246, 0.2); /* Light blue tint */
+    border: 1px solid var(--accent-color);
+    color: var(--text-color);
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.user-tool-btn:hover {
+    background: var(--accent-color);
+    color: white;
+}
+
+/* Ensure the message content has space */
+.user-message {
+    margin-bottom: 2rem; /* Add spacing between messages for the button */
+}
+
+        /* --- FIX FOR PROMPT VIEWER MODAL --- */
+#prompt-viewer-modal {
+    position: fixed;        /* Lock it to the screen */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(10, 11, 15, 0.85); /* Dark background overlay */
+    backdrop-filter: blur(8px); /* Blur the background */
+    z-index: 20000;         /* Ensure it is ON TOP of everything */
+    
+    /* THE CENTERING MAGIC */
+    display: none;          /* Hidden by default */
+    align-items: center;    /* Center vertically */
+    justify-content: center;/* Center horizontally */
+}
+
+/* Ensure the content box inside looks good */
+#prompt-viewer-modal .modal-content {
+    background: #1a1c23;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    max-width: 600px;
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh; /* Don't get too tall */
+}
+
+/* Style the text area */
+.prompt-viewer-body {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    overflow-y: auto; /* Scroll if text is long */
+    text-align: left;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+#prompt-viewer-content {
+    font-family: 'Inter', sans-serif;
+    white-space: pre-wrap; /* Keep paragraphs */
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Style the Copy Button specifically */
+#copy-full-prompt-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #3B82F6; /* Bright Blue */
+    color: white;
+    font-weight: bold;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+
+#copy-full-prompt-btn:hover {
+    background-color: #2563EB;
+}
+    </style>
+</head>
+
+<body>
+    <div class="preloader">
+        <div class="loading-container">
+            <div id="loading-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500"
+                    zoomAndPan="magnify" viewBox="0 0 375 374.999991" height="500" preserveAspectRatio="xMidYMid meet"
+                    version="1.0">
+                    <defs>
+                        <g />
+                        <clipPath id="333586f08f">
+                            <rect x="0" width="324" y="0" height="165" />
+                        </clipPath>
+                    </defs>
+                    <g transform="matrix(1, 0, 0, 1, 10, 105)">
+                        <g clip-path="url(#333586f08f)">
+                            <g fill="#ffffff" fill-opacity="1">
+                                <g transform="translate(0.390616, 118.734682)">
+                                    <g>
+                                        <path
+                                            d="M 37.296875 -69.578125 C 41.160156 -69.578125 44.976562 -69.132812 48.75 -68.25 C 52.53125 -67.375 55.34375 -66.5 57.1875 -65.625 L 59.953125 -64.296875 L 52.3125 -49.015625 C 47.039062 -51.828125 42.035156 -53.234375 37.296875 -53.234375 C 34.660156 -53.234375 32.789062 -52.945312 31.6875 -52.375 C 30.59375 -51.800781 30.046875 -50.726562 30.046875 -49.15625 C 30.046875 -48.800781 30.085938 -48.445312 30.171875 -48.09375 C 30.265625 -47.738281 30.441406 -47.40625 30.703125 -47.09375 C 30.960938 -46.789062 31.203125 -46.53125 31.421875 -46.3125 C 31.640625 -46.09375 32.015625 -45.851562 32.546875 -45.59375 C 33.078125 -45.332031 33.492188 -45.132812 33.796875 -45 C 34.109375 -44.863281 34.613281 -44.664062 35.3125 -44.40625 C 36.019531 -44.144531 36.546875 -43.945312 36.890625 -43.8125 C 37.242188 -43.675781 37.835938 -43.476562 38.671875 -43.21875 C 39.503906 -42.957031 40.140625 -42.78125 40.578125 -42.6875 C 43.304688 -41.894531 45.679688 -41.015625 47.703125 -40.046875 C 49.722656 -39.085938 51.851562 -37.769531 54.09375 -36.09375 C 56.332031 -34.425781 58.066406 -32.316406 59.296875 -29.765625 C 60.523438 -27.222656 61.140625 -24.328125 61.140625 -21.078125 C 61.140625 -5.710938 50.46875 1.96875 29.125 1.96875 C 24.289062 1.96875 19.695312 1.222656 15.34375 -0.265625 C 11 -1.753906 7.859375 -3.25 5.921875 -4.75 L 3.03125 -7.109375 L 12.515625 -23.0625 C 13.222656 -22.445312 14.144531 -21.722656 15.28125 -20.890625 C 16.425781 -20.054688 18.488281 -18.910156 21.46875 -17.453125 C 24.457031 -16.003906 27.050781 -15.28125 29.25 -15.28125 C 34.082031 -15.28125 36.5 -16.90625 36.5 -20.15625 C 36.5 -21.65625 35.882812 -22.820312 34.65625 -23.65625 C 33.425781 -24.488281 31.335938 -25.429688 28.390625 -26.484375 C 25.453125 -27.535156 23.148438 -28.503906 21.484375 -29.390625 C 17.265625 -31.578125 13.925781 -34.054688 11.46875 -36.828125 C 9.007812 -39.597656 7.78125 -43.265625 7.78125 -47.828125 C 7.78125 -54.679688 10.4375 -60.019531 15.75 -63.84375 C 21.0625 -67.664062 28.242188 -69.578125 37.296875 -69.578125 Z M 37.296875 -69.578125 " />
+                                    </g>
+                                </g>
+                            </g>
+                            <g fill="#ffffff" fill-opacity="1">
+                                <g transform="translate(58.629711, 118.734682)">
+                                    <g>
+                                        <path
+                                            d="M 10.140625 -105.28125 C 12.867188 -108 16.117188 -109.359375 19.890625 -109.359375 C 23.671875 -109.359375 26.921875 -108 29.640625 -105.28125 C 32.367188 -102.5625 33.734375 -99.3125 33.734375 -95.53125 C 33.734375 -91.75 32.367188 -88.492188 29.640625 -85.765625 C 26.921875 -83.046875 23.671875 -81.6875 19.890625 -81.6875 C 16.117188 -81.6875 12.867188 -83.046875 10.140625 -85.765625 C 7.421875 -88.492188 6.0625 -91.75 6.0625 -95.53125 C 6.0625 -99.3125 7.421875 -102.5625 10.140625 -105.28125 Z M 7.90625 -67.59375 L 7.90625 0 L 31.234375 0 L 31.234375 -67.59375 Z M 7.90625 -67.59375 " />
+                                    </g>
+                                </g>
+                            </g>
+                            <g fill="#ffffff" fill-opacity="1">
+                                <g transform="translate(91.833901, 118.734682)">
+                                    <g>
+                                        <path
+                                            d="M 11.859375 -67.59375 L 11.859375 -92.765625 L 35.1875 -92.765625 L 35.1875 -67.59375 L 49.40625 -67.59375 L 49.40625 -49.8125 L 35.1875 -49.8125 L 35.1875 -28.328125 C 35.1875 -22.085938 36.941406 -18.96875 40.453125 -18.96875 C 41.328125 -18.96875 42.25 -19.144531 43.21875 -19.5 C 44.1875 -19.851562 44.929688 -20.207031 45.453125 -20.5625 L 46.25 -21.078125 L 52.046875 -2.234375 C 47.035156 0.566406 41.328125 1.96875 34.921875 1.96875 C 30.523438 1.96875 26.742188 1.203125 23.578125 -0.328125 C 20.421875 -1.867188 18.03125 -3.929688 16.40625 -6.515625 C 14.78125 -9.109375 13.613281 -11.832031 12.90625 -14.6875 C 12.207031 -17.539062 11.859375 -20.59375 11.859375 -23.84375 L 11.859375 -49.8125 L 2.109375 -49.8125 L 2.109375 -67.59375 Z M 11.859375 -67.59375 " />
+                                    </g>
+                                </g>
+                            </g>
+                            <g fill="#ffffff" fill-opacity="1">
+                                <g transform="translate(137.292026, 118.734682)">
+                                    <g>
+                                        <path
+                                            d="M 76.296875 -30.5625 L 27.28125 -30.5625 C 27.28125 -25.820312 28.816406 -22.3125 31.890625 -20.03125 C 34.960938 -17.75 38.300781 -16.609375 41.90625 -16.609375 C 45.675781 -16.609375 48.660156 -17.113281 50.859375 -18.125 C 53.054688 -19.132812 55.5625 -21.128906 58.375 -24.109375 L 75.234375 -15.6875 C 68.210938 -3.914062 56.53125 1.96875 40.1875 1.96875 C 30 1.96875 21.257812 -1.519531 13.96875 -8.5 C 6.675781 -15.476562 3.03125 -23.882812 3.03125 -33.71875 C 3.03125 -43.5625 6.675781 -52 13.96875 -59.03125 C 21.257812 -66.0625 30 -69.578125 40.1875 -69.578125 C 50.90625 -69.578125 59.625 -66.476562 66.34375 -60.28125 C 73.0625 -54.09375 76.421875 -45.242188 76.421875 -33.734375 C 76.421875 -32.148438 76.378906 -31.09375 76.296875 -30.5625 Z M 27.9375 -43.484375 L 53.625 -43.484375 C 53.101562 -46.992188 51.722656 -49.691406 49.484375 -51.578125 C 47.242188 -53.472656 44.363281 -54.421875 40.84375 -54.421875 C 36.976562 -54.421875 33.90625 -53.410156 31.625 -51.390625 C 29.34375 -49.367188 28.113281 -46.734375 27.9375 -43.484375 Z M 27.9375 -43.484375 " />
+                                    </g>
+                                </g>
+                            </g>
+                            <g fill="#ffffff" fill-opacity="1">
+                                <g transform="translate(210.156771, 118.734682)">
+                                    <g>
+                                        <path
+                                            d="M 76.296875 -30.5625 L 27.28125 -30.5625 C 27.28125 -25.820312 28.816406 -22.3125 31.890625 -20.03125 C 34.960938 -17.75 38.300781 -16.609375 41.90625 -16.609375 C 45.675781 -16.609375 48.660156 -17.113281 50.859375 -18.125 C 53.054688 -19.132812 55.5625 -21.128906 58.375 -24.109375 L 75.234375 -15.6875 C 68.210938 -3.914062 56.53125 1.96875 40.1875 1.96875 C 30 1.96875 21.257812 -1.519531 13.96875 -8.5 C 6.675781 -15.476562 3.03125 -23.882812 3.03125 -33.71875 C 3.03125 -43.5625 6.675781 -52 13.96875 -59.03125 C 21.257812 -66.0625 30 -69.578125 40.1875 -69.578125 C 50.90625 -69.578125 59.625 -66.476562 66.34375 -60.28125 C 73.0625 -54.09375 76.421875 -45.242188 76.421875 -33.734375 C 76.421875 -32.148438 76.378906 -31.09375 76.296875 -30.5625 Z M 27.9375 -43.484375 L 53.625 -43.484375 C 53.101562 -46.992188 51.722656 -49.691406 49.484375 -51.578125 C 47.242188 -53.472656 44.363281 -54.421875 40.84375 -54.421875 C 36.976562 -54.421875 33.90625 -53.410156 31.625 -51.390625 C 29.34375 -49.367188 28.113281 -46.734375 27.9375 -43.484375 Z M 27.9375 -43.484375 " />
+                                    </g>
+                                </g>
+                            </g>
+                            <g fill="#ffffff" fill-opacity="1">
+                                <g transform="translate(283.021503, 118.734682)">
+                                    <g>
+                                        <path
+                                            d="M 22.921875 -28.203125 C 27.140625 -28.203125 30.71875 -26.726562 33.65625 -23.78125 C 36.601562 -20.84375 38.078125 -17.265625 38.078125 -13.046875 C 38.078125 -8.921875 36.601562 -5.382812 33.65625 -2.4375 C 30.71875 0.5 27.140625 1.96875 22.921875 1.96875 C 18.796875 1.96875 15.257812 0.5 12.3125 -2.4375 C 9.375 -5.382812 7.90625 -8.921875 7.90625 -13.046875 C 7.90625 -17.265625 9.375 -20.84375 12.3125 -23.78125 C 15.257812 -26.726562 18.796875 -28.203125 22.921875 -28.203125 Z M 22.921875 -28.203125 " />
+                                    </g>
+                                </g>
+                            </g>
+                        </g>
+                    </g>
+                </svg>
+            </div>
+
+        </div>
+    </div>
+    <div id="cursor-dot"></div>
+    <div class="blob" id="blob1"></div>
+    <div class="blob" id="blob2"></div>
+    <div id="auth-modal" style="display: none;">
+        <div class="auth-container">
+            <button id="close-auth-modal" class="close-modal-btn">&times;</button>
+            <div id="login-view">
+                <h2>Welcome Back</h2>
+                <p>Please enter your details to sign in.</p>
+                <form id="login-form">
+                    <div id="login-error" class="auth-error"></div>
+                    <input type="email" id="login-email" class="auth-input" placeholder="Email" required />
+                    <input type="password" id="login-password" class="auth-input" placeholder="Password" required />
+                    <p class="forgot-password-link"><a href="#" id="show-forgot-password">Forgot Password?</a></p>
+                    <button type="submit" class="auth-btn btn-primary">Sign In</button>
+                </form>
+                <p class="auth-switch">Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
+            </div>
+            <div id="signup-view" style="display: none;">
+                <h2>Create Account</h2>
+                <p>Join us to start building your vision.</p>
+                <form id="signup-form">
+                    <div id="signup-error" class="auth-error"></div>
+                    <input type="email" id="signup-email" class="auth-input" placeholder="Email" required />
+                    <input type="password" id="signup-password" class="auth-input"
+                        placeholder="Password (min. 6 characters)" required />
+                    <button type="submit" class="auth-btn btn-primary">Sign Up</button>
+                </form>
+                <p class="auth-switch">Already have an account? <a href="#" id="show-login">Sign In</a></p>
+            </div>
+            <div id="verification-view" style="display: none;">
+                <h2>Verify Your Email</h2>
+                <p>We've sent a verification link to <strong id="verification-email-display"></strong>. Please check
+                    your inbox (and spam folder!) and click the link to activate your account.</p>
+                <p class="auth-switch">Finished verifying? <a href="#" id="show-login-from-verify">Back to Sign In</a>
+                </p>
+            </div>
+            <div id="forgot-password-view" style="display: none;">
+                <h2>Reset Password</h2>
+                <p>Enter your email and we'll send you a link to reset your password.</p>
+                <form id="forgot-password-form">
+                    <div id="forgot-password-message" class=""></div>
+                    <input type="email" id="forgot-password-email" class="auth-input" placeholder="Your Email"
+                        required />
+                    <button type="submit" class="auth-btn btn-primary">Send Reset Link</button>
+                </form>
+                <p class="auth-switch">Remembered your password? <a href="#" id="show-login-from-forgot">Back to Sign
+                        In</a></p>
+            </div>
+        </div>
+    </div>
+    <div id="dashboard-modal" style="display: none;">
+        <div class="auth-container">
+            <button id="close-dashboard-modal" class="close-modal-btn">&times;</button>
+            <h2>Your Dashboard</h2>
+            <div id="dashboard-content">
+                <p>Loading your details...</p>
+            </div>
+            <button id="logout-btn" class="auth-btn btn-primary">Log Out</button>
+        </div>
+    </div>
+
+    <div id="confirmation-modal" style="display: none;">
+        <div class="modal-content glassy">
+            <h2 id="modal-title">Are you sure?</h2>
+            <p id="modal-message"></p>
+            <div class="modal-buttons">
+                <button id="modal-cancel-btn">Cancel</button>
+                <button id="modal-confirm-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="download-modal" style="display: none;">
+        <div class="modal-content glassy">
+            <button id="close-download-modal-btn" class="close-modal-btn">&times;</button>
+            <h2>Download Code</h2>
+            <p>Choose your export format and filename.</p>
+            <form id="download-form">
+                <label for="file-format-select">Format</label>
+                <select id="file-format-select" class="modal-select">
+                    <option value="html">HTML File (.html)</option>
+                   <!-- <option value="jsx">React JSX File (.jsx)</option> -->
+                </select>
+                <label for="filename-input">Filename</label>
+                <input type="text" id="filename-input" class="modal-input" required>
+                <div class="modal-buttons">
+                    <button type="button" id="download-cancel-btn">Cancel</button>
+                    <button type="submit" id="download-confirm-btn">Download</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="github-deploy-modal" style="display: none;">
+        <div class="modal-content glassy">
+            <button id="close-github-modal-btn" class="close-modal-btn">&times;</button>
+            <h2>Deploy to GitHub</h2>
+            <p style="text-align: left; font-size: 0.8rem; line-height: 1.4;">
+                This will create a new public repository in your GitHub account.
+                <br><br>
+                You need a <strong>Personal Access Token (PAT)</strong> with the <code>public_repo</code> scope.
+                <a href="https://github.com/settings/tokens/new?scopes=public_repo&description=Sitee.in%20Deployment"
+                    target="_blank" rel="noopener noreferrer" style="color: var(--accent-color);">Create one here</a>.
+            </p>
+            <form id="github-deploy-form" style="margin-top: 1.5rem;">
+                <div>
+                    <label for="github-repo-name-input"
+                        style="text-align: left; display: block; margin-bottom: 0.5rem;">Repository Name</label>
+                    <input type="text" id="github-repo-name-input" class="modal-input" required
+                        pattern="[a-zA-Z0-9-_\.]+" title="Only letters, numbers, hyphens, underscores, and periods.">
+                </div>
+
+                <div>
+                    <label for="github-token-input"
+                        style="text-align: left; display: block; margin-bottom: 0.5rem;">GitHub Personal Access
+                        Token</label>
+                    <input type="password" id="github-token-input" class="modal-input" required placeholder="ghp_...">
+                </div>
+
+                <div id="github-deploy-error" class="auth-error"></div>
+
+                <div class="modal-buttons" style="margin-top: 1rem;">
+                    <button style="background-color: #4745453e !important; color: white;" type="button"
+                        id="github-deploy-cancel-btn">Cancel</button>
+                    <button style="background-color: #3B82F6 !important; color: white;" type="submit"
+                        id="github-deploy-confirm-btn">Deploy</button>
+                </div>
+            </form>
+            <div id="github-deploy-info"
+                style="display: none; text-align: left; font-size: 0.85rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <span id="github-token-expiry-text"></span>
+                <br>
+                <button type="button" id="add-new-token-btn"
+                    style="background: none; border: none; color: var(--accent-color); cursor: pointer; padding: 0; margin-left: 0.5rem; text-decoration: underline;">
+                    Add New Token
+                </button>
+                <button type="button" id="remove-token-btn"
+                    style="background: none; border: none; color: var(--error-color); cursor: pointer; padding: 0; margin-left: 1rem; text-decoration: underline; font-weight: 500;">
+                    Remove Token
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="feedback-modal" style="display: none;">
+        <div class="modal-content glassy">
+            <button id="close-feedback-modal-btn" class="close-modal-btn">&times;</button>
+            <h2>Provide Feedback</h2>
+            <p>Your feedback helps us improve. What went wrong?</p>
+            <form id="feedback-form">
+                <textarea id="feedback-textarea" placeholder="Describe the issue or why you're dissatisfied..."
+                    required></textarea>
+                <button type="submit" id="submit-feedback-btn">Submit Feedback</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-image-modal" style="display: none;">
+        <div class="modal-content glassy">
+            <button id="close-edit-image-modal-btn" class="close-modal-btn">&times;</button>
+            <h2>Edit Image</h2>
+            <p>Upload a new image or enter a URL. The change will be saved automatically.</p>
+            <div class="edit-image-form">
+                <label for="image-url-input">Image URL</label>
+                <input type="text" id="image-url-input" class="modal-input" placeholder="https://example.com/image.png">
+                <div class="or-divider">OR</div>
+                <label>Upload from device</label>
+                <div class="file-upload-wrapper">
+                    <input type="file" id="image-upload-from-device" accept="image/*" style="display: none;">
+                    <button id="choose-file-btn">Choose File</button>
+                    <span id="file-name-display">no file selected</span>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="edit-image-cancel-btn">Cancel</button>
+                <button id="edit-image-save-btn">Save Change</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ai-suggestion-modal" style="display: none;">
+        <div class="modal-content glassy">
+            <button id="close-suggestion-modal-btn" class="close-modal-btn">&times;</button>
+            <h2>Sitee Suggestions</h2>
+            <p>Here are some suggestions to improve your website's code and design.</p>
+            <div id="suggestion-content"></div>
+            <div class="modal-buttons" id="suggestion-actions" style="margin-top: 1rem; display: none;">
+                <button id="regenerate-suggestion-btn">Regenerate (1 Credit)</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="app-container">
+        <div id="sidebar" class="collapsed glassy">
+            <div class="sidebar-header">
+                <div class="avatar-container">
+                    <div class="avatar-wrapper">
+                        <img id="user-avatar" src="avatar/image.png" alt="User Avatar">
+                    </div>
+                    <div id="avatar-dropdown" class="avatar-dropdown glassy"></div>
+                </div>
+                <div class="user-info">
+                    <div id="user-id"></div>
+                    <div id="credit-display"></div>
+                </div>
+            </div>
+            <div class="projects-title-bar">
+                <h2>My Projects</h2>
+                <button id="delete-all-btn" title="Delete all projects">Delete All</button>
+            </div>
+            <ul id="project-list"></ul>
+        </div>
+
+        <div id="main-content">
+            <button id="sidebar-toggle" class="glassy">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
+                </svg>
+            </button>
+
+            <p id="disclaimer-text"><small style="font-size: xx-small;">sitee. can make mistakes, so double-check
+                    it</small></p>
+            <div id="header-buttons-container"
+                style="position: absolute; top: 1.5rem; right: 1.5rem; z-index: 101; display: flex; gap: 0.75rem;">
+
+                <button id="login-btn" class="header-btn glassy" style="display: none;">Login / Sign Up</button>
+
+                <button id="dashboard-btn" class="header-btn glassy" style="display: none;">Dashboard</button>
+                <a href="http://www.sitee.in/#plans" id="upgrade-btn" class="header-btn"
+                    style="display: none;">Upgrade</a>
+            </div>
+
+            <div id="canvas">
+                <div id="chat-container"></div>
+            </div>
+
+            <div id="prompt-suggestions">
+                <div class="suggestion-card glassy"
+                    data-prompt="Create a cinematic, award-winning portfolio website for a professional photographer named 'Eliora Lens', specializing in portrait, travel, and street photography. The website should feel visually immersive, minimalistic, and emotionally resonant — something that could win a design award on Awwwards or Behance. Theme: modern minimalism × cinematic storytelling. Moodboard: moody lighting, film grain textures, elegant whitespace, deep blacks with soft gradients, subtle warm tones. Color Palette: monochrome base (black/white) with muted gold or copper accent. Typography: elegant sans-serif for titles (Neue Haas Grotesk, Poppins, Helvetica Neue) and light serif for captions (Playfair Display). Visual feel: each scroll should feel like turning pages of a high-end photo book. Hero Section: full-screen cinematic slideshow or video background with overlay text ‘Eliora Lens – Capturing Light, Life, and Soul’ and CTA button ‘View Portfolio’. Portfolio Grid: full-bleed photo grid with hover effects (slow zoom or parallax tilt), filters for Portraits, Travel, Street, Editorial, and fullscreen lightbox gallery with captions. About Section: split layout with portrait photo and poetic bio text ‘Every frame is a story whispered through light.’ Client Showcase: grayscale brand logos in subtle carousel. Journal Section: photo essays laid out like a printed magazine. Contact Section: minimalist form with gradient background, icons, and map pin. Footer: dark minimalist footer with tagline ‘© 2025 Eliora Lens – Crafted through light.’ Interactions: smooth parallax scroll, fade transitions, hover tilt, light/dark mode toggle. Mobile UX: vertical photo scroll with swipe transitions and floating ‘Book a Shoot’ button. Tone: artistic, refined, timeless. Make it feel like a digital photography exhibition — elegant, immersive, emotionally moving, and worthy of an Awwwards feature."
+                    style="background-image: url('https://1.img-dpreview.com/files/p/E~C72x234S1621x1621T1200x1200~articles/0409985279/039BB7E4-E4FB-4AC4-8650-EB095B77BA30.jpeg');">
+                    <span>Portfolio Website</span>
+                </div>
+
+
+                <div class="suggestion-card glassy"
+                    data-prompt="Build a visually breathtaking rustic home recipe website named 'HomeTaste' — a place where people share and discover cozy homemade recipes. The design should feel authentic, artisanal, and deeply emotional — blending vintage charm with modern UX clarity. Theme: Rustic farmhouse × modern web elegance. Moodboard: Wooden textures, cast iron pans, sunlight through kitchen windows, recipe notebooks, earthy tones. Color Palette: Cream whites, warm browns, olive green, muted gold, and charcoal accents. Typography: Elegant serif headlines (Playfair Display or Cormorant) + clean sans-serif body (Inter or Lato). Style: Organic textures, cozy lighting, and tactile UI with depth and soft shadows. Hero Section: full-screen rustic kitchen or overhead food photo with title ‘HomeTaste – Where Every Recipe Feels Like Home’ and CTAs ‘Explore Recipes’ / ‘Share Yours’. Gallery: Realistic dish photos in a grid with hover zoom and warm glow, filters for cuisine, difficulty, and diet. Recipe Page: parchment-paper ingredient list, step icons, and nutrition side panel. Featured Chefs: portraits in vintage frames, hover sepia effect. Community Stories: Polaroid-style user stories on corkboard background. Blog: rustic table photos and tips. Newsletter: bread baking background, text ‘Join our kitchen table – new recipes every week.’ Footer: dark wood texture. Interactions: parallax scroll, hover reveals, soft fade transitions, micro-animations. Imagery: real rustic kitchen photography with cinematic warm light. Mobile UX: adaptive cards, sticky bottom nav. Extra: optional dark mode (espresso tones), ambient cooking sound toggle, real photo textures. Make it look like an Awwwards-winning site — visually deep, emotionally immersive, and beautifully responsive."
+                    style="background-image: url('https://hotelqueensland.in/wp-content/uploads/2025/03/Food-in-Amritsar.jpg');">
+                    <span>Recipe Blog</span>
+                </div>
+                <div class="suggestion-card glassy"
+                    data-prompt="Create an award-winning, futuristic, and interactive website for a visionary space exploration company called 'Aetheris Space'. The design should feel cinematic, immersive, and scientifically awe-inspiring — blending realism with futuristic elegance. Aim for a style worthy of Awwwards or FWA recognition. Theme: cosmic minimalism × human curiosity. Moodboard: interstellar light trails, planetary surfaces, metallic gradients, deep blues, purples, and glowing whites. Typography: sleek geometric sans-serif (Orbitron, Inter, or Space Grotesk). Visual feel: high-contrast space photography, dynamic animations, and an atmosphere of limitless exploration. Hero Section: full-screen looping video of Earth from orbit or a spaceship launch, headline 'Expanding Humanity’s Reach Beyond the Stars', CTA buttons 'Explore Missions' and 'Join the Journey'. Mission Showcase: animated cards for Mars, Moon, and Deep Space missions with hover-triggered 3D parallax and glowing borders. Technology Section: scroll-based animations revealing spacecraft, propulsion systems, and AI research, each with short descriptions. Interactive Globe: real-time spinning Earth or star map background that reacts to cursor movement. Timeline Section: 'Our Journey Through Space' — horizontal timeline with animated launch milestones. Team Section: astronaut portraits or engineer photos with holographic name overlays. Blog Section: cosmic news, space breakthroughs, and live mission updates. Contact/Join Us: clean futuristic form on gradient nebula background. Footer: dark starfield background with glowing logo and soft lens-flare animation. Interactions: smooth WebGL transitions, parallax scroll, star particle background, and hover glow effects. Mobile UX: swipe-based navigation with 3D tilt on scroll. Tone: visionary, scientific, and emotionally uplifting. Make it feel like a digital window into the future of exploration — elegant, cinematic, and technologically inspired."
+                    style="background-image: url('https://img.freepik.com/premium-vector/serene-nighttime-landscape-with-mountains-lake-sunset_1203312-3291.jpg');">
+                    <span>Space Exploration Site</span>
+                </div>
+            </div>
+
+            <div id="theme-selector-container">
+                <div style="position: relative; ">
+                    <button id="theme-selector-btn">
+                        <span id="theme-btn-text">Select a Theme</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z" />
+                        </svg>
+                    </button>
+                    <div id="theme-dropdown" class="glassy">
+                    </div>
+                </div>
+                <div id="mode-selector">
+                    <button class="mode-btn active" data-mode="canvas-en">Canvas</button>
+                    <button class="mode-btn" data-mode="visual-edit">Visual Edit</button>
+                </div>
+            </div>
+
+            <div id="controls" class="glassy">
+                <div id="image-preview-container" style="display: none;">
+                    <img id="image-thumbnail" src="" alt="Image Preview" />
+                    <button id="remove-image-btn">&times;</button>
+                </div>
+                <textarea id="prompt" placeholder="Describe your idea..." rows="1"></textarea>
+
+                <canvas id="input-visualizer"></canvas>
+                <input type="file" id="image-upload-input" accept="image/*" style="display: none;" multiple>
+                <button class="action-btn" id="upload-btn" title="Upload Image"></button>
+                <button class="action-btn" id="mic-btn"></button>
+                <button class="action-btn" id="generate"></button>
+
+            </div>
+
+            <div id="publish-modal" style="display: none;">
+                <div class="modal-content glassy">
+                    <button id="close-publish-modal-btn" class="close-modal-btn">&times;</button>
+
+                    <div id="publish-choice-view">
+                        <h2>Publish Project</h2>
+                        <p>How would you like to deploy your site?</p>
+                        <div class="modal-buttons" style="flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
+                            <button id="select-sitee-deploy-btn" class="modal-btn-choice">
+                                <strong>Deploy with Sitee Subdomain</strong>
+                                <small>your-name-app.sitee.in (Free & Recommended)</small>
+                            </button>
+                            <button id="select-netlify-deploy-btn" class="modal-btn-choice">
+                                <strong>Deploy to Netlify</strong>
+                                <small>your-project.netlify.app (Standard)</small>
+                            </button>
+                        </div>
+                        <div class="modal-buttons" style="margin-top: 1.5rem;">
+                            <button type="button" id="publish-cancel-btn">Cancel</button>
+                        </div>
+                    </div>
+
+                    <div id="sitee-deploy-view" style="display: none;">
+                        <h2>Deploy with Sitee</h2>
+                        <p>Choose a unique subdomain for your project.</p>
+                        <form id="sitee-publish-form">
+                            <div class="subdomain-input-group">
+                                <input type="text" id="sitee-subdomain-input" class="modal-input"
+                                    placeholder="my-awesome-portfolio" required pattern="[a-z0-9-]+"
+                                    title="Only lowercase letters, numbers, and hyphens.">
+                                <span class="subdomain-suffix">-app.sitee.in</span>
+                            </div>
+                            <div id="sitee-publish-status" class="publish-status"></div>
+
+                            <div id="subdomain-suggestions"></div>
+
+                            <div class="modal-buttons" style="margin-top: 1rem;">
+                                <button style="background-color: #4745453e !important; color: white;" type="button"
+                                    class="publish-back-btn">Back</button>
+                                <button style="background-color: #3B82F6 !important; color: white;" type="submit"
+                                    id="sitee-publish-confirm-btn" disabled>Publish</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div id="netlify-deploy-view" style="display: none;">
+                        <h2>Deploy to Netlify</h2>
+                        <p>This will create a new deployment at a `.netlify.app` URL.</p>
+                        <form id="netlify-publish-form">
+                            <input type="text" id="netlify-project-name-input" class="modal-input"
+                                placeholder="my-awesome-portfolio" required pattern="[a-z0-9-]+"
+                                title="Only lowercase letters, numbers, and hyphens.">
+                            <div id="netlify-publish-error" class="auth-error"></div>
+                            <div class="modal-buttons" style="margin-top: 1rem;">
+                                <button style="background-color: #4745453e !important; color: white;" type="button"
+                                    class="publish-back-btn">Back</button>
+                                <button style="background-color: #3B82F6 !important; color: white;" type="submit"
+                                    id="netlify-publish-confirm-btn">Publish</button>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="selection-box" style="display: none;">
+        <div id="drag-handle">Move</div>
+        <div class="resize-handle" id="handle-top-left"></div>
+        <div class="resize-handle" id="handle-top-right"></div>
+        <div class="resize-handle" id="handle-bottom-left"></div>
+        <div class="resize-handle" id="handle-bottom-right"></div>
+    </div>
+    <div id="code-editor-modal">
+        <div class="code-editor-header glassy">
+            <div id="code-editor-tabs">
+                <button class="code-tab active" data-lang="html">HTML</button>
+                <button class="code-tab" style="display: none;" data-lang="react">React</button>
+            </div>
+            <div id="code-editor-actions">
+                
+                <button class="control-btn" id="copy-editor-code-btn" title="Copy Code" style="display: none;"></button>
+                <button class="control-btn" id="download-code-btn" title="Download Code"></button>
+                <button class="control-btn" id="deploy-github-btn" title="Deploy to GitHub"></button>
+                <button class="close-editor-btn" id="close-editor-btn">&times;</button>
+            </div>
+        </div>
+        <div id="code-editor-container">
+            <pre><code id="code-editor-content" class="language-html" contenteditable="true" spellcheck="false"></code></pre>
+        </div>
+    </div>
+    <style>
+        /* ================================== */
+        /* NEW VISUAL EDITOR PANEL STYLES     */
+        /* ================================== */
+
+        /* Main Panel Styling */
+        #visual-editor-panel {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            /* Panel is hidden by default */
+            width: 350px;
+            /* Increased width to accommodate sidebar + content */
+            height: 100%;
+            background: rgba(10, 11, 15, 0.7);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-left: 1px solid var(--border-color);
+            z-index: 1002;
+            transition: right 0.35s ease-in-out;
+            display: flex;
+            flex-direction: row;
+            /* Changed to row for vertical sidebar */
+        }
+
+        #visual-editor-panel.open {
+            right: 0;
+        }
+
+        /* NEW: Vertical Sidebar for Tabs */
+        .visual-editor-sidebar {
+            display: flex;
+            flex-direction: column;
+            width: 70px;
+            /* Width of the icon bar */
+            flex-shrink: 0;
+            padding: 0.5rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-right: 1px solid var(--border-color);
+        }
+
+        /* Updated Tab Button Styles for Vertical Layout */
+        .editor-tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted-color);
+            padding: 0.75rem 0;
+            width: 100%;
+            height: 65px;
+            font-size: 0.7rem;
+            /* Smaller font size for label */
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            /* For active state */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+        }
+
+        .editor-tab-btn svg {
+            width: 22px;
+            height: 22px;
+            stroke-width: 1.5;
+            /* Adjust icon thickness */
+        }
+
+        .editor-tab-btn:hover {
+            color: var(--text-color);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .editor-tab-btn.active {
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        /* Tab Panes */
+        .editor-tab-pane {
+            display: none;
+            height: 100%;
+            width: 100%;
+        }
+
+        .editor-tab-pane.active {
+            display: block;
+        }
+
+        /* Panel Content Area */
+        .editor-panel-content-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+        }
+
+        .editor-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0.75rem 0.75rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .editor-panel-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .editor-panel-content {
+            flex: 1;
+            overflow: visible;
+            padding: 1.5rem;
+        }
+
+        .editor-panel-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .editor-panel-content::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        /* Section Styling */
+        .editor-section {
+            margin-bottom: 2rem;
+        }
+
+        .editor-section h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted-color);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        #no-element-selected p {
+            font-style: italic;
+            color: var(--text-muted-color);
+            text-align: center;
+            font-size: 0.9rem;
+            padding: 1rem;
+        }
+
+        /* Tool Group Styling (Remains mostly the same) */
+        #visual-editor-tools {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .tool-group {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .tool-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted-color);
+        }
+
+        .tool-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-start;
+        }
+
+        .tool-controls button {
+            background: rgba(135, 206, 235, 0.08);
+            border: 1px solid rgba(135, 206, 235, 0.2);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            color: var(--text-color);
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .tool-controls button:hover {
+            background: rgba(135, 206, 235, 0.15);
+            border-color: rgba(135, 206, 235, 0.4);
+            color: var(--accent-color);
+        }
+
+        .tool-controls button svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        #delete-element-btn:hover {
+            background: rgba(255, 0, 0, 0.2);
+            border-color: rgba(255, 0, 0, 0.4);
+            color: #ff4d4d;
+        }
+
+        /* Font Size Control Style */
+        .font-size-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 2px;
+        }
+
+        .font-size-controls button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted-color);
+            width: 30px;
+            height: 30px;
+            font-size: 1.2rem;
+            line-height: 1;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .font-size-controls button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #font-size-input {
+            width: 45px;
+            font-size: 0.9rem;
+            padding: 0 5px;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Color Picker Style */
+        .color-picker-wrapper {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            border: 1px solid rgba(135, 206, 235, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            background: rgba(135, 206, 235, 0.08);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .color-picker-wrapper:hover {
+            border-color: rgba(135, 206, 235, 0.4);
+        }
+
+        .color-picker-wrapper input[type="color"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Other Tool Groups */
+        .tool-group-slider {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .tool-group-slider .tool-controls {
+            gap: 10px;
+        }
+
+        #border-radius-slider {
+            width: 100%;
+        }
+
+        #border-radius-value {
+            font-size: 0.8rem;
+            width: 35px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        /* Font Family Dropdown */
+        .custom-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .editor-select {
+            width: 100%;
+            min-width: 120px;
+            /* <-- ADD THIS LINE */
+            padding: 0.5rem 0.75rem;
+            background-color: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a0aec0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.7rem top 50%;
+            background-size: .65rem auto;
+            text-align: left;
+        }
+
+        .custom-select-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            /* <-- CHANGE THIS from left: 0; */
+            width: 100%;
+            min-width: 200px;
+            background-color: #1a1c23;
+            z-index: 10;
+            border-radius: 12px;
+            padding: 0.5rem;
+            display: none;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-top: 0.5rem;
+        }
+
+        .custom-select-dropdown.show {
+            display: block;
+        }
+
+        .font-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+            color: var(--text-color);
+            white-space: nowrap;
+        }
+
+        .font-item:hover {
+            background-color: rgba(0, 0, 0, 0.368);
+        }
+
+        /* Components & Apps Palette Styling */
+        .component-item,
+        .app-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-color);
+            margin-bottom: 0.75rem;
+        }
+
+        .component-item {
+            cursor: grab;
+        }
+
+        .component-item:hover,
+        .app-item:hover {
+            background: rgba(135, 206, 235, 0.1);
+            border-color: rgba(135, 206, 235, 0.3);
+        }
+
+        .app-item img {
+            width: 24px;
+            height: 24px;
+        }
+    </style>
+    <div id="visual-editor-panel">
+
+        <div class="visual-editor-sidebar">
+            <button class="editor-tab-btn active" data-tab="design">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                        <path
+                            d="M18.3282 8.32837L15.8939 5.89405C14.7058 4.706 14.1118 4.11198 13.4268 3.88941C12.8243 3.69364 12.1752 3.69364 11.5727 3.88941C10.8877 4.11198 10.2937 4.706 9.10564 5.89405L7.49975 7.49994M3 20.9997L3.04745 20.6675C3.21536 19.4922 3.29932 18.9045 3.49029 18.3558C3.65975 17.8689 3.89124 17.4059 4.17906 16.9783C4.50341 16.4963 4.92319 16.0765 5.76274 15.237L17.4107 3.58896C18.1918 2.80791 19.4581 2.80791 20.2392 3.58896C21.0202 4.37001 21.0202 5.63634 20.2392 6.41739L8.37744 18.2791C7.61579 19.0408 7.23497 19.4216 6.8012 19.7244C6.41618 19.9932 6.00093 20.2159 5.56398 20.3879C5.07171 20.5817 4.54375 20.6882 3.48793 20.9012L3 20.9997Z"
+                            stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </g>
+                </svg>
+                <span>Inspector</span>
+            </button>
+            <button class="editor-tab-btn" data-tab="elements">
+                <svg fill="#ffffff" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 72 72" enable-background="new 0 0 72 72"
+                    xml:space="preserve">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                        <g>
+                            <g>
+                                <path
+                                    d="M67.5,27.568c0,3.828-3.104,6.932-6.932,6.932H10.432c-3.828,0-6.932-3.104-6.932-6.932V10.432 C3.5,6.604,6.604,3.5,10.432,3.5h50.137c3.828,0,6.932,3.104,6.932,6.932V27.568z M63.5,10.432c0-1.619-1.313-2.932-2.932-2.932 H10.432C8.813,7.5,7.5,8.813,7.5,10.432v17.137c0,1.619,1.313,2.932,2.932,2.932h50.137c1.619,0,2.932-1.313,2.932-2.932V10.432z">
+                                </path>
+                            </g>
+                            <g>
+                                <g>
+                                    <path
+                                        d="M11.5,19.5c-0.553,0-1-0.447-1-1v-1.802c0-2.556,1.246-5.198,3.96-5.198h6.664c0.553,0,1,0.447,1,1s-0.447,1-1,1H14.46 c-1.462,0-1.96,1.626-1.96,3.198V18.5C12.5,19.053,12.052,19.5,11.5,19.5z">
+                                    </path>
+                                </g>
+                                <g>
+                                    <path
+                                        d="M10.694,22.93c-0.26,0-0.521-0.11-0.71-0.29c-0.19-0.189-0.29-0.45-0.29-0.71s0.1-0.52,0.29-0.71 c0.38-0.38,1.04-0.37,1.41,0c0.189,0.19,0.3,0.45,0.3,0.71s-0.11,0.521-0.29,0.7C11.204,22.819,10.954,22.93,10.694,22.93z">
+                                    </path>
+                                </g>
+                            </g>
+                            <g>
+                                <path
+                                    d="M46.5,61.568c0,3.828-3.104,6.932-6.932,6.932H10.432c-3.828,0-6.932-3.104-6.932-6.932V44.432 c0-3.828,3.104-6.932,6.932-6.932h29.137c3.828,0,6.932,3.104,6.932,6.932V61.568z M42.5,44.432c0-1.619-1.313-2.932-2.932-2.932 H10.432c-1.619,0-2.932,1.313-2.932,2.932v17.137c0,1.619,1.313,2.932,2.932,2.932h29.137c1.619,0,2.932-1.313,2.932-2.932V44.432 z">
+                                </path>
+                            </g>
+                            <g>
+                                <path
+                                    d="M68.5,61.568c0,3.828-3.104,6.932-6.932,6.932h-5.137c-3.828,0-6.932-3.104-6.932-6.932V44.432 c0-3.828,3.104-6.932,6.932-6.932h5.137c3.828,0,6.932,3.104,6.932,6.932V61.568z M64.5,44.432c0-1.619-1.313-2.932-2.932-2.932 h-5.137c-1.619,0-2.932,1.313-2.932,2.932v17.137c0,1.619,1.313,2.932,2.932,2.932h5.137c1.619,0,2.932-1.313,2.932-2.932V44.432z ">
+                                </path>
+                            </g>
+                        </g>
+                    </g>
+                </svg>
+                <span>Elements</span>
+            </button>
+            <button class="editor-tab-btn" data-tab="apps">
+                <svg height="200px" width="200px" version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve"
+                    fill="#ffffff">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                        <style type="text/css">
+                            .st0 {
+                                fill: #ffffff;
+                            }
+                        </style>
+                        <g>
+                            <path class="st0"
+                                d="M295.599,242.266c1.51,4.4,2.288,9.058,2.279,13.742c0,1.294-0.059,2.596-0.168,3.907 c-0.994,41.236-17.607,80.065-46.778,109.228c-30.206,30.215-70.397,46.862-113.177,46.879c-4.408,0-8.842-0.184-13.233-0.534 c6.604,21.089,18.36,40.441,34.139,56.229C184.626,497.69,219.19,512,255.992,512c36.793-0.008,71.532-14.485,97.822-40.776 c18.894-18.893,31.734-42.712,37.094-68.903c0.25-1.202,0.443-2.187,0.634-3.147c1.47-8.249,2.221-16.648,2.221-24.946 c0-36.802-14.418-71.466-40.576-97.622C337.159,260.575,317.356,248.778,295.599,242.266z">
+                            </path>
+                            <path class="st0"
+                                d="M216.402,269.717c-1.512-4.383-2.296-9.033-2.296-13.726c0.008-1.293,0.075-2.554,0.159-3.807l0.025-0.409 c1.044-41.076,17.658-79.807,46.779-108.927c30.206-30.198,70.406-46.845,113.177-46.879c4.433,0.008,8.866,0.183,13.25,0.551 c-6.612-21.089-18.334-40.425-34.08-56.18C327.399,14.327,292.801,0,256.008,0s-71.382,14.334-97.414,40.366 c-19.111,19.11-32.068,43.063-37.486,69.295c-0.192,1.01-0.392,2.037-0.584,3.106l-0.518,2.955 c-1.169,7.281-1.754,14.694-1.761,22.041c0,36.802,14.318,71.391,40.35,97.406C174.741,251.324,194.611,263.18,216.402,269.717z">
+                            </path>
+                            <path class="st0"
+                                d="M471.684,158.611c-19.094-19.094-43.089-32.068-69.379-37.511c-0.952-0.209-1.92-0.401-2.896-0.551 c-8.324-1.511-16.765-2.279-25.188-2.305c-36.793-0.008-71.391,14.327-97.415,40.342c-16.138,16.138-27.993,36.017-34.522,57.823 c4.367-1.502,9.001-2.295,13.684-2.304c1.319,0,2.572,0.076,3.824,0.151c41.402,1.018,80.09,17.566,109.136,46.611 c30.365,30.365,47.087,70.623,47.087,113.378c0,4.424-0.2,8.858-0.542,13.232c21.08-6.604,40.425-18.325,56.162-34.064 C497.665,327.374,512,292.784,512,255.991S497.69,184.6,471.684,158.611z">
+                            </path>
+                            <path class="st0"
+                                d="M235.194,353.414c16.122-16.13,27.968-36,34.522-57.832c-4.391,1.519-9.058,2.304-13.75,2.296 c-1.136,0-2.287-0.067-3.398-0.167c-41.277-0.776-80.324-17.407-109.712-46.803c-30.232-30.231-46.879-70.414-46.871-113.144 c0-4.391,0.175-8.842,0.543-13.258c-21.056,6.596-40.4,18.309-56.154,34.08C14.343,184.618,0,219.215,0,256.008 c0,36.802,14.268,71.316,40.141,97.205c19.177,19.169,43.238,32.21,69.562,37.678l3.298,0.668 c7.998,1.453,16.347,2.196,24.754,2.196C174.574,393.756,209.18,379.42,235.194,353.414z">
+                            </path>
+                        </g>
+                    </g>
+                </svg>
+                <span>Apps</span>
+            </button>
+        </div>
+
+        <div class="editor-panel-content-wrapper">
+            <div class="editor-panel-header">
+                <h3>Visual Editor</h3>
+                <button class="close-editor-btn" id="close-visual-editor-btn">&times;</button>
+            </div>
+            <div class="editor-panel-content">
+                <div id="design-tab-pane" class="editor-tab-pane active">
+                    <div id="inspector-section" style="display: none;">
+                        <div id="visual-editor-tools">
+                            <div class="tool-group">
+                                <div class="tool-label">Color</div>
+                                <div class="tool-controls">
+                                    <div class="color-picker-wrapper"><input type="color" id="text-color-picker"
+                                            title="Text Color"></div>
+                                    <div class="color-picker-wrapper"><input type="color" id="bg-color-picker"
+                                            title="Background Color"></div>
+                                </div>
+                            </div>
+                            <div class="tool-group">
+                                <div class="tool-label">Font Size</div>
+                                <div class="tool-controls font-size-controls"><button id="font-size-decrease"
+                                        title="Decrease font size">-</button><input type="text" id="font-size-input"
+                                        title="Custom font size"><button id="font-size-increase"
+                                        title="Increase font size">+</button></div>
+                            </div>
+                            <div class="tool-group">
+                                <div class="tool-label">Font</div>
+                                <div class="tool-controls">
+                                    <div id="font-family-selector-wrapper" class="custom-select-wrapper"><button
+                                            id="font-family-select-btn" class="editor-select"></button>
+                                        <div id="font-family-dropdown" class="custom-select-dropdown glassy"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tool-group tool-group-slider">
+                                <div class="tool-label">Radius</div>
+                                <div class="tool-controls"><input type="range" id="border-radius-slider" min="0"
+                                        max="100" value="0"><span id="border-radius-value">0px</span></div>
+                            </div>
+                            <div class="tool-group" id="button-style-group" style="display: none;">
+                                <div class="tool-label">Button Style</div>
+                                <div class="tool-controls"><button id="btn-style-filled"
+                                        title="Filled Button">Filled</button><button id="btn-style-outline"
+                                        title="Outline Button">Outline</button></div>
+                            </div>
+                            <div class="tool-group">
+                                <div class="tool-label">Style</div>
+                                <div class="tool-controls"><button id="font-bold-btn" title="Bold"><svg
+                                            viewBox="0 0 24 24" fill="currentColor">
+                                            <path
+                                                d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z">
+                                            </path>
+                                        </svg></button><button id="font-italic-btn" title="Italic"><svg
+                                            viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"></path>
+                                        </svg></button><button id="font-underline-btn" title="Underline"><svg
+                                            viewBox="0 0 24 24" fill="currentColor">
+                                            <path
+                                                d="M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z">
+                                            </path>
+                                        </svg></button></div>
+                            </div>
+                            <div class="tool-group">
+                                <div class="tool-label">Align</div>
+                                <div class="tool-controls"><button id="align-left-btn" title="Align Left"><svg
+                                            viewBox="0 0 24 24" fill="currentColor">
+                                            <path
+                                                d="M15 15H3v2h12v-2zm0-8H3v2h12V7zM3 13h18v-2H3v2zm0 8h18v-2H3v2zM3 3v2h18V3H3z">
+                                            </path>
+                                        </svg></button><button id="align-center-btn" title="Align Center"><svg
+                                            viewBox="0 0 24 24" fill="currentColor">
+                                            <path
+                                                d="M7 15v2h10v-2H7zm-4 6h18v-2H3v2zm0-8h18v-2H3v2zm4-6v2h10V7H7zM3 3v2h18V3H3z">
+                                            </path>
+                                        </svg></button><button id="align-right-btn" title="Align Right"><svg
+                                            viewBox="0 0 24 24" fill="currentColor">
+                                            <path
+                                                d="M3 21h18v-2H3v2zm6-4h12v-2H9v2zm-6-4h18v-2H3v2zm6-4h12V7H9v2zM3 3v2h18V3H3z">
+                                            </path>
+                                        </svg></button></div>
+                            </div>
+                            <div class="tool-group">
+                                <div class="tool-label">Actions</div>
+                                <div class="tool-controls">
+                                    <button id="undo-btn" title="Undo" disabled>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path
+                                                d="M10 8H5V3M5.29102 16.3569C6.22284 17.7918 7.59014 18.8902 9.19218 19.4907C10.7942 20.0913 12.547 20.1624 14.1925 19.6937C15.8379 19.225 17.2893 18.2413 18.3344 16.8867C19.3795 15.5321 19.963 13.878 19.9989 12.1675C20.0347 10.4569 19.5211 8.78001 18.5337 7.38281C17.5462 5.98561 16.1366 4.942 14.5122 4.40479C12.8878 3.86757 11.1341 3.86499 9.5083 4.39795C7.88252 4.93091 6.47059 5.97095 5.47949 7.36556"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round"></path>
+                                        </svg>
+                                    </button>
+
+                                    <button id="redo-btn" title="Redo" disabled>
+                                        <svg width="20" height="20" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 32 32" xml:space="preserve" fill="currentColor">
+                                            <path
+                                                d="M29,18c0,3.472-1.353,6.736-3.808,9.192S19.473,31,16,31c-3.472,0-6.736-1.352-9.192-3.807 C4.353,24.737,3,21.472,3,18s1.353-6.737,3.808-9.192C9.263,6.353,12.527,5,16,5h2.172l-1.586-1.586 c-0.781-0.781-0.781-2.047,0-2.828s2.047-0.781,2.828,0l5,5c0.781,0.781,0.781,2.047,0,2.828l-5,5c-0.782,0.782-2.059,0.769-2.828,0 c-0.781-0.781-0.781-2.047,0-2.828L18.172,9H16c-2.404,0-4.664,0.936-6.364,2.636C7.937,13.336,7,15.596,7,18 s0.937,4.664,2.636,6.364C11.336,26.064,13.597,27,16,27c2.404,0,4.664-0.936,6.364-2.636C24.063,22.664,25,20.403,25,18 c0-1.104,0.896-2,2-2S29,16.896,29,18z">
+                                            </path>
+                                        </svg>
+                                    </button><button id="delete-element-btn" title="Delete Element"><svg
+                                            viewBox="0 0 24 24" fill="currentColor">
+                                            <path
+                                                d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z">
+                                            </path>
+                                        </svg></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="no-element-selected">
+                        <p>Select an element on the canvas to edit its styles.</p>
+                    </div>
+                </div>
+
+                <div id="elements-tab-pane" class="editor-tab-pane">
+                    <div class="editor-section">
+                        <h4>Components</h4>
+                        <div id="visual-editor-components">
+                            <div class="component-item" draggable="true" data-component-type="card-basic"><svg
+                                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                                </svg><span>Basic Card</span></div>
+                            <div class="component-item" draggable="true" data-component-type="card-image"><svg
+                                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg><span>Image Card</span></div>
+                            <div class="component-item" draggable="true" data-component-type="card-testimonial"><svg
+                                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg><span>Testimonial</span></div>
+                            <div class="component-item" draggable="true" data-component-type="button"><svg width="24"
+                                    height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="5" y="9" width="14" height="6" rx="2"></rect>
+                                </svg><span>Button</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="apps-tab-pane" class="editor-tab-pane">
+                    <div class="editor-section">
+                        <h4>Integrations <small style="color: #717171;">(coming soon)</small></h4>
+                        <div id="visual-editor-apps">
+                            <div class="app-item" title="Firebase Integration (Coming Soon)"><img
+                                    src="https://www.svgrepo.com/show/353735/firebase.svg"
+                                    alt="Firebase"><span>Firebase</span></div>
+                            <div class="app-item" title="Stripe Integration (Coming Soon)"><img
+                                    style="border-radius: 30%;" src="https://www.svgrepo.com/show/355283/stripe.svg"
+                                    alt="Stripe"><span>Stripe</span></div>
+                            <div class="app-item" title="Supabase Integration (Coming Soon)"><img
+                                    src="https://www.vectorlogo.zone/logos/supabase/supabase-icon.svg"
+                                    alt="Supabase"><span>Supabase</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="prompt-viewer-modal" style="display: none;">
+    <div class="modal-content glassy" style="max-width: 700px; width: 90%;">
+        <button id="close-prompt-modal-btn" class="close-modal-btn">&times;</button>
+        <h2 style="margin-bottom: 0.5rem;">Full Prompt</h2>
+        <div class="prompt-viewer-body">
+            <pre id="prompt-viewer-content"></pre>
+        </div>
+        <div class="modal-buttons">
+            <button id="copy-full-prompt-btn">Copy to Clipboard</button>
+        </div>
+    </div>
+</div>
+    
+    <script type="module" src="../scripts/app.js"></script>
+
+</body>
+
+</html>
