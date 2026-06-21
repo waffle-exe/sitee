@@ -10,6 +10,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import requests
+from fastapi.responses import StreamingResponse
+import json 
+
 
 # Set BASE_DIR first so we can securely locate files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -594,6 +597,51 @@ async def serve_sitee_subdomains(request: Request, full_path: str):
     except Exception as e:
         print(f"Subdomain Routing Error: {e}")
         return HTMLResponse(content="<h1>500 - Internal Server Error</h1>", status_code=500)
+
+
+async def generate_stream_generator(prompt: str, target_lang: str):
+    system_instruction = f"""
+    You are an elite web developer. 
+    Output valid, COMPLETE {target_lang.upper()} code.
+    ZERO explanations. NO markdown blocks.
+    """
+    
+    messages_ai = [
+        {"role": "system", "content": system_instruction}, 
+        {"role": "user", "content": prompt}
+    ]
+
+    try:
+        # Notice stream=True here
+        response = await client_fireworks.chat.completions.create(
+            model="accounts/fireworks/models/kimi-k2p7-code",
+            messages=messages_ai,
+            max_tokens=15000,
+            temperature=0.2,
+            stream=True 
+        )
+        
+        for chunk in response:
+            # Safely grab the delta content
+            content = chunk.choices[0].delta.content
+            if content:
+                # We yield the data in the Server-Sent Events (SSE) format
+                yield f"data: {json.dumps({'text': content})}\n\n"
+                
+    except Exception as e:
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+# Create a new endpoint or update your existing /generate/ one
+@app.post("/stream-generate/")
+async def stream_generate_endpoint(req: GenerateRequest, current_user: dict = Depends(get_current_user)):
+    # Note: Credit deduction logic should go here just like your normal endpoint
+    
+    # Return the streaming response!
+    return StreamingResponse(
+        generate_stream_generator(req.prompt, req.target_language), 
+        media_type="text/event-stream"
+    )
+
 
 if __name__ == "__main__":
     import uvicorn
