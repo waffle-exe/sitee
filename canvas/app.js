@@ -4138,3 +4138,73 @@ Promise.all([minDelayPromise, pageLoadPromise]).then(() => {
         preloader.classList.add("hidden");
     }
 });
+
+async function generateWebsiteLive(promptText) {
+    // 1. Show the "Thinking..." animation in the UI
+    const thinkingUI = document.getElementById("thinking-ui");
+    thinkingUI.style.display = "inline-flex";
+    
+    // 2. Prepare the code container where the text will "type" out
+    const codeOutputContainer = document.getElementById("code-editor-content");
+    codeOutputContainer.textContent = ""; // Clear previous text
+
+    try {
+        const response = await fetch("http://localhost:8000/stream-generate/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${YOUR_AUTH_TOKEN}`
+            },
+            body: JSON.stringify({
+                prompt: promptText,
+                target_language: "html",
+                user_id: currentUserUid
+            })
+        });
+
+        // 3. Read the stream!
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+
+        let isThinking = true;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            // Decode the chunk
+            const chunk = decoder.decode(value, { stream: true });
+            
+            // SSE sends data separated by newlines
+            const lines = chunk.split("\n");
+
+            for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                    // Once we get the first piece of data, hide the "Thinking" animation!
+                    if (isThinking) {
+                        thinkingUI.style.display = "none";
+                        isThinking = false;
+                    }
+
+                    const dataStr = line.replace("data: ", "");
+                    try {
+                        const parsedData = JSON.parse(dataStr);
+                        if (parsedData.text) {
+                            // Append the text live to the screen!
+                            codeOutputContainer.textContent += parsedData.text;
+                            
+                            // Optional: auto-scroll to bottom of code editor
+                            const editorContainer = document.getElementById("code-editor-container");
+                            editorContainer.scrollTop = editorContainer.scrollHeight;
+                        }
+                    } catch (e) {
+                        console.log("Incomplete chunk, waiting for next stream packet...");
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Stream failed:", error);
+        thinkingUI.style.display = "none";
+    }
+}
