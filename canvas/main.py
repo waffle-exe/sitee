@@ -324,31 +324,35 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     user_ref = db.collection("users").document(uid)
     user_data = user_ref.get().to_dict()
     
-    # 1. Define your cost per token (Example: 0.0001 credits per token)
     TOKEN_COST_RATE = 0.0001 
     
     try:
-        # Call the updated helper
-        result = await generate_with_fallback(...)
+        # Pass the actual data from the request
+        result = await generate_with_fallback(
+            prompt=req.prompt, 
+            images=req.image_data, 
+            target_lang=req.target_language
+        )
         
-        # 2. Calculate dynamic cost
+        # Calculate dynamic cost
         total_tokens = result.get("tokens", 0)
-        credits_to_deduct = max(0.5, round(total_tokens * TOKEN_COST_RATE, 2)) # Min charge 0.5
+        credits_to_deduct = max(0.5, round(total_tokens * TOKEN_COST_RATE, 2))
         
-        # 3. Check and Deduct
+        # Deduct
         if user_data.get('credits', 0) < credits_to_deduct:
             raise HTTPException(status_code=402, detail="Insufficient credits")
             
         user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
         
         return {
-            "html": result["html"],
+            "html": result.get("html"),
             "tokens_used": total_tokens,
             "credits_deducted": credits_to_deduct,
             "credits_remaining": user_data.get('credits', 0) - credits_to_deduct,
             "user_profile": get_user_profile(uid)
         }
     except Exception as e:
+        print(f"Error in /generate/: {e}") # Check your Render logs for this
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- Projects Management ---
