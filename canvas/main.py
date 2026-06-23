@@ -291,7 +291,7 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     user_ref = db.collection("users").document(uid)
     user_data = user_ref.get().to_dict()
     
-    TOKEN_COST_RATE = 0.0001 
+    TOKEN_COST_RATE = 0.00106
     
     try:
         # Pass actual parameters here
