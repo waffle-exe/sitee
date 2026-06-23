@@ -198,8 +198,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     return user_data
 
 
-async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> tuple[str, str]:
-    # 🔥 UPGRADED PROMPT: Anti-laziness, strict completeness, and high-end design directives
+async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
     system_instruction = f"""
     You are an elite, top-tier web developer and UX/UI designer. 
     Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code.
@@ -214,9 +213,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     6. If you output a single word of text outside the executable codebase, or if you truncate the code, the parsing engine will crash. Output the full DOM.
     """
 
-    # 1. Build the unified payload
     messages_ai = [{"role": "system", "content": system_instruction}]
-    
     if images:
         content = [{"type": "text", "text": prompt}]
         for b64_img in images:
@@ -226,82 +223,51 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
-    # ✨ 2. PRIMARY: GLM 5.2 ✨ 
+    # 1. PRIMARY: Fireworks
     try:
-        glm_model = "accounts/fireworks/models/kimi-k2p7-code"
         response = await client_fireworks.chat.completions.create(
-            model=glm_model, 
+            model="accounts/fireworks/models/kimi-k2p7-code", 
             messages=messages_ai, 
-            max_tokens=15000,   # INCREASED: Give it a massive buffer for full websites
-            temperature=0.2,    # Slightly bumped to allow for more creative design variations
-            presence_penalty=0.1, # Encourages the model to write new content rather than repeating
-            timeout=180.0       # INCREASED: Give it plenty of time to write the whole DOM
-        )
-        tokens = response.usage.total_tokens if response.usage else 0
-        return {
-        "html": clean_ai_html(response.choices[0].message.content),
-        "model": "glm-5p2",
-        "tokens": tokens}
-        
-    
-    except Exception as e:
-        print(f"GLM 5.2 Failed/Timed Out: {e}")
-        
-        # ✨ 3. MICRO-FALLBACK: High-Quality Llama on Fireworks ✨
-        try:
-            if images:
-                raise ValueError("Skipping Fireworks Vision (On-Demand Only) -> Routing to Gemini")
-                
-            backup_model = "accounts/fireworks/models/llama-v3p1-70b-instruct" 
-            
-            response = await client_fireworks.chat.completions.create(
-                model=backup_model, 
-                messages=messages_ai, 
-                max_tokens=8000,    # INCREASED: Llama 3.1 70B can handle 8k outputs
-                temperature=0.2,
-                timeout=90.0 
-            )
-            return clean_ai_html(response.choices[0].message.content), backup_model.split("/")[-1]
-        except Exception as backup_e:
-            print(f"Fireworks Backup Failed: {backup_e}")
-
-    # 4. SECONDARY: Groq Fallback
-    try:
-        if images:
-            raise ValueError("Groq does not support image generation via this endpoint structure.")
-            
-        response = await client_groq.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": prompt}],
-            max_tokens=8000,        # INCREASED from 4000
+            max_tokens=15000,
             temperature=0.2,
-            timeout=45.0 
+            timeout=180.0
         )
-        return clean_ai_html(response.choices[0].message.content), "llama3.3-70b"
+        return {
+            "html": clean_ai_html(response.choices[0].message.content),
+            "tokens": response.usage.total_tokens if response.usage else 0
+        }
+    except Exception as e:
+        print(f"Primary Failed: {e}")
+
+    # 2. FALLBACK: Groq
+    try:
+        if not images:
+            response = await client_groq.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": prompt}],
+                max_tokens=8000
+            )
+            return {
+                "html": clean_ai_html(response.choices[0].message.content),
+                "tokens": response.usage.total_tokens if response.usage else 0
+            }
     except Exception as e:
         print(f"Groq Failed: {e}")
 
-    # 5. TERTIARY: Gemini Fallback (Final Safety Net & Vision Handler)
+    # 3. FALLBACK: Gemini
     try:
-        gemini_model = genai.GenerativeModel(model_name='gemini-3.5-pro', system_instruction=system_instruction)
-        gemini_content = [prompt]
-        if images:
-             for b64_img in images:
-                 if "," in b64_img: b64_img = b64_img.split(",")[1]
-                 gemini_content.append({"mime_type": "image/jpeg", "data": base64.b64decode(b64_img)})
-                 
-        # Increased max_output_tokens for Gemini to ensure it doesn't stop halfway
-        generation_config = genai.types.GenerationConfig(
-            temperature=0.2,
-            max_output_tokens=8192 
-        )
-        response = await gemini_model.generate_content_async(gemini_content, generation_config=generation_config)
-        return clean_ai_html(response.text), "gemini-3.5-pro"
+        gemini_model = genai.GenerativeModel('gemini-1.5-pro')
+        response = await gemini_model.generate_content_async(prompt)
+        # Gemini token usage is in usage_metadata
+        tokens = response.usage_metadata.total_token_count if response.usage_metadata else 0
+        return {
+            "html": clean_ai_html(response.text),
+            "tokens": tokens
+        }
     except Exception as e:
         print(f"Gemini Failed: {e}")
 
-    raise HTTPException(status_code=503, detail="All AI models timed out or are unavailable. Please try a shorter prompt or smaller image.")
-
+    raise HTTPException(status_code=503, detail="All AI models failed.")
 
 # ---------------- API ENDPOINTS ----------------
 
