@@ -725,9 +725,9 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
     }
 
     let timerInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const creditCost = (imageData && imageData.data) ? 20 : 1;
-        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Credit Used: ${creditCost}</span>`;
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    // Display a loading state for credits since tokens are unknown until completion
+    stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Calculating tokens...</span>`;
     }, 1000);
 
     try {
@@ -765,6 +765,9 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         }
 
         const htmlCode = result.html;
+        const tokensUsed = result.tokens_used || 0;
+        const creditsDeducted = result.credits_deducted || 0;
+        stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Tokens: ${tokensUsed}</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
         
         iframe.onload = () => {
             if (loading) loading.style.display = 'none';
@@ -1075,12 +1078,13 @@ async function sendChatMessage(prompt, turnToUpdate = null) {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const result = await response.json();
         const aiResponse = result.html;
+
         turn.responses.push({ content: aiResponse });
         turn.displayIndex = turn.responses.length - 1;
         updateTurnUI(turnContainer, turn);
         await saveChatHistory();
         if (result.credits_remaining !== undefined) {
-            currentUser.credits = result.credits_remaining;
+            currentUser.credits = result.credits_remaining; // e.g., 98.45
             updateCreditDisplay();
         }
         checkCreditStatus();
