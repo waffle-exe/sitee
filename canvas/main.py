@@ -40,7 +40,7 @@ app.add_middleware(
         "https://www.sitee.in",
         "https://canvas.sitee.in",
         "http://localhost:3000",
-        "http://localhost:5173"
+        "http://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -237,7 +237,12 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
             presence_penalty=0.1, # Encourages the model to write new content rather than repeating
             timeout=180.0       # INCREASED: Give it plenty of time to write the whole DOM
         )
-        return clean_ai_html(response.choices[0].message.content), "glm-5p2"
+        tokens = response.usage.total_tokens if response.usage else 0
+        return {
+        "html": clean_ai_html(response.choices[0].message.content),
+        "model": "glm-5p2",
+        "tokens": tokens}
+        
     
     except Exception as e:
         print(f"GLM 5.2 Failed/Timed Out: {e}")
@@ -278,7 +283,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
 
     # 5. TERTIARY: Gemini Fallback (Final Safety Net & Vision Handler)
     try:
-        gemini_model = genai.GenerativeModel(model_name='gemini-1.5-pro-latest', system_instruction=system_instruction)
+        gemini_model = genai.GenerativeModel(model_name='gemini-3.5-pro', system_instruction=system_instruction)
         gemini_content = [prompt]
         if images:
              for b64_img in images:
@@ -291,7 +296,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
             max_output_tokens=8192 
         )
         response = await gemini_model.generate_content_async(gemini_content, generation_config=generation_config)
-        return clean_ai_html(response.text), "gemini-1.5-pro"
+        return clean_ai_html(response.text), "gemini-3.5-pro"
     except Exception as e:
         print(f"Gemini Failed: {e}")
 
@@ -317,45 +322,33 @@ async def get_me(current_user: dict = Depends(get_current_user)):
 async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
     user_ref = db.collection("users").document(uid)
-    user_doc = user_ref.get()
+    user_data = user_ref.get().to_dict()
     
-    user_data = user_doc.to_dict() if user_doc.exists else {}
+    # 1. Define your cost per token (Example: 0.0001 credits per token)
+    TOKEN_COST_RATE = 0.0001 
     
-    credit_cost = 20 if req.image_data else 1
-    if req.target_language == 'react': credit_cost = 0 
-    if req.existing_html: credit_cost = 1 
-        
-    if user_data.get('credits', 0) < credit_cost:
-        raise HTTPException(status_code=402, detail="Insufficient credits")
-        
-    if credit_cost > 0:
-        user_ref.update({"credits": firestore.Increment(-credit_cost)})
-        
     try:
-        final_prompt = req.prompt
-        if req.existing_html:
-            final_prompt = f"Modify the following HTML based on this request: '{req.prompt}'.\n\nExisting HTML:\n{req.existing_html}"
-        if req.is_punjabi_mode:
-            final_prompt = f"Understand this Punjabi context and build the site: {req.prompt}"
-
-        generated_code, model_used = await generate_with_fallback(
-            prompt=final_prompt, 
-            images=req.image_data, 
-            target_lang=req.target_language or "html"
-        )
-
-        new_credits = user_ref.get().to_dict().get('credits', 0)
-
+        # Call the updated helper
+        result = await generate_with_fallback(...)
+        
+        # 2. Calculate dynamic cost
+        total_tokens = result.get("tokens", 0)
+        credits_to_deduct = max(0.5, round(total_tokens * TOKEN_COST_RATE, 2)) # Min charge 0.5
+        
+        # 3. Check and Deduct
+        if user_data.get('credits', 0) < credits_to_deduct:
+            raise HTTPException(status_code=402, detail="Insufficient credits")
+            
+        user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
+        
         return {
-            "html": generated_code if req.target_language != "react" else None,
-            "code": generated_code if req.target_language == "react" else None,
-            "fallback_used": "glm" not in model_used.lower(),
-            "credits_remaining": new_credits,
+            "html": result["html"],
+            "tokens_used": total_tokens,
+            "credits_deducted": credits_to_deduct,
+            "credits_remaining": user_data.get('credits', 0) - credits_to_deduct,
             "user_profile": get_user_profile(uid)
         }
     except Exception as e:
-        if credit_cost > 0:
-            user_ref.update({"credits": firestore.Increment(credit_cost)})
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- Projects Management ---
