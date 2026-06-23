@@ -243,27 +243,28 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     try:
         if not images:
             response = await client_groq.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="llama-3.3-70b",
                 messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": prompt}],
                 max_tokens=8000
             )
             return {
-                "html": clean_ai_html(response.choices[0].message.content),
-                "tokens": response.usage.total_tokens if response.usage else 0
-            }
+    "html": clean_ai_html(response.choices[0].message.content),
+    "model": "llama3.3-70b",
+    "tokens": response.usage.total_tokens if response.usage else 0
+}
     except Exception as e:
         print(f"Groq Failed: {e}")
 
     # 3. FALLBACK: Gemini
     try:
-        gemini_model = genai.GenerativeModel('gemini-1.5-pro')
+        gemini_model = genai.GenerativeModel('gemini-3.0-pro')
         response = await gemini_model.generate_content_async(prompt)
         # Gemini token usage is in usage_metadata
         tokens = response.usage_metadata.total_token_count if response.usage_metadata else 0
         return {
             "html": clean_ai_html(response.text),
-            "tokens": tokens
-        }
+            "model": "gemini-3.0-pro",
+            "tokens": response.usage_metadata.total_token_count if response.usage_metadata else 0}
     except Exception as e:
         print(f"Gemini Failed: {e}")
 
@@ -293,23 +294,23 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     TOKEN_COST_RATE = 0.0001 
     
     try:
-        # Pass the actual data from the request
+        # Pass actual parameters here
         result = await generate_with_fallback(
             prompt=req.prompt, 
             images=req.image_data, 
             target_lang=req.target_language
         )
         
-        # Calculate dynamic cost
+        # Calculate costs
         total_tokens = result.get("tokens", 0)
         credits_to_deduct = max(0.5, round(total_tokens * TOKEN_COST_RATE, 2))
         
-        # Deduct
         if user_data.get('credits', 0) < credits_to_deduct:
             raise HTTPException(status_code=402, detail="Insufficient credits")
             
         user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
         
+        # Return the EXACT fields your JS code is looking for
         return {
             "html": result.get("html"),
             "tokens_used": total_tokens,
@@ -318,9 +319,9 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
             "user_profile": get_user_profile(uid)
         }
     except Exception as e:
-        print(f"Error in /generate/: {e}") # Check your Render logs for this
+        print(f"Error in /generate/: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 # --- Projects Management ---
 @app.post("/users/{user_id}/projects")
 async def save_project_endpoint(user_id: str, project: dict = Body(...), current_user: dict = Depends(get_current_user)):
