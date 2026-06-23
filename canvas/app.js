@@ -650,6 +650,7 @@ function checkCreditStatus() {
 // REPLACE your old handleGenerateClick function with this new one
 
 async function handleGenerateClick() {
+    console.log("Generate button clicked!");
     if (!auth.currentUser || !auth.currentUser.emailVerified) {
         window.openAuthModal();
         showNotification('Please sign up or log in to generate.', 'error');
@@ -698,6 +699,8 @@ async function handleGenerateClick() {
     promptInput.value = '';
     autoResizePrompt.call(promptInput);
 }
+
+
 async function generateWebsite(prompt, container, iframe, imageData = null) {
     const preview = container.querySelector('.preview');
     const loading = container.querySelector('.loading');
@@ -705,29 +708,24 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
     const startTime = Date.now();
     document.body.classList.add('generating');
 
-    // 1. HIDE DELETE BUTTON AT START
     const deleteBtn = container.querySelector('.delete-btn');
     if (deleteBtn) deleteBtn.style.display = 'none';
 
-    // Create a local controller for this specific generation
     const localController = new AbortController();
     const signal = localController.signal;
 
-    // Add Stop Button logic
     if (!loading.querySelector('.stop-btn')) {
         const stopBtn = document.createElement('button');
         stopBtn.className = 'stop-btn';
         stopBtn.textContent = 'Stop Generation';
-        stopBtn.onclick = () => {
-            localController.abort();
-        };
+        stopBtn.onclick = () => localController.abort();
         loading.appendChild(stopBtn);
     }
 
+    // 1. IMPROVED TIMER: Assign to a variable and clear it precisely
     let timerInterval = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    // Display a loading state for credits since tokens are unknown until completion
-    stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Calculating tokens...</span>`;
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Calculating tokens...</span>`;
     }, 1000);
 
     try {
@@ -741,7 +739,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             requestBody.image_data = imageData.data;
             requestBody.image_size_bytes = imageData.size;
         }
-
+        
         const response = await fetch(`${backendUrl}/generate/`, {
             method: 'POST',
             headers: await getAuthHeaders(),
@@ -756,48 +754,47 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
         const result = await response.json();
 
-        if (result.fallback_used) {
-            showNotification("Our main Sitee Model is busy! Switched to a faster model.");
-        }
+        // 2. CLEAR TIMER IMMEDIATELY ONCE DATA ARRIVES
+        clearInterval(timerInterval);
 
-        if (result.user_profile) {
-            currentUser = result.user_profile;
-        }
+        if (result.user_profile) currentUser = result.user_profile;
 
         const htmlCode = result.html;
         const tokensUsed = result.tokens_used || 0;
         const creditsDeducted = result.credits_deducted || 0;
+
+        // 3. PERSIST THE FINAL STATS
         stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Tokens: ${tokensUsed}</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
         
-        iframe.onload = () => {
-            if (loading) loading.style.display = 'none';
-            
-            if (document.querySelectorAll('.loading[style*="display: flex"]').length === 0) {
+        const loadTimeout = setTimeout(() => {
+            if (loading && loading.style.display !== 'none') {
+                loading.style.display = 'none';
                 document.body.classList.remove('generating');
+                if (deleteBtn) deleteBtn.style.display = 'flex';
             }
-            
-            // 2. SHOW DELETE BUTTON WHEN DONE
+        }, 10000);
+        
+        iframe.onload = () => {
+            clearTimeout(loadTimeout);
+            if (loading) loading.style.display = 'none';
             if (deleteBtn) deleteBtn.style.display = 'flex';
-
             handleIframeLinks(iframe);
             makeIframeImagesEditable(iframe);
-            if (currentMode === 'visual-edit') {
-                enableEditingInIframe(iframe);
-            }
+            if (currentMode === 'visual-edit') enableEditingInIframe(iframe);
             disableIframeContextMenu(iframe);
             pushStateForIframe(iframe);
         };
         
         iframe.srcdoc = htmlCode;
         const savedProject = await saveProject(prompt, htmlCode);
-        if (savedProject) {
-            container.dataset.timestamp = savedProject.timestamp;
-        }
+        if (savedProject) container.dataset.timestamp = savedProject.timestamp;
 
         updateCreditDisplay();
         checkCreditStatus();
 
-    } catch (error) {
+    }
+    catch (error) {
+        clearInterval(timerInterval); 
         if (error.name === 'AbortError') {
             console.log('Generation stopped by user');
             showNotification('Generation stopped.', 'info');
@@ -810,8 +807,9 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             // 3. SHOW DELETE BUTTON ON ERROR (So user can delete the failed window)
             if (deleteBtn) deleteBtn.style.display = 'flex';
         }
-    } finally {
-        clearInterval(timerInterval);
+    } 
+    finally {
+        clearInterval(timerInterval); // Final safety clear
         if (document.querySelectorAll('.loading').length <= 1) {
              document.body.classList.remove('generating');
         }
