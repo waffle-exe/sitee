@@ -108,6 +108,10 @@ class GenerateRequest(BaseModel):
     image_size_bytes: Optional[int] = None
     target_language: Optional[str] = "html"
     existing_html: Optional[str] = None
+    
+class UpgradeRequest(BaseModel):
+    plan_tier: str  # "creator" or "pro"
+    billing_cycle: str  # "monthly" or "yearly"
 
 
 # ---------------- HELPER FUNCTIONS ----------------
@@ -164,6 +168,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
             "email": email,
             "credits": 10, 
             "subscriptionTier": "free",
+            "plan_validity": None,  # <-- Tracks expiry
             "storage_used_mb": 0.0,
             "projects": []
         }
@@ -172,6 +177,29 @@ def get_user_profile(uid: str, email: str = "") -> dict:
         user_data = doc.to_dict()
         if "id" not in user_data:
             user_data["id"] = uid
+            
+        # --- NEW: LAZY EXPIRATION LOGIC ---
+        plan_validity_str = user_data.get("plan_validity")
+        if plan_validity_str:
+            try:
+                expiry_date = datetime.fromisoformat(plan_validity_str)
+                # Check if current time has passed the expiry date
+                if datetime.now(timezone.utc) > expiry_date:
+                    print(f"User {uid} plan expired. Downgrading to Free.")
+                    # Reset to free tier
+                    user_data["subscriptionTier"] = "free"
+                    user_data["credits"] = 10  
+                    user_data["plan_validity"] = None
+                    
+                    # Update Firestore immediately
+                    user_ref.update({
+                        "subscriptionTier": "free",
+                        "credits": 10,
+                        "plan_validity": None
+                    })
+            except Exception as e:
+                print(f"Date parsing error for user {uid}: {e}")
+        # ----------------------------------
             
     existing_projects_array = user_data.get("projects", [])
     if not isinstance(existing_projects_array, list):
@@ -271,6 +299,50 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     raise HTTPException(status_code=503, detail="All AI models failed.")
 
 # ---------------- API ENDPOINTS ----------------
+@app.post("/upgrade-user-plan/")
+async def upgrade_user_plan(req: UpgradeRequest, current_user: dict = Depends(get_current_user)):
+    uid = current_user['uid']
+    user_ref = db.collection("users").document(uid)
+    
+    # Define credit allocations based on plan tier
+    plan_credits = {
+        "creator": 300,
+        "pro": 1200
+    }
+    
+    tier = req.plan_tier.lower()
+    cycle = req.billing_cycle.lower()
+    
+    if tier not in plan_credits:
+        raise HTTPException(status_code=400, detail="Invalid plan tier. Choose 'creator' or 'pro'.")
+    if cycle not in ["monthly", "yearly"]:
+        raise HTTPException(status_code=400, detail="Invalid billing cycle. Choose 'monthly' or 'yearly'.")
+        
+    # Calculate validity duration based on cycle
+    now = datetime.now(timezone.utc)
+    if cycle == "monthly":
+        expiry_date = now + timedelta(days=30)
+    else:  # yearly
+        expiry_date = now + timedelta(days=365)
+        
+    # Give them all the credits upfront for their billing cycle
+    allocated_credits = plan_credits[tier]
+    if cycle == "yearly":
+        allocated_credits = plan_credits[tier] * 12 
+
+    # Update database
+    user_ref.update({
+        "subscriptionTier": f"{tier}_{cycle}", # e.g., "pro_monthly"
+        "credits": firestore.Increment(allocated_credits),
+        "plan_validity": expiry_date.isoformat()
+    })
+    
+    return {
+        "status": "success",
+        "tier": f"{tier}_{cycle}",
+        "credits_added": allocated_credits,
+        "expires_at": expiry_date.isoformat()
+    }
 
 @app.post("/create-user")
 async def create_user(current_user: dict = Depends(get_current_user)):
@@ -291,7 +363,7 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     if req.image_data and len(req.image_data) > 3:
         raise HTTPException(status_code=400, detail="Maximum of 3 reference images allowed.")
     user_ref = db.collection("users").document(uid)
-    user_data = get_user_profile(uid) \
+    user_data = get_user_profile(uid) 
     
     if user_data.get('subscriptionTier') == 'free' and user_data.get('credits', 0) < 2:
         raise HTTPException(status_code=402, detail="Please upgrade your plan to generate more websites.")
