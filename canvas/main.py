@@ -3,7 +3,7 @@ import re
 import asyncio
 import base64
 from typing import List, Optional
-
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -288,8 +288,13 @@ async def get_me(current_user: dict = Depends(get_current_user)):
 @app.post("/generate/")
 async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
+    if req.image_data and len(req.image_data) > 3:
+        raise HTTPException(status_code=400, detail="Maximum of 3 reference images allowed.")
     user_ref = db.collection("users").document(uid)
-    user_data = user_ref.get().to_dict()
+    user_data = get_user_profile(uid) \
+    
+    if user_data.get('subscriptionTier') == 'free' and user_data.get('credits', 0) < 2:
+        raise HTTPException(status_code=402, detail="Please upgrade your plan to generate more websites.")
     
     TOKEN_COST_RATE = 0.00106
     
@@ -301,22 +306,25 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
             target_lang=req.target_language
         )
         
-        # Calculate costs
         total_tokens = result.get("tokens", 0)
-        credits_to_deduct = max(0.5, round(total_tokens * TOKEN_COST_RATE, 2))
+        
+        # If an image was uploaded, multiply the cost by 1.8 (80% surcharge for Vision processing)
+        has_image = bool(req.image_data)
+        vision_multiplier = 1.8 if has_image else 1.0
+        credits_to_deduct = max(2.0, round((total_tokens * TOKEN_COST_RATE) * vision_multiplier, 1))
+        
         
         if user_data.get('credits', 0) < credits_to_deduct:
-            raise HTTPException(status_code=402, detail="Insufficient credits")
+            raise HTTPException(status_code=402, detail=f"Insufficient credits. This complex generation requires {credits_to_deduct} credits.")
             
         user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
         
-        # Return the EXACT fields your JS code is looking for
         return {
             "html": result.get("html"),
             "tokens_used": total_tokens,
             "credits_deducted": credits_to_deduct,
             "credits_remaining": user_data.get('credits', 0) - credits_to_deduct,
-            "user_profile": get_user_profile(uid)
+            "user_profile": get_user_profile(uid) # Fetches fresh profile to return to frontend
         }
     except Exception as e:
         print(f"Error in /generate/: {e}")
