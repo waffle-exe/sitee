@@ -763,8 +763,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         const tokensUsed = result.tokens_used || 0;
         const creditsDeducted = result.credits_deducted || 0;
 
-        // 3. PERSIST THE FINAL STATS
-        stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Tokens: ${tokensUsed}</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
+        stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
         
         const loadTimeout = setTimeout(() => {
             if (loading && loading.style.display !== 'none') {
