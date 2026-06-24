@@ -116,11 +116,12 @@ class UpgradeRequest(BaseModel):
 class FirebaseConfigRequest(BaseModel):
     apiKey: str
     authDomain: str
-    databaseURL: str
+    databaseURL: Optional[str] = None  
     projectId: str
     storageBucket: str
     messagingSenderId: str
     appId: str
+    measurementId: Optional[str] = None  
 
 
 # ---------------- HELPER FUNCTIONS ----------------
