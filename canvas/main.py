@@ -599,21 +599,34 @@ async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dic
 async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     return {"new_html": req.get("new_outer_html")}
 
+
 @app.post("/users/me/firebase-config")
 async def save_firebase_config(req: FirebaseConfigRequest, current_user: dict = Depends(get_current_user)):
-    uid = current_user['uid']
-    db.collection("users").document(uid).update({
-        "custom_firebase_config": req.dict()
-    })
-    return {"status": "success", "message": "Firebase config saved!"}
+    try:
+        uid = current_user['uid']
+        # Use .set() with merge=True to prevent 500 crashes if the doc doesn't exist yet
+        db.collection("users").document(uid).set({
+            "custom_firebase_config": req.dict()
+        }, merge=True)
+        
+        return {"status": "success", "message": "Firebase config saved!"}
+    except Exception as e:
+        print(f"Error saving firebase config: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.delete("/users/me/firebase-config")
 async def delete_firebase_config(current_user: dict = Depends(get_current_user)):
-    uid = current_user['uid']
-    db.collection("users").document(uid).update({
-        "custom_firebase_config": firestore.DELETE_FIELD
-    })
-    return {"status": "success"}
+    try:
+        uid = current_user['uid']
+        # Using .update() here is fine because if they are deleting it, the doc definitely exists,
+        # but wrapping it in try/except ensures we don't throw an ugly 500 error if it fails.
+        db.collection("users").document(uid).update({
+            "custom_firebase_config": firestore.DELETE_FIELD
+        })
+        return {"status": "success"}
+    except Exception as e:
+        print(f"Error deleting firebase config: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
