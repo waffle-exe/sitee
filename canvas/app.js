@@ -700,7 +700,6 @@ async function handleGenerateClick() {
     autoResizePrompt.call(promptInput);
 }
 
-
 async function generateWebsite(prompt, container, iframe, imageData = null) {
     const preview = container.querySelector('.preview');
     const loading = container.querySelector('.loading');
@@ -759,12 +758,19 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
         if (result.user_profile) currentUser = result.user_profile;
 
-        const htmlCode = result.html;
+        const rawHtmlCode = result.html;
         const tokensUsed = result.tokens_used || 0;
         const creditsDeducted = result.credits_deducted || 0;
 
         stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
-        
+
+        // --- NEW: DYNAMIC FIREBASE INJECTION ---
+        // We inject the forms using the user's custom configuration before saving or rendering
+        const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function' 
+            ? injectDynamicFirebaseForms(rawHtmlCode, currentUser) 
+            : rawHtmlCode;
+        // ---------------------------------------
+
         const loadTimeout = setTimeout(() => {
             if (loading && loading.style.display !== 'none') {
                 loading.style.display = 'none';
@@ -784,8 +790,9 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             pushStateForIframe(iframe);
         };
         
-        iframe.srcdoc = htmlCode;
-        const savedProject = await saveProject(prompt, htmlCode);
+        // Pass the injected HTML to the iframe and the database
+        iframe.srcdoc = finalHtmlCode;
+        const savedProject = await saveProject(prompt, finalHtmlCode);
         if (savedProject) container.dataset.timestamp = savedProject.timestamp;
 
         updateCreditDisplay();
@@ -1341,11 +1348,21 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
             });
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const result = await response.json();
-            iframe.srcdoc = result.html;
+
+            if (result.user_profile) currentUser = result.user_profile;
+
+            // --- NEW: DYNAMIC FIREBASE INJECTION ---
+            // Re-inject the script in case the AI accidentally removed or broke it during refinement
+            const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function' 
+                ? injectDynamicFirebaseForms(result.html, currentUser) 
+                : result.html;
+            // ---------------------------------------
+
+            iframe.srcdoc = finalHtmlCode;
             compareBtn.style.display = 'flex'; // Show compare button after refinement
 
             const timestamp = parseInt(container.dataset.timestamp);
-            if (timestamp) await updateProjectCode(timestamp, result.html);
+            if (timestamp) await updateProjectCode(timestamp, finalHtmlCode);
 
             if (result.credits_remaining !== undefined) {
                 currentUser.credits = result.credits_remaining;
@@ -4145,3 +4162,80 @@ Promise.all([minDelayPromise, pageLoadPromise]).then(() => {
         preloader.classList.add("hidden");
     }
 });
+
+// --- DYNAMIC FIREBASE FORM INJECTOR ---
+function injectDynamicFirebaseForms(htmlCode, currentUser) {
+    if (!htmlCode.toLowerCase().includes('<form')) return htmlCode;
+    if (htmlCode.includes('id="sitee-firebase-injector"')) return htmlCode;
+
+    const userConfig = currentUser?.custom_firebase_config;
+
+    // If the user hasn't connected their Firebase, inject a warning script
+    if (!userConfig || !userConfig.apiKey) {
+        const warningScript = `
+<script id="sitee-firebase-injector">
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert("Forms are disabled. The website owner has not connected their Firebase database yet.");
+        });
+    });
+</script>`;
+        return htmlCode.replace(/<\/body>/i, `${warningScript}\n</body>`);
+    }
+
+    // If they HAVE connected it, inject the real working script using THEIR keys!
+    const injectionScript = `
+<script id="sitee-firebase-injector" type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getDatabase, ref, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+    // Injected custom user configuration
+    const firebaseConfig = ${JSON.stringify(userConfig, null, 4)};
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = form.querySelector('button[type="submit"]') || form.querySelector('input[type="submit"]');
+            const originalText = btn ? (btn.innerText || btn.value) : '';
+            if (btn) {
+                if (btn.innerText) btn.innerText = 'Submitting...';
+                if (btn.value) btn.value = 'Submitting...';
+                btn.disabled = true;
+            }
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.submittedAt = serverTimestamp();
+
+            try {
+                // Save directly to the root of THEIR database
+                const submissionsRef = ref(db, 'website_form_submissions');
+                await push(submissionsRef, data);
+                
+                const successMsg = document.createElement('div');
+                successMsg.style.cssText = 'color: #10B981; margin-top: 12px; font-weight: 500; text-align: center; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px;';
+                successMsg.innerText = 'Submitted successfully!';
+                form.appendChild(successMsg);
+                form.reset();
+                setTimeout(() => successMsg.remove(), 4000);
+            } catch (error) {
+                console.error('Submission failed:', error);
+                alert('Database Error: The website owner has an invalid Firebase configuration.');
+            } finally {
+                if (btn) {
+                    if (btn.innerText) btn.innerText = originalText;
+                    if (btn.value) btn.value = originalText;
+                    btn.disabled = false;
+                }
+            }
+        });
+    });
+</script>`;
+    
+    return htmlCode.replace(/<\/body>/i, `${injectionScript}\n</body>`);
+}
