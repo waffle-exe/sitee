@@ -2969,13 +2969,38 @@
         </div>
     </div>
     <div id="dashboard-modal" style="display: none;">
-        <div class="auth-container">
+        <div class="auth-container" style="max-width: 500px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
             <button id="close-dashboard-modal" class="close-modal-btn">&times;</button>
             <h2>Your Dashboard</h2>
+            
             <div id="dashboard-content">
                 <p>Loading your details...</p>
             </div>
-            <button id="logout-btn" class="auth-btn btn-primary">Log Out</button>
+
+            <div class="dashboard-section" id="firebase-integration-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: left;">
+                <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: white;">Bring Your Own Database</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted-color); margin-bottom: 1rem; line-height: 1.4;">
+                    Connect your own Firebase Realtime Database to receive form submissions from your published websites. Your data stays 100% private.
+                </p>
+                
+                <div id="firebase-status-badge" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-muted-color);">Status: Not Connected ❌</div>
+
+                <form id="firebase-config-form" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <input type="text" id="fb-apiKey" placeholder="apiKey (e.g., AIzaSy...)" required class="auth-input" style="margin-bottom: 0;">
+                    <input type="text" id="fb-authDomain" placeholder="authDomain" required class="auth-input" style="margin-bottom: 0;">
+                    <input type="text" id="fb-databaseURL" placeholder="databaseURL" required class="auth-input" style="margin-bottom: 0;">
+                    <input type="text" id="fb-projectId" placeholder="projectId" required class="auth-input" style="margin-bottom: 0;">
+                    <input type="text" id="fb-storageBucket" placeholder="storageBucket" required class="auth-input" style="margin-bottom: 0;">
+                    <input type="text" id="fb-messagingSenderId" placeholder="messagingSenderId" required class="auth-input" style="margin-bottom: 0;">
+                    <input type="text" id="fb-appId" placeholder="appId" required class="auth-input" style="margin-bottom: 0;">
+                    
+                    <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem;">
+                        <button type="submit" id="save-firebase-btn" class="auth-btn btn-primary" style="flex: 1;">Connect</button>
+                        <button type="button" id="disconnect-firebase-btn" class="auth-btn" style="flex: 1; display: none; background: rgba(255,0,0,0.1); border: 1px solid var(--error-color); color: var(--error-color);">Disconnect</button>
+                    </div>
+                </form>
+            </div>
+            <button id="logout-btn" class="auth-btn btn-primary" style="margin-top: 1.5rem;">Log Out</button>
         </div>
     </div>
 
