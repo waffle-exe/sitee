@@ -294,9 +294,9 @@ window.openPromptModal = (source) => {
     } else if (source.tagName) {
         // Option 2: Passed a button element (from Chat)
         // Try to find the hidden span sibling first
-        const wrapper = source.closest('.message-content'); 
+        const wrapper = source.closest('.message-content');
         const hiddenSpan = wrapper ? wrapper.querySelector('.raw-prompt-data') : null;
-        
+
         if (hiddenSpan) {
             textToShow = hiddenSpan.textContent;
         } else {
@@ -307,7 +307,7 @@ window.openPromptModal = (source) => {
 
     const promptViewerModal = document.getElementById('prompt-viewer-modal');
     const promptViewerContent = document.getElementById('prompt-viewer-content');
-    
+
     promptViewerContent.textContent = textToShow;
     promptViewerModal.style.display = 'flex';
 };
@@ -574,36 +574,36 @@ function populateDashboard() {
     `;
 
     // Add this inside populateDashboard() after setting dashboardContent.innerHTML
-const fbForm = document.getElementById('firebase-config-form');
-const fbStatusBadge = document.getElementById('firebase-status-badge');
-const saveFbBtn = document.getElementById('save-firebase-btn');
-const disconnectFbBtn = document.getElementById('disconnect-firebase-btn');
+    const fbForm = document.getElementById('firebase-config-form');
+    const fbStatusBadge = document.getElementById('firebase-status-badge');
+    const saveFbBtn = document.getElementById('save-firebase-btn');
+    const disconnectFbBtn = document.getElementById('disconnect-firebase-btn');
 
-if (currentUser && currentUser.custom_firebase_config && currentUser.custom_firebase_config.apiKey) {
-    // Fill in the form fields with existing data
-    document.getElementById('fb-apiKey').value = currentUser.custom_firebase_config.apiKey || '';
-    document.getElementById('fb-authDomain').value = currentUser.custom_firebase_config.authDomain || '';
-    document.getElementById('fb-databaseURL').value = currentUser.custom_firebase_config.databaseURL || '';
-    document.getElementById('fb-projectId').value = currentUser.custom_firebase_config.projectId || '';
-    document.getElementById('fb-storageBucket').value = currentUser.custom_firebase_config.storageBucket || '';
-    document.getElementById('fb-messagingSenderId').value = currentUser.custom_firebase_config.messagingSenderId || '';
-    document.getElementById('fb-appId').value = currentUser.custom_firebase_config.appId || '';
+    if (currentUser && currentUser.custom_firebase_config && currentUser.custom_firebase_config.apiKey) {
+        // Fill in the form fields with existing data
+        document.getElementById('fb-apiKey').value = currentUser.custom_firebase_config.apiKey || '';
+        document.getElementById('fb-authDomain').value = currentUser.custom_firebase_config.authDomain || '';
+        document.getElementById('fb-databaseURL').value = currentUser.custom_firebase_config.databaseURL || '';
+        document.getElementById('fb-projectId').value = currentUser.custom_firebase_config.projectId || '';
+        document.getElementById('fb-storageBucket').value = currentUser.custom_firebase_config.storageBucket || '';
+        document.getElementById('fb-messagingSenderId').value = currentUser.custom_firebase_config.messagingSenderId || '';
+        document.getElementById('fb-appId').value = currentUser.custom_firebase_config.appId || '';
 
-    // Update the UI states
-    fbStatusBadge.innerHTML = 'Status: Connected ✅';
-    fbStatusBadge.style.color = '#4ADE80';
-    saveFbBtn.style.display = 'none';
-    disconnectFbBtn.style.display = 'block';
-} else {
-    // Ensure clear state if not connected
-    if (fbForm) fbForm.reset();
-    if (fbStatusBadge) {
-        fbStatusBadge.innerHTML = 'Status: Not Connected ❌';
-        fbStatusBadge.style.color = 'var(--text-muted-color)';
+        // Update the UI states
+        fbStatusBadge.innerHTML = 'Status: Connected ✅';
+        fbStatusBadge.style.color = '#4ADE80';
+        saveFbBtn.style.display = 'none';
+        disconnectFbBtn.style.display = 'block';
+    } else {
+        // Ensure clear state if not connected
+        if (fbForm) fbForm.reset();
+        if (fbStatusBadge) {
+            fbStatusBadge.innerHTML = 'Status: Not Connected ❌';
+            fbStatusBadge.style.color = 'var(--text-muted-color)';
+        }
+        if (saveFbBtn) saveFbBtn.style.display = 'block';
+        if (disconnectFbBtn) disconnectFbBtn.style.display = 'none';
     }
-    if (saveFbBtn) saveFbBtn.style.display = 'block';
-    if (disconnectFbBtn) disconnectFbBtn.style.display = 'none';
-}
 }
 // --- END: ADDED FUNCTIONS FOR DASHBOARD ---
 
@@ -770,12 +770,12 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             requestBody.image_data = imageData.data;
             requestBody.image_size_bytes = imageData.size;
         }
-        
+
         const response = await fetch(`${backendUrl}/generate/`, {
             method: 'POST',
             headers: await getAuthHeaders(),
             body: JSON.stringify(requestBody),
-            signal: signal 
+            signal: signal
         });
 
         if (!response.ok) {
@@ -798,8 +798,8 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
         // --- NEW: DYNAMIC FIREBASE INJECTION ---
         // We inject the forms using the user's custom configuration before saving or rendering
-        const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function' 
-            ? injectDynamicFirebaseForms(rawHtmlCode, currentUser) 
+        const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
+            ? injectDynamicFirebaseForms(rawHtmlCode, currentUser)
             : rawHtmlCode;
         // ---------------------------------------
 
@@ -810,7 +810,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
                 if (deleteBtn) deleteBtn.style.display = 'flex';
             }
         }, 10000);
-        
+
         iframe.onload = () => {
             clearTimeout(loadTimeout);
             if (loading) loading.style.display = 'none';
@@ -821,7 +821,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             disableIframeContextMenu(iframe);
             pushStateForIframe(iframe);
         };
-        
+
         // Pass the injected HTML to the iframe and the database
         iframe.srcdoc = finalHtmlCode;
         const savedProject = await saveProject(prompt, finalHtmlCode);
@@ -832,24 +832,24 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
     }
     catch (error) {
-        clearInterval(timerInterval); 
+        clearInterval(timerInterval);
         if (error.name === 'AbortError') {
             console.log('Generation stopped by user');
             showNotification('Generation stopped.', 'info');
-            container.remove(); 
+            container.remove();
         } else {
             console.error("Error generating website:", error);
             preview.innerHTML = `<div style="color: var(--error-color); padding: 1rem;">Error: ${error.message}</div>`;
             promptInput.value = prompt;
-            
+
             // 3. SHOW DELETE BUTTON ON ERROR (So user can delete the failed window)
             if (deleteBtn) deleteBtn.style.display = 'flex';
         }
-    } 
+    }
     finally {
         clearInterval(timerInterval); // Final safety clear
         if (document.querySelectorAll('.loading').length <= 1) {
-             document.body.classList.remove('generating');
+            document.body.classList.remove('generating');
         }
     }
 }
@@ -989,7 +989,7 @@ function appendTurn(turn, isLoading = false) {
     // 2. Add the Direct Copy Button
     const toolsDiv = document.createElement('div');
     toolsDiv.className = 'user-message-tools';
-    toolsDiv.contentEditable = "false"; 
+    toolsDiv.contentEditable = "false";
 
     const copyBtn = document.createElement('button');
     copyBtn.className = 'user-tool-btn';
@@ -999,14 +999,14 @@ function appendTurn(turn, isLoading = false) {
         </svg>
         Copy
     `;
-    
+
     copyBtn.onclick = (e) => {
         e.stopPropagation();
         navigator.clipboard.writeText(turn.prompt).then(() => {
             const originalHTML = copyBtn.innerHTML;
             copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="#4ADE80" viewBox="0 0 16 16"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg> Copied!`;
             copyBtn.style.color = "#4ADE80";
-            
+
             setTimeout(() => {
                 copyBtn.innerHTML = originalHTML;
                 copyBtn.style.color = "";
@@ -1161,16 +1161,16 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     if (projectData) {
         // Look for an existing window with this specific timestamp
         const existingWindow = document.querySelector(`.site-container[data-timestamp="${projectData.timestamp}"]`);
-        
+
         if (existingWindow) {
             // It is already open! Just bring it to the front.
             existingWindow.style.zIndex = getMaxZIndex() + 1;
-            
+
             // Optional: Highlight it briefly so the user knows where it is
             existingWindow.style.transition = "transform 0.1s";
             existingWindow.style.transform = "scale(1.02)";
             setTimeout(() => existingWindow.style.transform = "scale(1)", 100);
-            
+
             return; // STOP here. Do not create a new window.
         }
     }
@@ -1344,7 +1344,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     canvas.appendChild(container);
 
     const iframe = document.createElement('iframe');
-    
+
     iframe.sandbox = "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox";
     iframe.addEventListener('contextmenu', e => e.preventDefault());
     preview.appendChild(iframe);
@@ -1385,8 +1385,8 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
 
             // --- NEW: DYNAMIC FIREBASE INJECTION ---
             // Re-inject the script in case the AI accidentally removed or broke it during refinement
-            const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function' 
-                ? injectDynamicFirebaseForms(result.html, currentUser) 
+            const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
+                ? injectDynamicFirebaseForms(result.html, currentUser)
                 : result.html;
             // ---------------------------------------
 
@@ -1424,9 +1424,9 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
         }
     });
 
-    suggestionBtn.addEventListener('click', (e) => { 
-        e.stopPropagation(); 
-        
+    suggestionBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+
         // --- ✅ NEW: Check for Pro Plan ---
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
         if (plan !== 'pro') {
@@ -1435,24 +1435,24 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
         }
         // ----------------------------------
 
-        const timestamp = parseInt(container.dataset.timestamp); 
-        if (!timestamp) { 
-            showNotification("Please save the project before getting suggestions.", "error"); 
-            return; 
-        } 
-        handleSuggestionRequest(timestamp, iframe.srcdoc, false); 
+        const timestamp = parseInt(container.dataset.timestamp);
+        if (!timestamp) {
+            showNotification("Please save the project before getting suggestions.", "error");
+            return;
+        }
+        handleSuggestionRequest(timestamp, iframe.srcdoc, false);
     });
-    
+
     publishBtn.addEventListener('click', (e) => { e.stopPropagation(); publishModal.dataset.currentTimestamp = container.dataset.timestamp; publishChoiceView.style.display = 'block'; siteeDeployView.style.display = 'none'; netlifyDeployView.style.display = 'none'; publishModal.style.display = 'flex'; });
     // In your <script type="module">, inside createSiteContainer(), REPLACE the editBtn listener
 
-   editBtn.addEventListener('click', (e) => {
+    editBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        
+
         // --- ✅ NEW: Allow Pro AND Creator ---
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
         if (currentUser && (plan === 'pro' || plan === 'creator')) {
-        // -------------------------------------
+            // -------------------------------------
             let htmlContent = getCleanIframeHtml(iframe);
             if (htmlContent) {
                 if (!htmlContent.trim().toLowerCase().startsWith('<!doctype html>')) {
@@ -1476,11 +1476,11 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     });
     copyBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        
+
         // --- ✅ NEW: Allow Pro AND Creator ---
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
         if (currentUser && (plan === 'pro' || plan === 'creator')) {
-        // -------------------------------------
+            // -------------------------------------
             const codeToCopy = getCleanIframeHtml(iframe);
             if (codeToCopy) {
                 navigator.clipboard.writeText(codeToCopy)
@@ -2256,7 +2256,7 @@ function addProjectToSidebar(project) {
     nameSpan.style.textOverflow = "ellipsis";
     nameSpan.style.flex = "1";
     nameSpan.dataset.timestamp = project.timestamp;
-    
+
     nameSpan.addEventListener("click", () => {
         if (currentMode === 'chat') {
             document.querySelector('.mode-btn[data-mode="canvas-en"]')?.click();
@@ -2270,7 +2270,7 @@ function addProjectToSidebar(project) {
     copyBtn.title = "Copy Prompt";
     // Copy Icon SVG
     copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/></svg>`;
-    
+
     // Minimal styling
     copyBtn.style.background = "transparent";
     copyBtn.style.border = "none";
@@ -2291,7 +2291,7 @@ function addProjectToSidebar(project) {
             // Visual feedback: Switch to Checkmark icon
             const originalIcon = copyBtn.innerHTML;
             copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#4ADE80" viewBox="0 0 16 16"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>`;
-            
+
             // Show global notification
             showNotification("Prompt copied to clipboard!", "success");
 
@@ -2555,8 +2555,8 @@ function pushStateForIframe(iframe) {
 
     // --- FIX STARTS HERE ---
     // Update Global Toolbar Buttons
-    updateUndoRedoButtons(); 
-    
+    updateUndoRedoButtons();
+
     // Update Local Window Buttons (The ones on the site container header)
     if (container) {
         updateUndoRedoButtonsForContainer(container);
@@ -2583,7 +2583,7 @@ function handleUndo(iframe) {
     const history = visualEditorHistories.get(timestamp);
 
     // Can't undo the very first state (initial load)
-    if (history && history.undoStack.length > 1) { 
+    if (history && history.undoStack.length > 1) {
         const currentState = history.undoStack.pop();
         history.redoStack.push(currentState);
         const stateToRestore = history.undoStack[history.undoStack.length - 1];
@@ -2592,9 +2592,9 @@ function handleUndo(iframe) {
         iframe.onload = () => {
             if (currentMode === 'visual-edit') enableEditingInIframe(iframe);
             triggerVisualUpdateSave(iframe); // Pass iframe explicitly
-            
+
             // --- FIX: Update both global and local buttons ---
-            updateUndoRedoButtons(); 
+            updateUndoRedoButtons();
             updateUndoRedoButtonsForContainer(container);
         };
     }
@@ -2614,7 +2614,7 @@ function handleRedo(iframe) {
         iframe.onload = () => {
             if (currentMode === 'visual-edit') enableEditingInIframe(iframe);
             triggerVisualUpdateSave(iframe); // Pass iframe explicitly
-            
+
             // --- FIX: Update both global and local buttons ---
             updateUndoRedoButtons();
             updateUndoRedoButtonsForContainer(container);
@@ -2625,17 +2625,17 @@ function handleRedo(iframe) {
 // A helper function to update the specific container's buttons
 function updateUndoRedoButtonsForContainer(container) {
     const timestamp = container.dataset.timestamp;
-    
+
     // Select the buttons specifically inside this container's header
-    const localUndoBtn = container.querySelector('.undo-btn'); 
-    const localRedoBtn = container.querySelector('.redo-btn'); 
+    const localUndoBtn = container.querySelector('.undo-btn');
+    const localRedoBtn = container.querySelector('.redo-btn');
 
     if (timestamp && visualEditorHistories.has(timestamp)) {
         const history = visualEditorHistories.get(timestamp);
-        
+
         // Undo is disabled if there is 1 or 0 items (initial state)
         if (localUndoBtn) localUndoBtn.disabled = history.undoStack.length <= 1;
-        
+
         // Redo is disabled if stack is empty
         if (localRedoBtn) localRedoBtn.disabled = history.redoStack.length === 0;
     } else {
@@ -2722,7 +2722,7 @@ function deleteSelectedElement() {
             // 1. Safety Check: Ensure element and iframe exist
             if (!elementToDelete.ownerDocument) return;
             const iframe = elementToDelete.ownerDocument.defaultView ? elementToDelete.ownerDocument.defaultView.frameElement : null;
-            
+
             // 2. Push state to history (Undo)
             if (iframe) pushStateForIframe(iframe);
 
@@ -2744,7 +2744,7 @@ function deleteSelectedElement() {
             // 6. Save Changes (Pass iframe explicitly since selection is now null)
             if (iframe) {
                 triggerVisualUpdateSave(iframe);
-                
+
                 // Update Undo/Redo buttons if the function exists
                 if (typeof updateUndoRedoButtons === 'function') {
                     // Temporarily help updateUndoRedoButtons find the context
@@ -2836,7 +2836,7 @@ function disableIframeContextMenu(iframe) {
     try {
         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
         if (iframeDoc) {
-           iframeDoc.addEventListener('contextmenu', e => e.preventDefault());
+            iframeDoc.addEventListener('contextmenu', e => e.preventDefault());
         }
     } catch (error) {
         // This might fail due to security policies, but is unlikely with srcdoc.
@@ -2914,9 +2914,9 @@ function enableEditingInIframe(iframe) {
 
         const clickListener = (e) => {
             // 1. Prevent Default: Stops links from navigating while editing
-            e.preventDefault(); 
+            e.preventDefault();
             // 2. Stop Propagation: Prevents the event from bubbling further
-            e.stopPropagation(); 
+            e.stopPropagation();
 
             // If a different element was already being edited, make it non-editable
             if (currentlySelectedElementInIframe) {
@@ -2945,13 +2945,13 @@ function enableEditingInIframe(iframe) {
             const borderRadius = parseInt(computedStyle.borderRadius, 10) || 0;
             document.getElementById('border-radius-slider').value = borderRadius;
             document.getElementById('border-radius-value').textContent = `${borderRadius}px`;
-            
-            if(fontBtnText) {
-                 fontBtnText.textContent = computedStyle.fontFamily.split(',')[0].replace(/"/g, '');
+
+            if (fontBtnText) {
+                fontBtnText.textContent = computedStyle.fontFamily.split(',')[0].replace(/"/g, '');
             }
 
             if (currentlySelectedElementInIframe.classList.contains('btn-sitee')) {
-                buttonStyleGroup.style.display = 'grid'; 
+                buttonStyleGroup.style.display = 'grid';
                 btnStyleFilled.classList.toggle('active', currentlySelectedElementInIframe.classList.contains('btn-sitee-filled'));
                 btnStyleOutline.classList.toggle('active', currentlySelectedElementInIframe.classList.contains('btn-sitee-outline'));
             } else {
@@ -2961,11 +2961,11 @@ function enableEditingInIframe(iframe) {
 
         const outsideClickListener = (e) => {
             // Improved check to ensure we don't deselect when clicking editor tools
-            if (!iframe.contains(e.target) && 
-                !selectionBox.contains(e.target) && 
+            if (!iframe.contains(e.target) &&
+                !selectionBox.contains(e.target) &&
                 !visualEditorPanel.contains(e.target) &&
                 !e.target.closest('.color-picker-wrapper')) { // Added safety for color pickers
-                
+
                 if (currentlySelectedElementInIframe) {
                     currentlySelectedElementInIframe.removeAttribute('contenteditable');
                 }
@@ -2980,15 +2980,15 @@ function enableEditingInIframe(iframe) {
         const dropListener = (e) => {
             e.preventDefault();
             e.stopPropagation(); // Ensure drop doesn't bubble
-            
+
             const componentType = e.dataTransfer.getData('text/plain');
             const dropTarget = doc.elementFromPoint(e.clientX, e.clientY);
 
             if (dropTarget && componentLibrary[componentType]) {
-                pushStateForIframe(iframe); 
+                pushStateForIframe(iframe);
                 const componentHTML = componentLibrary[componentType];
                 dropTarget.insertAdjacentHTML('afterend', componentHTML);
-                triggerVisualUpdateSave(); 
+                triggerVisualUpdateSave();
             }
         };
 
@@ -3004,7 +3004,7 @@ function enableEditingInIframe(iframe) {
         // Use 'true' (Capture Phase) to catch the click BEFORE the element handles it.
         // Also attach to 'doc' instead of 'doc.body' to ensure we catch everything.
         doc.addEventListener('click', clickListener, true);
-        
+
         document.addEventListener('click', outsideClickListener, true);
         doc.body.addEventListener('dragover', dragOverListener);
         doc.body.addEventListener('drop', dropListener);
@@ -3234,112 +3234,125 @@ document.addEventListener("DOMContentLoaded", () => {
     showLoginFromForgotBtn.addEventListener('click', (e) => { e.preventDefault(); showLoginView(); });
     showSignupBtn.addEventListener('click', (e) => { e.preventDefault(); loginView.style.display = 'none'; forgotPasswordView.style.display = 'none'; signupView.style.display = 'block'; });
     showForgotPasswordBtn.addEventListener('click', (e) => { e.preventDefault(); loginView.style.display = 'none'; forgotPasswordView.style.display = 'block'; });
-// --- FIREBASE INTEGRATION FORM LOGIC ---
-const firebaseConfigForm = document.getElementById('firebase-config-form');
-const saveFirebaseBtn = document.getElementById('save-firebase-btn');
-const disconnectFirebaseBtn = document.getElementById('disconnect-firebase-btn');
-const firebaseStatusBadge = document.getElementById('firebase-status-badge');
+    // --- FIREBASE INTEGRATION FORM LOGIC ---
+    const firebaseConfigForm = document.getElementById('firebase-config-form');
+    const saveFirebaseBtn = document.getElementById('save-firebase-btn');
+    const disconnectFirebaseBtn = document.getElementById('disconnect-firebase-btn');
+    const firebaseStatusBadge = document.getElementById('firebase-status-badge');
 
-if (firebaseConfigForm) {
-    firebaseConfigForm.addEventListener('submit', async (e) => {
-        // THIS IS THE MAGIC LINE that stops the page from refreshing
-        e.preventDefault(); 
+    if (firebaseConfigForm) {
+        firebaseConfigForm.addEventListener('submit', async (e) => {
+            // THIS IS THE MAGIC LINE that stops the page from refreshing
+            e.preventDefault();
 
-        if (!currentUser) {
-            showNotification('Please log in to save Firebase settings.', 'error');
-            return;
-        }
-
-        const originalText = saveFirebaseBtn.textContent;
-        saveFirebaseBtn.textContent = 'Connecting...';
-        saveFirebaseBtn.disabled = true;
-
-        // Gather all inputs
-        const customConfig = {
-            apiKey: document.getElementById('fb-apiKey').value.trim(),
-            authDomain: document.getElementById('fb-authDomain').value.trim(),
-            databaseURL: document.getElementById('fb-databaseURL').value.trim(),
-            projectId: document.getElementById('fb-projectId').value.trim(),
-            storageBucket: document.getElementById('fb-storageBucket').value.trim(),
-            messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
-            appId: document.getElementById('fb-appId').value.trim(),
-        };
-
-        try {
-            // Send the config to your backend 
-            // (Ensure you create this endpoint in your backend if you haven't already!)
-            const response = await fetch(`${backendUrl}/users/me/firebase-config`, {
-                method: 'POST', 
-                headers: await getAuthHeaders(),
-                body: JSON.stringify({ custom_firebase_config: customConfig })
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'Failed to save Firebase config.');
+            if (!currentUser) {
+                showNotification('Please log in to save Firebase settings.', 'error');
+                return;
             }
 
-            // Update local user state so injectDynamicFirebaseForms can use it
-            currentUser.custom_firebase_config = customConfig;
+            const originalText = saveFirebaseBtn.textContent;
+            saveFirebaseBtn.textContent = 'Connecting...';
+            saveFirebaseBtn.disabled = true;
 
-            showNotification('Firebase connected successfully!', 'success');
+            // Gather all inputs
+            const customConfig = {
+                apiKey: document.getElementById('fb-apiKey').value.trim(),
+                authDomain: document.getElementById('fb-authDomain').value.trim(),
+                databaseURL: document.getElementById('fb-databaseURL').value.trim(),
+                projectId: document.getElementById('fb-projectId').value.trim(),
+                storageBucket: document.getElementById('fb-storageBucket').value.trim(),
+                messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
+                appId: document.getElementById('fb-appId').value.trim(),
+            };
 
-            // Update the Dashboard UI
-            firebaseStatusBadge.innerHTML = 'Status: Connected ✅';
-            firebaseStatusBadge.style.color = '#4ADE80';
-            saveFirebaseBtn.style.display = 'none';
-            disconnectFirebaseBtn.style.display = 'block';
+            try {
+                // Send the config to your backend 
+                const response = await fetch(`${backendUrl}/users/me/firebase-config`, {
+                    method: 'POST',
+                    headers: await getAuthHeaders(),
+                    // FIX 1: Send the flat object, not nested inside { custom_firebase_config: ... }
+                    body: JSON.stringify(customConfig)
+                });
 
-        } catch (error) {
-            console.error("Firebase connect error:", error);
-            showNotification(error.message, 'error');
-        } finally {
-            saveFirebaseBtn.textContent = originalText;
-            saveFirebaseBtn.disabled = false;
-        }
-    });
-}
+                if (!response.ok) {
+                    const err = await response.json();
 
-// Handle the Disconnect Button
-if (disconnectFirebaseBtn) {
-    disconnectFirebaseBtn.addEventListener('click', async () => {
-        if (!currentUser) return;
+                    // FIX 2: Properly parse backend validation errors instead of turning them into [object Object]
+                    let errorMessage = 'Failed to save Firebase config.';
+                    if (err.detail) {
+                        if (Array.isArray(err.detail)) {
+                            // If it's a list of errors, map through them and join with a comma
+                            errorMessage = err.detail.map(e => e.msg || 'Validation Error').join(', ');
+                        } else if (typeof err.detail === 'string') {
+                            errorMessage = err.detail;
+                        } else {
+                            errorMessage = JSON.stringify(err.detail);
+                        }
+                    }
+                    throw new Error(errorMessage);
+                }
 
-        disconnectFirebaseBtn.textContent = 'Disconnecting...';
-        disconnectFirebaseBtn.disabled = true;
+                // Update local user state so injectDynamicFirebaseForms can use it
+                currentUser.custom_firebase_config = customConfig;
 
-        try {
-            // Call your backend to remove the config
-            const response = await fetch(`${backendUrl}/users/me/firebase-config`, {
-                method: 'DELETE',
-                headers: await getAuthHeaders()
-            });
+                showNotification('Firebase connected successfully!', 'success');
 
-            if (!response.ok) throw new Error('Failed to disconnect Firebase.');
+                // Update the Dashboard UI
+                firebaseStatusBadge.innerHTML = 'Status: Connected ✅';
+                firebaseStatusBadge.style.color = '#4ADE80';
+                saveFirebaseBtn.style.display = 'none';
+                disconnectFirebaseBtn.style.display = 'block';
 
-            // Clear local state
-            currentUser.custom_firebase_config = null;
+            } catch (error) {
+                console.error("Firebase connect error:", error);
+                showNotification(error.message, 'error');
+            } finally {
+                saveFirebaseBtn.textContent = originalText;
+                saveFirebaseBtn.disabled = false;
+            }
+        });
+    }
 
-            // Reset the Dashboard UI
-            firebaseConfigForm.reset();
-            firebaseStatusBadge.innerHTML = 'Status: Not Connected ❌';
-            firebaseStatusBadge.style.color = 'var(--text-muted-color)';
-            saveFirebaseBtn.style.display = 'flex';
-            disconnectFirebaseBtn.style.display = 'none';
+    // Handle the Disconnect Button
+    if (disconnectFirebaseBtn) {
+        disconnectFirebaseBtn.addEventListener('click', async () => {
+            if (!currentUser) return;
 
-            showNotification('Firebase disconnected.', 'success');
+            disconnectFirebaseBtn.textContent = 'Disconnecting...';
+            disconnectFirebaseBtn.disabled = true;
 
-        } catch (error) {
-            console.error("Firebase disconnect error:", error);
-            showNotification(error.message, 'error');
-            disconnectFirebaseBtn.textContent = 'Disconnect';
-        } finally {
-            disconnectFirebaseBtn.disabled = false;
-        }
-    });
-}
+            try {
+                // Call your backend to remove the config
+                const response = await fetch(`${backendUrl}/users/me/firebase-config`, {
+                    method: 'DELETE',
+                    headers: await getAuthHeaders()
+                });
+
+                if (!response.ok) throw new Error('Failed to disconnect Firebase.');
+
+                // Clear local state
+                currentUser.custom_firebase_config = null;
+
+                // Reset the Dashboard UI
+                firebaseConfigForm.reset();
+                firebaseStatusBadge.innerHTML = 'Status: Not Connected ❌';
+                firebaseStatusBadge.style.color = 'var(--text-muted-color)';
+                saveFirebaseBtn.style.display = 'flex';
+                disconnectFirebaseBtn.style.display = 'none';
+
+                showNotification('Firebase disconnected.', 'success');
+
+            } catch (error) {
+                console.error("Firebase disconnect error:", error);
+                showNotification(error.message, 'error');
+                disconnectFirebaseBtn.textContent = 'Disconnect';
+            } finally {
+                disconnectFirebaseBtn.disabled = false;
+            }
+        });
+    }
     // Add this inside your main DOMContentLoaded listener
-    
+
     document.getElementById('close-visual-editor-btn').addEventListener('click', () => {
         // Programmatically click the "Canvas" mode button to exit visual edit
         document.querySelector('.mode-btn[data-mode="canvas-en"]').click();
@@ -3402,7 +3415,7 @@ if (disconnectFirebaseBtn) {
             }
         });
     };
-// Prompt Viewer Modal Listeners
+    // Prompt Viewer Modal Listeners
     if (closePromptModalBtn) {
         closePromptModalBtn.addEventListener('click', () => {
             promptViewerModal.style.display = 'none';
@@ -3415,10 +3428,10 @@ if (disconnectFirebaseBtn) {
             navigator.clipboard.writeText(text).then(() => {
                 const originalText = copyFullPromptBtn.innerText;
                 copyFullPromptBtn.innerText = "Copied!";
-                copyFullPromptBtn.style.backgroundColor = "#4ADE80"; 
+                copyFullPromptBtn.style.backgroundColor = "#4ADE80";
                 setTimeout(() => {
                     copyFullPromptBtn.innerText = originalText;
-                    copyFullPromptBtn.style.backgroundColor = ""; 
+                    copyFullPromptBtn.style.backgroundColor = "";
                 }, 2000);
             });
         });
@@ -3441,7 +3454,7 @@ if (disconnectFirebaseBtn) {
     // Listen for a click on the panel's close button
     closeVisualEditorBtn.addEventListener('click', () => {
         // Set the mode back to canvas to close the panel and update the button
-        handleModeChange('canvas-en'); 
+        handleModeChange('canvas-en');
     });
 
     // Logic for switching tabs INSIDE the visual editor (Design, Elements, Apps)
@@ -3463,7 +3476,7 @@ if (disconnectFirebaseBtn) {
             });
         });
     });
-    
+
     deployGithubBtn.addEventListener('click', () => {
         if (currentUser && currentUser.github_token) {
             showDeployMode();
@@ -3610,15 +3623,15 @@ if (disconnectFirebaseBtn) {
             applyStyle('borderRadius', `${radius}px`);
         });
     }
-signupForm.addEventListener('submit', (e) => {
+    signupForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        
+
         // --- 1. Get Button and Set Loading State ---
         const submitBtn = signupForm.querySelector('button[type="submit"]');
         const originalBtnText = submitBtn.textContent;
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>';
-        
+
         const email = document.getElementById('signup-email').value;
         const password = document.getElementById('signup-password').value;
         signupError.textContent = "";
@@ -3630,14 +3643,14 @@ signupForm.addEventListener('submit', (e) => {
                     signupView.style.display = 'none';
                     verificationEmailDisplay.textContent = userCredential.user.email;
                     verificationView.style.display = 'block';
-                    
+
                     // Reset button for next time
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalBtnText;
                 });
             })
-            .catch((error) => { 
-                signupError.textContent = error.message; 
+            .catch((error) => {
+                signupError.textContent = error.message;
                 // --- Reset Button on Error ---
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalBtnText;
@@ -3674,15 +3687,15 @@ signupForm.addEventListener('submit', (e) => {
                     submitBtn.textContent = originalBtnText;
                 }
             })
-            .catch((error) => { 
-                loginError.textContent = error.message; 
+            .catch((error) => {
+                loginError.textContent = error.message;
                 // --- Reset Button on Error ---
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalBtnText;
             });
     });
-    
-forgotPasswordForm.addEventListener('submit', (e) => {
+
+    forgotPasswordForm.addEventListener('submit', (e) => {
         e.preventDefault();
 
         // --- 1. Get Button and Set Loading State ---
@@ -3846,20 +3859,20 @@ forgotPasswordForm.addEventListener('submit', (e) => {
             showNotification('You can only upload a maximum of 3 reference images.', 'error');
             const allowedSlots = 3 - uploadedImageFiles.length;
             if (allowedSlots <= 0) {
-                imageUploadInput.value = ''; 
-                return; 
+                imageUploadInput.value = '';
+                return;
             }
-            newFiles.splice(allowedSlots); 
+            newFiles.splice(allowedSlots);
         }
         for (const file of newFiles) {
-            if (file.size > 10 * 1024 * 1024) { 
+            if (file.size > 10 * 1024 * 1024) {
                 showNotification(`Image '${file.name}' exceeds the 10MB limit and was skipped.`, 'error');
-                continue; 
+                continue;
             }
-            uploadedImageFiles.push(file); 
+            uploadedImageFiles.push(file);
         }
-        renderImagePreviews(); 
-        imageUploadInput.value = ''; 
+        renderImagePreviews();
+        imageUploadInput.value = '';
     });
 
     removeImageBtn.addEventListener('click', clearImageUpload);
@@ -4033,20 +4046,20 @@ forgotPasswordForm.addEventListener('submit', (e) => {
     // --- END: SITE SUBDOMAIN PUBLISH LOGIC ---
     // Modal Close/Cancel Buttons
     // --- FIX: Modal Stuck Issue ---
-modalConfirmBtn.addEventListener('click', async () => {
-    try {
-        // Execute the specific action (delete, publish, etc.)
-        if (currentConfirmCallback) {
-            await currentConfirmCallback(); // Await ensures we catch async errors too
+    modalConfirmBtn.addEventListener('click', async () => {
+        try {
+            // Execute the specific action (delete, publish, etc.)
+            if (currentConfirmCallback) {
+                await currentConfirmCallback(); // Await ensures we catch async errors too
+            }
+        } catch (error) {
+            console.error("Error during confirmation action:", error);
+            showNotification("An error occurred, but the action may have completed.", "error");
+        } finally {
+            // This ALWAYS runs, ensuring the popup closes no matter what
+            hideConfirmationModal();
         }
-    } catch (error) {
-        console.error("Error during confirmation action:", error);
-        showNotification("An error occurred, but the action may have completed.", "error");
-    } finally {
-        // This ALWAYS runs, ensuring the popup closes no matter what
-        hideConfirmationModal();
-    }
-});
+    });
 
     modalCancelBtn.addEventListener('click', hideConfirmationModal);
     closeFeedbackModalBtn.addEventListener('click', () => { feedbackModal.style.display = 'none'; });
@@ -4371,6 +4384,6 @@ function injectDynamicFirebaseForms(htmlCode, currentUser) {
         });
     });
 </script>`;
-    
+
     return htmlCode.replace(/<\/body>/i, `${injectionScript}\n</body>`);
 }
