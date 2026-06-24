@@ -725,7 +725,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
     // 1. IMPROVED TIMER: Assign to a variable and clear it precisely
     let timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Calculating tokens...</span>`;
+        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Calculating Credits...</span>`;
     }, 1000);
 
     try {
@@ -3691,18 +3691,26 @@ forgotPasswordForm.addEventListener('submit', (e) => {
 
     imageUploadInput.addEventListener('change', () => {
         const newFiles = Array.from(imageUploadInput.files);
-
-        for (const file of newFiles) {
-            if (file.size > 10 * 1024 * 1024) { // 10MB limit per image
-                showNotification(`Image '${file.name}' exceeds the 10MB limit and was skipped.`, 'error');
-                continue; // Skip this file
+        if (uploadedImageFiles.length + newFiles.length > 3) {
+            showNotification('You can only upload a maximum of 3 reference images.', 'error');
+            const allowedSlots = 3 - uploadedImageFiles.length;
+            if (allowedSlots <= 0) {
+                imageUploadInput.value = ''; 
+                return; 
             }
-            uploadedImageFiles.push(file); // Append new files to the list
+            newFiles.splice(allowedSlots); 
         }
-
-        renderImagePreviews(); // Update the UI
-        imageUploadInput.value = ''; // Clear input to allow re-selecting the same files
+        for (const file of newFiles) {
+            if (file.size > 10 * 1024 * 1024) { 
+                showNotification(`Image '${file.name}' exceeds the 10MB limit and was skipped.`, 'error');
+                continue; 
+            }
+            uploadedImageFiles.push(file); 
+        }
+        renderImagePreviews(); 
+        imageUploadInput.value = ''; 
     });
+
     removeImageBtn.addEventListener('click', clearImageUpload);
 
     // Dropdown/Global Click Listeners
