@@ -572,6 +572,38 @@ function populateDashboard() {
             <span class="detail-value">${validity}</span>
         </div>
     `;
+
+    // Add this inside populateDashboard() after setting dashboardContent.innerHTML
+const fbForm = document.getElementById('firebase-config-form');
+const fbStatusBadge = document.getElementById('firebase-status-badge');
+const saveFbBtn = document.getElementById('save-firebase-btn');
+const disconnectFbBtn = document.getElementById('disconnect-firebase-btn');
+
+if (currentUser && currentUser.custom_firebase_config && currentUser.custom_firebase_config.apiKey) {
+    // Fill in the form fields with existing data
+    document.getElementById('fb-apiKey').value = currentUser.custom_firebase_config.apiKey || '';
+    document.getElementById('fb-authDomain').value = currentUser.custom_firebase_config.authDomain || '';
+    document.getElementById('fb-databaseURL').value = currentUser.custom_firebase_config.databaseURL || '';
+    document.getElementById('fb-projectId').value = currentUser.custom_firebase_config.projectId || '';
+    document.getElementById('fb-storageBucket').value = currentUser.custom_firebase_config.storageBucket || '';
+    document.getElementById('fb-messagingSenderId').value = currentUser.custom_firebase_config.messagingSenderId || '';
+    document.getElementById('fb-appId').value = currentUser.custom_firebase_config.appId || '';
+
+    // Update the UI states
+    fbStatusBadge.innerHTML = 'Status: Connected ✅';
+    fbStatusBadge.style.color = '#4ADE80';
+    saveFbBtn.style.display = 'none';
+    disconnectFbBtn.style.display = 'block';
+} else {
+    // Ensure clear state if not connected
+    if (fbForm) fbForm.reset();
+    if (fbStatusBadge) {
+        fbStatusBadge.innerHTML = 'Status: Not Connected ❌';
+        fbStatusBadge.style.color = 'var(--text-muted-color)';
+    }
+    if (saveFbBtn) saveFbBtn.style.display = 'block';
+    if (disconnectFbBtn) disconnectFbBtn.style.display = 'none';
+}
 }
 // --- END: ADDED FUNCTIONS FOR DASHBOARD ---
 
@@ -3202,9 +3234,112 @@ document.addEventListener("DOMContentLoaded", () => {
     showLoginFromForgotBtn.addEventListener('click', (e) => { e.preventDefault(); showLoginView(); });
     showSignupBtn.addEventListener('click', (e) => { e.preventDefault(); loginView.style.display = 'none'; forgotPasswordView.style.display = 'none'; signupView.style.display = 'block'; });
     showForgotPasswordBtn.addEventListener('click', (e) => { e.preventDefault(); loginView.style.display = 'none'; forgotPasswordView.style.display = 'block'; });
+// --- FIREBASE INTEGRATION FORM LOGIC ---
+const firebaseConfigForm = document.getElementById('firebase-config-form');
+const saveFirebaseBtn = document.getElementById('save-firebase-btn');
+const disconnectFirebaseBtn = document.getElementById('disconnect-firebase-btn');
+const firebaseStatusBadge = document.getElementById('firebase-status-badge');
 
+if (firebaseConfigForm) {
+    firebaseConfigForm.addEventListener('submit', async (e) => {
+        // THIS IS THE MAGIC LINE that stops the page from refreshing
+        e.preventDefault(); 
+
+        if (!currentUser) {
+            showNotification('Please log in to save Firebase settings.', 'error');
+            return;
+        }
+
+        const originalText = saveFirebaseBtn.textContent;
+        saveFirebaseBtn.textContent = 'Connecting...';
+        saveFirebaseBtn.disabled = true;
+
+        // Gather all inputs
+        const customConfig = {
+            apiKey: document.getElementById('fb-apiKey').value.trim(),
+            authDomain: document.getElementById('fb-authDomain').value.trim(),
+            databaseURL: document.getElementById('fb-databaseURL').value.trim(),
+            projectId: document.getElementById('fb-projectId').value.trim(),
+            storageBucket: document.getElementById('fb-storageBucket').value.trim(),
+            messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
+            appId: document.getElementById('fb-appId').value.trim(),
+        };
+
+        try {
+            // Send the config to your backend 
+            // (Ensure you create this endpoint in your backend if you haven't already!)
+            const response = await fetch(`${backendUrl}/users/me/firebase-config`, {
+                method: 'POST', 
+                headers: await getAuthHeaders(),
+                body: JSON.stringify({ custom_firebase_config: customConfig })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Failed to save Firebase config.');
+            }
+
+            // Update local user state so injectDynamicFirebaseForms can use it
+            currentUser.custom_firebase_config = customConfig;
+
+            showNotification('Firebase connected successfully!', 'success');
+
+            // Update the Dashboard UI
+            firebaseStatusBadge.innerHTML = 'Status: Connected ✅';
+            firebaseStatusBadge.style.color = '#4ADE80';
+            saveFirebaseBtn.style.display = 'none';
+            disconnectFirebaseBtn.style.display = 'block';
+
+        } catch (error) {
+            console.error("Firebase connect error:", error);
+            showNotification(error.message, 'error');
+        } finally {
+            saveFirebaseBtn.textContent = originalText;
+            saveFirebaseBtn.disabled = false;
+        }
+    });
+}
+
+// Handle the Disconnect Button
+if (disconnectFirebaseBtn) {
+    disconnectFirebaseBtn.addEventListener('click', async () => {
+        if (!currentUser) return;
+
+        disconnectFirebaseBtn.textContent = 'Disconnecting...';
+        disconnectFirebaseBtn.disabled = true;
+
+        try {
+            // Call your backend to remove the config
+            const response = await fetch(`${backendUrl}/users/me/firebase-config`, {
+                method: 'DELETE',
+                headers: await getAuthHeaders()
+            });
+
+            if (!response.ok) throw new Error('Failed to disconnect Firebase.');
+
+            // Clear local state
+            currentUser.custom_firebase_config = null;
+
+            // Reset the Dashboard UI
+            firebaseConfigForm.reset();
+            firebaseStatusBadge.innerHTML = 'Status: Not Connected ❌';
+            firebaseStatusBadge.style.color = 'var(--text-muted-color)';
+            saveFirebaseBtn.style.display = 'flex';
+            disconnectFirebaseBtn.style.display = 'none';
+
+            showNotification('Firebase disconnected.', 'success');
+
+        } catch (error) {
+            console.error("Firebase disconnect error:", error);
+            showNotification(error.message, 'error');
+            disconnectFirebaseBtn.textContent = 'Disconnect';
+        } finally {
+            disconnectFirebaseBtn.disabled = false;
+        }
+    });
+}
     // Add this inside your main DOMContentLoaded listener
-    // Add this inside the main document.addEventListener("DOMContentLoaded", ...) block
+    
     document.getElementById('close-visual-editor-btn').addEventListener('click', () => {
         // Programmatically click the "Canvas" mode button to exit visual edit
         document.querySelector('.mode-btn[data-mode="canvas-en"]').click();
