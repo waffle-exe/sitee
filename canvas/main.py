@@ -113,6 +113,15 @@ class UpgradeRequest(BaseModel):
     plan_tier: str  # "creator" or "pro"
     billing_cycle: str  # "monthly" or "yearly"
 
+class FirebaseConfigRequest(BaseModel):
+    apiKey: str
+    authDomain: str
+    databaseURL: str
+    projectId: str
+    storageBucket: str
+    messagingSenderId: str
+    appId: str
+
 
 # ---------------- HELPER FUNCTIONS ----------------
 
@@ -590,6 +599,21 @@ async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dic
 async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     return {"new_html": req.get("new_outer_html")}
 
+@app.post("/users/me/firebase-config")
+async def save_firebase_config(req: FirebaseConfigRequest, current_user: dict = Depends(get_current_user)):
+    uid = current_user['uid']
+    db.collection("users").document(uid).update({
+        "custom_firebase_config": req.dict()
+    })
+    return {"status": "success", "message": "Firebase config saved!"}
+
+@app.delete("/users/me/firebase-config")
+async def delete_firebase_config(current_user: dict = Depends(get_current_user)):
+    uid = current_user['uid']
+    db.collection("users").document(uid).update({
+        "custom_firebase_config": firestore.DELETE_FIELD
+    })
+    return {"status": "success"}
 
 if __name__ == "__main__":
     import uvicorn
