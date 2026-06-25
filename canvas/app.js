@@ -214,7 +214,7 @@ const undoIcon = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/
 
 const redoIcon = `<svg width="16" height="16" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" xml:space="preserve" fill="currentColor"><path d="M29,18c0,3.472-1.353,6.736-3.808,9.192S19.473,31,16,31c-3.472,0-6.736-1.352-9.192-3.807 C4.353,24.737,3,21.472,3,18s1.353-6.737,3.808-9.192C9.263,6.353,12.527,5,16,5h2.172l-1.586-1.586 c-0.781-0.781-0.781-2.047,0-2.828s2.047-0.781,2.828,0l5,5c0.781,0.781,0.781,2.047,0,2.828l-5,5c-0.782,0.782-2.059,0.769-2.828,0 c-0.781-0.781-0.781-2.047,0-2.828L18.172,9H16c-2.404,0-4.664,0.936-6.364,2.636C7.937,13.336,7,15.596,7,18 s0.937,4.664,2.636,6.364C11.336,26.064,13.597,27,16,27c2.404,0,4.664-0.936,6.364-2.636C24.063,22.664,25,20.403,25,18 c0-1.104,0.896-2,2-2S29,16.896,29,18z"></path></svg>`;
 const themes = [{ name: 'Neubrutalism', promptHint: 'Uses stark contrasts, solid colors, and raw HTML elements.' }, { name: 'Cyberpunk', promptHint: 'Features dark backgrounds with neon accents and glitch effects.' }, { name: 'Corporate', promptHint: 'Clean, professional, with a structured layout and conservative colors.' }, { name: 'Kawaii Aesthetic', promptHint: 'Cute and playful with pastel colors and rounded elements.' }, { name: '80s Retro', promptHint: 'Vibrant neon colors, grid patterns, and retro fonts.' }, { name: 'Glassmorphism', promptHint: 'Creates a frosted-glass effect with blurred backgrounds and semi-transparent elements.' }];
-const availableAvatars = [{ name: 'Pipo', path: 'avatar/pipo.png' }, { name: 'Zoe', path: 'avatar/zoe.png' }];
+const availableAvatars = [{ name: 'Pipo', path: 'pipo.png' }, { name: 'Zoe', path: 'zoe.png' }];
 
 const fontFamilies = [
     // Sans-Serif
@@ -382,7 +382,7 @@ function initializeAppUI() {
         if (chatContainer) chatContainer.innerHTML = '';
     }
 
-    userAvatar.src = "avatar/image.png";
+    userAvatar.src = "pipo.png";
     populateAvatarDropdown();
     document.body.classList.add('loaded');
     checkCreditStatus();
