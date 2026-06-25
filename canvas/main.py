@@ -261,64 +261,69 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
+    # 1. Primary: Bluesminds (Fast Fail Timeout)
     try:
         response = await client_bluesminds.chat.completions.create(
-        model="kimi-k2.5",
-        messages=messages_ai,
-        max_tokens=15000,
-        temperature=0.2,
-        timeout=180.0
-        )
-
-        return {
-        "html": clean_ai_html(response.choices[0].message.content),
-        "tokens": response.usage.total_tokens if response.usage else 0
-        }
-    except Exception as e:
-        print("Bluesminds Failed:", e)
-    
-    try:
-        response = await client_fireworks.chat.completions.create(
-            model="accounts/fireworks/models/kimi-k2p7-code", 
-            messages=messages_ai, 
-            max_tokens=15000,
+            model="kimi-k2.5",
+            messages=messages_ai,
+            max_tokens=8000,
             temperature=0.2,
-            timeout=180.0
+            timeout=45.0  # Reduced from 180s
         )
         return {
             "html": clean_ai_html(response.choices[0].message.content),
             "tokens": response.usage.total_tokens if response.usage else 0
         }
     except Exception as e:
-        print(f"Primary Failed: {e}")
+        print(f"Bluesminds Failed (falling back): {e}")
+    
+    # 2. Secondary: Fireworks
+    try:
+        response = await client_fireworks.chat.completions.create(
+            model="accounts/fireworks/models/kimi-k2p7-code", 
+            messages=messages_ai, 
+            max_tokens=8000,
+            temperature=0.2,
+            timeout=45.0  # Reduced from 180s
+        )
+        return {
+            "html": clean_ai_html(response.choices[0].message.content),
+            "tokens": response.usage.total_tokens if response.usage else 0
+        }
+    except Exception as e:
+        print(f"Fireworks Failed (falling back): {e}")
 
+    # 3. Tertiary: Groq (Blazing fast, good for ultimate fallback)
     try:
         if not images:
             response = await client_groq.chat.completions.create(
-                model="llama-3.3-70b",
+                model="llama-3.3-70b-versatile", # Ensure correct endpoint model name
                 messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": prompt}],
-                max_tokens=8000
+                max_tokens=6000,
+                timeout=30.0
             )
             return {
-    "html": clean_ai_html(response.choices[0].message.content),
-    "model": "llama3.3-70b",
-    "tokens": response.usage.total_tokens if response.usage else 0
-}
+                "html": clean_ai_html(response.choices[0].message.content),
+                "model": "llama3.3-70b",
+                "tokens": response.usage.total_tokens if response.usage else 0
+            }
     except Exception as e:
-        print(f"Groq Failed: {e}")
+        print(f"Groq Failed (falling back): {e}")
 
+    # 4. Final: Gemini
     try:
-        gemini_model = genai.GenerativeModel('gemini-3.0-pro')
-        response = await gemini_model.generate_content_async(prompt)
-        tokens = response.usage_metadata.total_token_count if response.usage_metadata else 0
+        gemini_model = genai.GenerativeModel('gemini-2.5-pro') # Updated to latest stable version
+        # You may want to wrap this in asyncio.wait_for for a strict timeout
+        response = await asyncio.wait_for(gemini_model.generate_content_async(prompt), timeout=45.0)
         return {
             "html": clean_ai_html(response.text),
-            "model": "gemini-3.0-pro",
-            "tokens": response.usage_metadata.total_token_count if response.usage_metadata else 0}
+            "model": "gemini-2.5-pro",
+            "tokens": response.usage_metadata.total_token_count if response.usage_metadata else 0
+        }
     except Exception as e:
         print(f"Gemini Failed: {e}")
 
-    raise HTTPException(status_code=503, detail="All AI models failed.")
+    raise HTTPException(status_code=503, detail="All AI models failed due to high load or timeouts.")
 
 # ---------------- API ENDPOINTS ----------------
 @app.post("/upgrade-user-plan/")
