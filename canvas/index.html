@@ -2886,6 +2886,91 @@
             background-color: rgba(255, 255, 255, 0.02);
         }
 
+        /* --- STRUCTURAL ADMIN PANEL STYLES --- */
+        #submissions-modal .modal-content {
+            background-color: #0d0e12;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .admin-window-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #15171e;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .admin-window-header h2 {
+            font-size: 0.95rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #F0F2F5;
+            margin: 0;
+        }
+
+        #submissions-tabs {
+            background: #0a0b0f;
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .project-tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #888;
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 0.85rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-radius: 0px;
+            margin-bottom: 2px;
+
+            /* THE FIX: Prevent flexbox from squishing the buttons vertically */
+            flex-shrink: 0;
+            min-height: 36px;
+            line-height: 1.5;
+        }
+
+        .project-tab-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #F0F2F5;
+        }
+
+        .project-tab-btn.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-weight: 500;
+        }
+
+        .admin-panel-box {
+            background: #0a0b0f;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .admin-panel-header {
+            background: #15171e;
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #8A9A9E;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            letter-spacing: 0.5px;
+        }
+
         /* --- SUBMISSIONS MODAL RESPONSIVE & TOGGLE STYLES --- */
 
         /* Smooth transition for the sidebar */
@@ -4206,6 +4291,7 @@
             }
         });
     </script>
+
 </body>
 
 </html>
