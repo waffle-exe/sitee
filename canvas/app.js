@@ -672,7 +672,6 @@ window.openSubmissionsModal = () => {
         submissionsTabs.appendChild(btn);
     });
 };
-
 // 3. Load Data & Details for a specific project
 async function loadAdminPanelForProject(project, activeBtn) {
     // Highlight active tab
@@ -680,19 +679,23 @@ async function loadAdminPanelForProject(project, activeBtn) {
     activeBtn.classList.add('active');
 
     // Populate Top Details (Title, Prompt, Preview)
-    currentProjectTitle.textContent = "Project Overview";
+    // Truncate the title so it doesn't break the layout if the prompt is massive
+    const shortTitle = project.name.length > 60 ? project.name.substring(0, 60) + "..." : project.name;
+    currentProjectTitle.textContent = `Project: ${shortTitle}`;
+
     adminSitePrompt.textContent = project.name; // The full prompt
     adminSitePreview.srcdoc = project.html;     // The website preview
 
-    adminProjectDetails.style.display = 'flex';
+    // IMPORTANT: Change to 'grid' to perfectly split the preview and prompt 50/50
+    adminProjectDetails.style.display = 'grid';
     submissionsHeader.style.display = 'block';
 
     // Check Firebase Connection before fetching data
     if (!initUserDatabase()) {
         tableContainer.innerHTML = `
-            <div style="text-align: center; padding: 2rem;">
-                <p style="color: #E57373; margin-bottom: 1rem;">Database Not Connected</p>
-                <p style="color: var(--text-muted-color); font-size: 0.9rem;">Connect your Firebase Database in the Dashboard to view form submissions for this site.</p>
+            <div style="text-align: center; padding: 4rem 2rem;">
+                <p style="color: #E57373; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Database Not Connected</p>
+                <p style="color: var(--text-muted-color); font-size: 0.95rem;">Connect your Firebase Database in the Dashboard to view form submissions for this site.</p>
             </div>`;
         openNewWindowBtn.style.display = 'none';
         return;
@@ -716,7 +719,6 @@ async function loadAdminPanelForProject(project, activeBtn) {
         tableContainer.innerHTML = '<p style="text-align: center; color: #E57373; padding: 3rem;">Error loading data. Check your Firebase security rules.</p>';
     }
 }
-
 // 4. Build the HTML Table
 function buildSubmissionsTable(dataObj) {
     const entries = Object.values(dataObj);
