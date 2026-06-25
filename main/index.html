@@ -1870,7 +1870,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div id="about" class="elementor-element elementor-element-4de4891 e-flex e-con-boxed e-con e-parent"
             data-id="4de4891" data-element_type="container">
             <div class="e-con-inner">
@@ -1894,112 +1894,120 @@
 
                 <style>
                     /* --- MAINTENANCE POP-UP STYLES --- */
-        .maintenance-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(10, 11, 15, 0.8);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999999;
-            font-family: 'Manrope', sans-serif;
-        }
+                    .maintenance-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100vw;
+                        height: 100vh;
+                        background: rgba(10, 11, 15, 0.8);
+                        backdrop-filter: blur(8px);
+                        -webkit-backdrop-filter: blur(8px);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 9999999;
+                        font-family: 'Manrope', sans-serif;
+                    }
 
-        .maintenance-card {
-            background: #1a1a1e;
-            border: 1px solid rgba(229, 165, 102, 0.4);
-            width: 90%;
-            max-width: 480px;
-            /* Sharp, solid shadow for a minimalist/structural feel */
-            box-shadow: 8px 8px 0px rgba(229, 165, 102, 0.15); 
-            border-radius: 0; 
-            display: flex;
-            flex-direction: column;
-            animation: popIn 0.3s ease-out forwards;
-        }
+                    .maintenance-card {
+                        background: #1a1a1e;
+                        border: 1px solid rgba(229, 165, 102, 0.4);
+                        width: 90%;
+                        max-width: 480px;
+                        /* Sharp, solid shadow for a minimalist/structural feel */
+                        box-shadow: 8px 8px 0px rgba(229, 165, 102, 0.15);
+                        border-radius: 0;
+                        display: flex;
+                        flex-direction: column;
+                        animation: popIn 0.3s ease-out forwards;
+                    }
 
-        @keyframes popIn {
-            0% { transform: translateY(20px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
+                    @keyframes popIn {
+                        0% {
+                            transform: translateY(20px);
+                            opacity: 0;
+                        }
 
-        .maintenance-header {
-            background: rgba(229, 165, 102, 0.1);
-            border-bottom: 1px solid rgba(229, 165, 102, 0.2);
-            padding: 14px 24px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #E5A566;
-            font-weight: 700;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-        }
+                        100% {
+                            transform: translateY(0);
+                            opacity: 1;
+                        }
+                    }
 
-        .maintenance-body {
-            padding: 30px 24px;
-            color: #e2e8f0;
-        }
+                    .maintenance-header {
+                        background: rgba(229, 165, 102, 0.1);
+                        border-bottom: 1px solid rgba(229, 165, 102, 0.2);
+                        padding: 14px 24px;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        color: #E5A566;
+                        font-weight: 700;
+                        font-size: 0.9rem;
+                        letter-spacing: 1px;
+                    }
 
-        .maintenance-body h3 {
-            margin: 0 0 12px 0;
-            font-size: 1.5rem;
-            color: #ffffff;
-            font-weight: 800;
-        }
+                    .maintenance-body {
+                        padding: 30px 24px;
+                        color: #e2e8f0;
+                    }
 
-        .maintenance-body p {
-            font-size: 1.05rem;
-            line-height: 1.6;
-            margin: 0 0 24px 0;
-            color: #a0aec0;
-        }
+                    .maintenance-body h3 {
+                        margin: 0 0 12px 0;
+                        font-size: 1.5rem;
+                        color: #ffffff;
+                        font-weight: 800;
+                    }
 
-        .security-badge {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            padding: 14px;
-            color: #10B981;
-            font-size: 0.9rem;
-            font-weight: 600;
-            line-height: 1.4;
-        }
+                    .maintenance-body p {
+                        font-size: 1.05rem;
+                        line-height: 1.6;
+                        margin: 0 0 24px 0;
+                        color: #a0aec0;
+                    }
 
-        .maintenance-footer {
-            padding: 16px 24px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            justify-content: flex-end;
-            background: rgba(0, 0, 0, 0.2);
-        }
+                    .security-badge {
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 12px;
+                        background: rgba(16, 185, 129, 0.1);
+                        border: 1px solid rgba(16, 185, 129, 0.3);
+                        padding: 14px;
+                        color: #10B981;
+                        font-size: 0.9rem;
+                        font-weight: 600;
+                        line-height: 1.4;
+                    }
 
-        .maintenance-btn {
-            background: #E5A566;
-            color: #1a1a1e;
-            border: none;
-            padding: 12px 30px;
-            font-weight: 800;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            font-family: inherit;
-        }
+                    .maintenance-footer {
+                        padding: 16px 24px;
+                        border-top: 1px solid rgba(255, 255, 255, 0.1);
+                        display: flex;
+                        justify-content: flex-end;
+                        background: rgba(0, 0, 0, 0.2);
+                    }
 
-        .maintenance-btn:hover {
-            background: #FFC08A;
-        }
+                    .maintenance-btn {
+                        background: #E5A566;
+                        color: #1a1a1e;
+                        border: none;
+                        padding: 12px 30px;
+                        font-weight: 800;
+                        font-size: 1rem;
+                        cursor: pointer;
+                        transition: background 0.2s, transform 0.1s;
+                        font-family: inherit;
+                    }
 
-        .maintenance-btn:active {
-            transform: scale(0.98);
-        }
+                    .maintenance-btn:hover {
+                        background: #FFC08A;
+                    }
+
+                    .maintenance-btn:active {
+                        transform: scale(0.98);
+                    }
+
                     /* --- INFINITE MARQUEE STYLES --- */
                     .tech-slideshow-wrapper {
                         width: 100%;
@@ -2155,7 +2163,7 @@
                         }
                     }
                 </style>
-                
+
                 <div class="elementor-element elementor-element-581f864 e-con-full e-flex e-con e-child"
                     data-id="581f864" data-element_type="container"
                     style="overflow: hidden; width: 100%; display: flex; flex-direction:column; gap: 2px; padding: 6px 0;">
@@ -3046,17 +3054,17 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td>AI Credits </td>
-                                <td>10 (One-Time)</td>
+                                <td>AI Credits</td>
+                                <td>2 Generations</td>
                                 <td><strong>Custom</strong></td>
-                                <td> 250  / month</td>
-                                <td> 1000 / month</td>
+                                <td>300 / month</td>
+                                <td>1,200 / month</td>
                             </tr>
                             <tr>
                                 <td>Publish Live Websites</td>
-                                <td class="cross">&times;</td>
-                                <td><strong>Custom</strong></td>
                                 <td>1</td>
+                                <td><strong>Custom</strong></td>
+                                <td>7</td>
                                 <td>5</td>
                             </tr>
                             <tr>
@@ -3064,42 +3072,56 @@
                                 <td class="cross">&times;</td>
                                 <td class="cross">&times;</td>
                                 <td>500 MB</td>
-                                <td>5 GB</td>
+                                <td>2 GB</td>
                             </tr>
                             <tr>
                                 <td>Visual Editor (No-Code)</td>
-                                <td class="check">&#10003; <br><small style="font-size: x-small !important;">(Previews only)</small></td>
+                                <td class="check">&#10003; <br><small style="font-size: x-small !important;">(Previews
+                                        only)</small></td>
                                 <td class="check">&#10003;</td>
                                 <td class="check">&#10003;</td>
-                                <td class="check">&#10003;</td>
-                            </tr>
-                            <tr>
-                                <td>AI Suggestions</td>
-                                <td class="cross">&times;</td>
-                                <td class="cross">&times;</td>
-                                <td class="cross">&times;</td>
                                 <td class="check">&#10003;</td>
                             </tr>
                             <tr>
                                 <td>Live Code Editor</td>
-                                <td class="cross">&times;</td>
-                                <td class="cross">&times;</td>
+                                <td class="check">&#10003;</td>
+                                <td class="check">&#10003;</td>
                                 <td class="check">&#10003;</td>
                                 <td class="check">&#10003;</td>
                             </tr>
                             <tr>
                                 <td>Get Full Source Code</td>
-                                <td class="cross">&times;</td>
-                                <td class="cross">&times;</td>
+                                <td class="check">&#10003;</td>
+                                <td class="check">&#10003;</td>
+                                <td class="check">&#10003;</td>
+                                <td class="check">&#10003;</td>
+                            </tr>
+                            <tr>
+                                <td>Backend Integration</td>
+                                <td class="check">&#10003;</td>
+                                <td class="check">&#10003;</td>
                                 <td class="check">&#10003;</td>
                                 <td class="check">&#10003;</td>
                             </tr>
                             <tr>
                                 <td>No Sitee Branding</td>
                                 <td class="cross">&times;</td>
-                                <td class="cross">&times;</td>
-                                
                                 <td class="check">&#10003;</td>
+                                <td class="check">&#10003;</td>
+                                <td class="check">&#10003;</td>
+                            </tr>
+                            <tr>
+                                <td>Github Deployment</td>
+                                <td class="cross">&times;</td>
+                                <td class="cross">&times;</td>
+                                <td class="cross">&times;</td>
+                                <td class="check">&#10003;</td>
+                            </tr>
+                            <tr>
+                                <td>Priority Access to Sitee Model</td>
+                                <td class="cross">&times;</td>
+                                <td class="cross">&times;</td>
+                                <td class="cross">&times;</td>
                                 <td class="check">&#10003;</td>
                             </tr>
                         </tbody>
@@ -3286,25 +3308,23 @@
                                 </div>
                             </div>
                             <div class="elementor-element elementor-element-9e3a54e e-con-full e-flex e-con e-child"
-     data-id="9e3a54e" data-element_type="container">
+                                data-id="9e3a54e" data-element_type="container">
 
-    <div class="elementor-element elementor-element-bd3a588 elementor-align-right elementor-tablet-align-left elementor-widget elementor-widget-button"
-         data-id="bd3a588" data-element_type="widget"
-         data-settings="{&quot;ekit_we_effect_on&quot;:&quot;none&quot;}"
-         data-widget_type="button.default">
+                                <div class="elementor-element elementor-element-bd3a588 elementor-align-right elementor-tablet-align-left elementor-widget elementor-widget-button"
+                                    data-id="bd3a588" data-element_type="widget"
+                                    data-settings="{&quot;ekit_we_effect_on&quot;:&quot;none&quot;}"
+                                    data-widget_type="button.default">
 
-        <a class="elementor-button elementor-button-link elementor-size-sm"
-           href="https://canvas.sitee.in"
-           target="_blank"
-           rel="noopener noreferrer">
+                                    <a class="elementor-button elementor-button-link elementor-size-sm"
+                                        href="https://canvas.sitee.in" target="_blank" rel="noopener noreferrer">
 
-            <span class="elementor-button-content-wrapper">
-                <span class="elementor-button-text">Open Canvas</span>
-            </span>
+                                        <span class="elementor-button-content-wrapper">
+                                            <span class="elementor-button-text">Open Canvas</span>
+                                        </span>
 
-        </a>
-    </div>
-</div>
+                                    </a>
+                                </div>
+                            </div>
 
                         </div>
                         <div class="elementor-element elementor-element-dd43570 e-con-full e-flex e-con e-child"
@@ -3748,43 +3768,52 @@
             </div>
         </div>
         <!-- MAINTENANCE POP-UP START -->
-    <div id="maintenance-overlay" class="maintenance-overlay">
-        <div class="maintenance-card">
-            <div class="maintenance-header">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                <span>SYSTEM NOTICE</span>
-            </div>
-            <div class="maintenance-body">
-                <h3>Infrastructure Maintenance</h3>
-                <p>Sitee will undergo scheduled maintenance for the next 7 days, concluding on June 27th, 2025.</p>
-                <div class="security-badge">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                    <span>Your data remains strictly secured, fully encrypted, and safely backed up during this period.</span>
+        <div id="maintenance-overlay" class="maintenance-overlay">
+            <div class="maintenance-card">
+                <div class="maintenance-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span>SYSTEM NOTICE</span>
+                </div>
+                <div class="maintenance-body">
+                    <h3>Infrastructure Maintenance</h3>
+                    <p>Sitee will undergo scheduled maintenance for the next 7 days, concluding on June 27th, 2025.</p>
+                    <div class="security-badge">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span>Your data remains strictly secured, fully encrypted, and safely backed up during this
+                            period.</span>
+                    </div>
+                </div>
+                <div class="maintenance-footer">
+                    <button id="close-maintenance" class="maintenance-btn">Proceed</button>
                 </div>
             </div>
-            <div class="maintenance-footer">
-                <button id="close-maintenance" class="maintenance-btn">Proceed</button>
-            </div>
         </div>
-    </div>
-    <!-- MAINTENANCE POP-UP END -->
+        <!-- MAINTENANCE POP-UP END -->
 
         <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script type="module" src="scripts/61376133393021.js"></script>
         <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const overlay = document.getElementById("maintenance-overlay");
-            const closeBtn = document.getElementById("close-maintenance");
-            
-            if (closeBtn && overlay) {
-                closeBtn.addEventListener("click", function() {
-                    overlay.style.display = "none";
-                });
-            }
-        });
-    </script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const overlay = document.getElementById("maintenance-overlay");
+                const closeBtn = document.getElementById("close-maintenance");
+
+                if (closeBtn && overlay) {
+                    closeBtn.addEventListener("click", function () {
+                        overlay.style.display = "none";
+                    });
+                }
+            });
+        </script>
 </body>
 
 </html>
-
