@@ -1,6 +1,6 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getDatabase, ref, push, serverTimestamp as dbServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+import { getDatabase, ref, push, get, child, serverTimestamp as dbServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 import { getFirestore, collection, addDoc, serverTimestamp as fsServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import {
     getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
@@ -216,8 +216,6 @@ const redoIcon = `<svg width="16" height="16" version="1.1" xmlns="http://www.w3
 const themes = [{ name: 'Neubrutalism', promptHint: 'Uses stark contrasts, solid colors, and raw HTML elements.' }, { name: 'Cyberpunk', promptHint: 'Features dark backgrounds with neon accents and glitch effects.' }, { name: 'Corporate', promptHint: 'Clean, professional, with a structured layout and conservative colors.' }, { name: 'Kawaii Aesthetic', promptHint: 'Cute and playful with pastel colors and rounded elements.' }, { name: '80s Retro', promptHint: 'Vibrant neon colors, grid patterns, and retro fonts.' }, { name: 'Glassmorphism', promptHint: 'Creates a frosted-glass effect with blurred backgrounds and semi-transparent elements.' }];
 const availableAvatars = [{ name: 'Pipo', path: 'avatar/image.png' }, { name: 'Zoe', path: 'avatar/image_.png' }];
 
-// =================== PASTE THE FONT CODE HERE ===================
-// --- EXPANDED FONT LIST ---
 const fontFamilies = [
     // Sans-Serif
     { name: 'System Default', css: 'inherit' },
@@ -606,6 +604,176 @@ function populateDashboard() {
     }
 }
 // --- END: ADDED FUNCTIONS FOR DASHBOARD ---
+// --- END: ADDED FUNCTIONS FOR DASHBOARD ---
+
+// =======================================================
+// --- FORM SUBMISSIONS LOGIC ---
+// =======================================================
+const submissionsModal = document.getElementById('submissions-modal');
+const closeSubmissionsBtn = document.getElementById('close-submissions-btn');
+const submissionsTabs = document.getElementById('submissions-tabs');
+const tableContainer = document.getElementById('submissions-table-container');
+const currentProjectTitle = document.getElementById('current-project-title');
+const openNewWindowBtn = document.getElementById('open-new-window-btn');
+
+let userFirebaseApp = null;
+let userDb = null;
+let currentTableHTML = '';
+
+// 1. Initialize the User's Personal Database
+function initUserDatabase() {
+    if (userDb) return userDb;
+    if (!currentUser || !currentUser.custom_firebase_config || !currentUser.custom_firebase_config.apiKey) return null;
+    
+    try {
+        // We name the app "UserConfigApp" so it doesn't conflict with your main app
+        userFirebaseApp = initializeApp(currentUser.custom_firebase_config, "UserConfigApp");
+        userDb = getDatabase(userFirebaseApp);
+        return userDb;
+    } catch (e) {
+        console.error("Could not init user DB:", e);
+        return null;
+    }
+}
+
+// 2. Open the Modal and Load Tabs
+window.openSubmissionsModal = () => {
+    if (!initUserDatabase()) {
+        showNotification("Connect your Firebase database in the Dashboard first.", "error");
+        return;
+    }
+
+    submissionsModal.style.display = 'flex';
+    submissionsTabs.innerHTML = '';
+    tableContainer.innerHTML = '<p style="text-align: center; color: #8A9A9E; padding: 2rem;">Select a project to view submissions.</p>';
+    openNewWindowBtn.style.display = 'none';
+    currentProjectTitle.textContent = 'Select a project';
+
+    // Filter out chat history, only show real projects
+    const realProjects = currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME);
+
+    if (realProjects.length === 0) {
+        submissionsTabs.innerHTML = '<p style="color: var(--text-muted-color); font-size: 0.85rem;">No projects found.</p>';
+        return;
+    }
+
+    realProjects.forEach(project => {
+        const btn = document.createElement('button');
+        btn.className = 'project-tab-btn';
+        btn.textContent = project.name;
+        btn.onclick = () => loadSubmissionsForProject(project, btn);
+        submissionsTabs.appendChild(btn);
+    });
+};
+
+// 3. Load Data for a specific project
+async function loadSubmissionsForProject(project, activeBtn) {
+    // Update active tab UI
+    document.querySelectorAll('.project-tab-btn').forEach(b => b.classList.remove('active'));
+    activeBtn.classList.add('active');
+
+    currentProjectTitle.textContent = project.name;
+    tableContainer.innerHTML = '<div class="spinner" style="margin: 2rem auto;"></div>';
+    openNewWindowBtn.style.display = 'none';
+
+    try {
+        const dbRef = ref(userDb);
+        const snapshot = await get(child(dbRef, `website_form_submissions/${project.timestamp}`));
+
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            buildSubmissionsTable(data);
+        } else {
+            tableContainer.innerHTML = '<p style="text-align: center; color: #8A9A9E; padding: 2rem;">No submissions yet for this project.</p>';
+        }
+    } catch (error) {
+        console.error("Error fetching submissions:", error);
+        tableContainer.innerHTML = '<p style="text-align: center; color: #E57373; padding: 2rem;">Error loading data. Check your Firebase rules.</p>';
+    }
+}
+
+// 4. Build the HTML Table
+function buildSubmissionsTable(dataObj) {
+    // Convert Firebase object to Array
+    const entries = Object.values(dataObj);
+    
+    // Sort by date (newest first) if submittedAt exists
+    entries.sort((a, b) => {
+        const timeA = a.submittedAt ? a.submittedAt : 0;
+        const timeB = b.submittedAt ? b.submittedAt : 0;
+        return timeB - timeA;
+    });
+
+    // Extract all unique headers (keys) from all submissions
+    const allKeys = new Set();
+    entries.forEach(entry => Object.keys(entry).forEach(k => allKeys.add(k)));
+    allKeys.delete('submittedAt'); // We'll handle date manually
+
+    const headers = Array.from(allKeys);
+
+    let html = '<table class="submissions-table"><thead><tr>';
+    html += '<th>Date</th>';
+    headers.forEach(h => { html += `<th>${h.charAt(0).toUpperCase() + h.slice(1)}</th>`; });
+    html += '</tr></thead><tbody>';
+
+    entries.forEach(entry => {
+        html += '<tr>';
+        
+        // Format Date
+        let dateStr = 'Unknown';
+        if (entry.submittedAt) {
+            const date = new Date(entry.submittedAt);
+            dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+        html += `<td style="color: var(--text-muted-color); font-size: 0.8rem;">${dateStr}</td>`;
+
+        // Map Data
+        headers.forEach(h => {
+            html += `<td>${entry[h] || '-'}</td>`;
+        });
+        
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    
+    currentTableHTML = html; // Save for the new window feature
+    tableContainer.innerHTML = html;
+    openNewWindowBtn.style.display = 'block';
+}
+
+// 5. Open in New Window Magic
+openNewWindowBtn.addEventListener('click', () => {
+    const newWindow = window.open("", "_blank");
+    newWindow.document.write(`
+        <html>
+        <head>
+            <title>${currentProjectTitle.textContent} - Submissions</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 2rem; background: #f9fafb; color: #111827; }
+                h1 { margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
+                table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+                th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+                th { background-color: #f3f4f6; font-weight: 600; color: #374151; }
+                tr:hover { background-color: #f9fafb; }
+            </style>
+        </head>
+        <body>
+            <h1>Data for: ${currentProjectTitle.textContent}</h1>
+            ${currentTableHTML}
+            <script>
+                // Add a small script to allow easy CSV downloading later if you want
+            </script>
+        </body>
+        </html>
+    `);
+    newWindow.document.close(); // Tells the browser to finish rendering
+});
+
+// 6. Close Listeners
+closeSubmissionsBtn.addEventListener('click', () => { submissionsModal.style.display = 'none'; });
+submissionsModal.addEventListener('click', (e) => { if (e.target === submissionsModal) submissionsModal.style.display = 'none'; });
+
 
 // --- CORE APP LOGIC & UI FUNCTIONS ---
 // Add this function
@@ -4312,7 +4480,8 @@ Promise.all([minDelayPromise, pageLoadPromise]).then(() => {
 });
 
 // --- DYNAMIC FIREBASE FORM INJECTOR ---
-function injectDynamicFirebaseForms(htmlCode, currentUser) {
+// --- DYNAMIC FIREBASE FORM INJECTOR ---
+function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
     if (!htmlCode.toLowerCase().includes('<form')) return htmlCode;
     if (htmlCode.includes('id="sitee-firebase-injector"')) return htmlCode;
 
@@ -4331,6 +4500,9 @@ function injectDynamicFirebaseForms(htmlCode, currentUser) {
 </script>`;
         return htmlCode.replace(/<\/body>/i, `${warningScript}\n</body>`);
     }
+
+    // Ensure we have a valid projectId, fallback to 'uncategorized' if missing
+    const safeProjectId = projectId || 'uncategorized_project';
 
     // If they HAVE connected it, inject the real working script using THEIR keys!
     const injectionScript = `
@@ -4361,8 +4533,8 @@ function injectDynamicFirebaseForms(htmlCode, currentUser) {
             data.submittedAt = serverTimestamp();
 
             try {
-                // Save directly to the root of THEIR database
-                const submissionsRef = ref(db, 'website_form_submissions');
+                // Save directly to the specific project folder in THEIR database
+                const submissionsRef = ref(db, 'website_form_submissions/${safeProjectId}');
                 await push(submissionsRef, data);
                 
                 const successMsg = document.createElement('div');
@@ -4384,6 +4556,6 @@ function injectDynamicFirebaseForms(htmlCode, currentUser) {
         });
     });
 </script>`;
-
+    
     return htmlCode.replace(/<\/body>/i, `${injectionScript}\n</body>`);
 }
