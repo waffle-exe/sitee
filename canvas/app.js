@@ -964,11 +964,14 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
         stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
 
-        // --- NEW: DYNAMIC FIREBASE INJECTION ---
-        // We inject the forms using the user's custom configuration before saving or rendering
-        const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
-            ? injectDynamicFirebaseForms(rawHtmlCode, currentUser)
-            : rawHtmlCode;
+        
+        const newProjectId = container.dataset.timestamp || Date.now().toString();
+        container.dataset.timestamp = newProjectId; // Ensure container has it
+
+        const existingTimestamp = container.dataset.timestamp;
+        const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function' 
+        ? injectDynamicFirebaseForms(result.html, currentUser, existingTimestamp) 
+        : result.html;
         // ---------------------------------------
 
         const loadTimeout = setTimeout(() => {
