@@ -4500,6 +4500,8 @@ Promise.all([minDelayPromise, pageLoadPromise]).then(() => {
     }
 });
 
+
+
 // --- DYNAMIC FIREBASE FORM INJECTOR ---
 function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
     if (htmlCode.includes('id="sitee-firebase-injector"')) return htmlCode;
@@ -4510,8 +4512,9 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
     if (!userConfig || !userConfig.apiKey) {
         const warningScript = `
 <script id="sitee-firebase-injector">
-    document.addEventListener('submit', (e) => {
-        if (e.target.tagName === 'FORM') {
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (btn && ['submit', 'send', 'join', 'subscribe', 'contact'].some(k => btn.innerText.toLowerCase().includes(k))) {
             e.preventDefault();
             alert("Forms are disabled. The website owner has not connected their Firebase database yet.");
         }
@@ -4520,80 +4523,118 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
         return htmlCode.replace(/<\/body>/i, `${warningScript}\n</body>`);
     }
 
-    // Ensure we have a valid projectId
     const safeProjectId = projectId || 'uncategorized_project';
 
+    // Use standard compat libraries to completely bypass iframe module CORS blocks
     const injectionScript = `
-<script id="sitee-firebase-injector" type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getDatabase, ref, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
-
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+<script id="sitee-firebase-injector">
+    // Initialize Firebase
     const firebaseConfig = ${JSON.stringify(userConfig, null, 4)};
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
 
-    async function handleFirebaseSubmit(form, btn) {
-        if (form.dataset.submitting === 'true') return;
-        form.dataset.submitting = 'true';
+    async function scrapeAndSubmit(container, btn) {
+        if (container.dataset.submitting === 'true') return;
+        container.dataset.submitting = 'true';
 
-        // 1. SYNCHRONOUS DATA EXTRACTION (Grab it before AI scripts clear the form)
-        form.querySelectorAll('input, select, textarea').forEach((el, index) => {
-            if (!el.name) {
-                const rawName = el.id || el.getAttribute('placeholder') || 'field_' + index;
-                el.name = rawName.toLowerCase().replace(/[^a-z0-9]/g, '_');
-            }
-        });
-
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
-        data.submittedAt = serverTimestamp();
-
-        // 2. UI Updates
+        // 1. UI Loading State
         const originalText = btn ? (btn.innerText || btn.value) : '';
         if (btn) {
             if (btn.innerText) btn.innerText = 'Submitting...';
             if (btn.value) btn.value = 'Submitting...';
         }
 
+        // 2. Smart Scrape (Find inputs even if there are no 'name' attributes or <form> tags)
+        let data = {};
+        let hasData = false;
+        container.querySelectorAll('input, select, textarea').forEach((el, index) => {
+            const rawName = el.name || el.id || el.getAttribute('placeholder') || 'field_' + index;
+            const cleanName = rawName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            
+            // Ignore hidden/system fields
+            if (el.type !== 'submit' && el.type !== 'button') {
+                data[cleanName] = el.value || '';
+                if(el.value) hasData = true;
+            }
+        });
+
+        if (!hasData) data['system_note'] = 'Button clicked, but no input data was found.';
+        data.submittedAt = firebase.database.ServerValue.TIMESTAMP;
+
         // 3. Database Push
         try {
-            const submissionsRef = ref(db, 'website_form_submissions/${safeProjectId}');
-            await push(submissionsRef, data);
+            await db.ref('website_form_submissions/${safeProjectId}').push(data);
             
+            // Inject a visible green success message so you KNOW it worked
             const successMsg = document.createElement('div');
-            successMsg.style.cssText = 'color: #10B981; margin-top: 12px; font-weight: 500; text-align: center; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; z-index: 9999; position: relative;';
-            successMsg.innerText = 'Data saved to database!';
-            form.appendChild(successMsg);
-            setTimeout(() => successMsg.remove(), 4000);
+            successMsg.style.cssText = 'color: #10B981; margin-top: 15px; font-weight: bold; text-align: center; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border: 1px solid #10B981; transition: opacity 0.5s;';
+            successMsg.innerText = '✅ Form Submitted Successfully!';
+            
+            if (btn && btn.parentNode) {
+                btn.parentNode.insertBefore(successMsg, btn.nextSibling);
+            } else {
+                container.appendChild(successMsg);
+            }
+            
+            setTimeout(() => {
+                successMsg.style.opacity = '0';
+                setTimeout(() => successMsg.remove(), 500);
+            }, 4000);
+            
+            // Clear inputs
+            container.querySelectorAll('input, textarea').forEach(el => el.value = '');
+            
         } catch (error) {
             console.error('Submission failed:', error);
-            alert('Database Error: Check your Firebase Realtime Database Security Rules. They must allow writes.');
+            alert('Database Error: Your Firebase Database Rules are blocking writes. Go to Firebase Console -> Realtime Database -> Rules, and set .write to true.');
         } finally {
             if (btn) {
                 if (btn.innerText) btn.innerText = originalText;
                 if (btn.value) btn.value = originalText;
             }
-            form.dataset.submitting = 'false';
+            container.dataset.submitting = 'false';
         }
     }
 
-    // 4. PREVENT DEFAULT ON SUBMIT
+    // Capture standard form submits
     document.addEventListener('submit', (e) => {
         if (e.target.tagName === 'FORM') {
             e.preventDefault(); 
             const btn = e.target.querySelector('button[type="submit"], input[type="submit"]');
-            handleFirebaseSubmit(e.target, btn);
+            scrapeAndSubmit(e.target, btn);
         }
     }, true);
 
-    // 5. PREVENT DEFAULT ON CLICKS (Catch AI custom buttons)
+    // Capture "fake" forms (Divs with buttons) generated by AI
     document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[type="submit"], button:not([type]), input[type="submit"]');
+        const btn = e.target.closest('button, input[type="submit"], input[type="button"]');
         if (btn) {
-            const form = btn.closest('form');
-            if (form) {
-                e.preventDefault(); 
-                handleFirebaseSubmit(form, btn);
+            const btnText = (btn.innerText || btn.value || '').toLowerCase();
+            const isSubmitBtn = btn.type === 'submit' || ['submit', 'send', 'join', 'subscribe', 'contact', 'sign up', 'register'].some(k => btnText.includes(k));
+            
+            if (isSubmitBtn) {
+                e.preventDefault();
+                
+                // Find nearest wrapper containing inputs
+                let container = btn.closest('form');
+                if (!container) {
+                    let parent = btn.parentElement;
+                    while(parent && parent.tagName !== 'BODY') {
+                        if(parent.querySelectorAll('input:not([type="submit"]):not([type="button"]), textarea').length > 0) {
+                            container = parent;
+                            break;
+                        }
+                        parent = parent.parentElement;
+                    }
+                }
+                
+                if (container) {
+                    scrapeAndSubmit(container, btn);
+                }
             }
         }
     }, true);
