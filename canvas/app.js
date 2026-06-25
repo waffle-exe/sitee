@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getDatabase, ref, push, get, child, serverTimestamp as dbServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 import { getFirestore, collection, addDoc, serverTimestamp as fsServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -1532,7 +1533,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
 
     const iframe = document.createElement('iframe');
 
-    iframe.sandbox = "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms";
+    iframe.sandbox = "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-modals";
     iframe.addEventListener('contextmenu', e => e.preventDefault());
     preview.appendChild(iframe);
 
@@ -4519,10 +4520,9 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
         return htmlCode.replace(/<\/body>/i, `${warningScript}\n</body>`);
     }
 
-    // Ensure we have a valid projectId, fallback to 'uncategorized' if missing
+    // Ensure we have a valid projectId
     const safeProjectId = projectId || 'uncategorized_project';
 
-    // If they HAVE connected it, inject the real working script using THEIR keys!
     const injectionScript = `
 <script id="sitee-firebase-injector" type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -4536,13 +4536,7 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
         if (form.dataset.submitting === 'true') return;
         form.dataset.submitting = 'true';
 
-        const originalText = btn ? (btn.innerText || btn.value) : '';
-        if (btn) {
-            if (btn.innerText) btn.innerText = 'Submitting...';
-            if (btn.value) btn.value = 'Submitting...';
-        }
-
-        // FIX 2: Automatically assign 'name' attributes to inputs that lack them
+        // 1. SYNCHRONOUS DATA EXTRACTION (Grab it before AI scripts clear the form)
         form.querySelectorAll('input, select, textarea').forEach((el, index) => {
             if (!el.name) {
                 const rawName = el.id || el.getAttribute('placeholder') || 'field_' + index;
@@ -4554,6 +4548,14 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
         const data = Object.fromEntries(formData.entries());
         data.submittedAt = serverTimestamp();
 
+        // 2. UI Updates
+        const originalText = btn ? (btn.innerText || btn.value) : '';
+        if (btn) {
+            if (btn.innerText) btn.innerText = 'Submitting...';
+            if (btn.value) btn.value = 'Submitting...';
+        }
+
+        // 3. Database Push
         try {
             const submissionsRef = ref(db, 'website_form_submissions/${safeProjectId}');
             await push(submissionsRef, data);
@@ -4565,7 +4567,7 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
             setTimeout(() => successMsg.remove(), 4000);
         } catch (error) {
             console.error('Submission failed:', error);
-            alert('Database Error: Check your Firebase rules and configuration.');
+            alert('Database Error: Check your Firebase Realtime Database Security Rules. They must allow writes.');
         } finally {
             if (btn) {
                 if (btn.innerText) btn.innerText = originalText;
@@ -4575,21 +4577,23 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
         }
     }
 
-    // FIX 3A: Listen for traditional submits via event delegation (catches dynamic forms)
+    // 4. PREVENT DEFAULT ON SUBMIT
     document.addEventListener('submit', (e) => {
         if (e.target.tagName === 'FORM') {
+            e.preventDefault(); 
             const btn = e.target.querySelector('button[type="submit"], input[type="submit"]');
             handleFirebaseSubmit(e.target, btn);
         }
     }, true);
 
-    // FIX 3B: Listen for AI overriding standard submissions with click events
+    // 5. PREVENT DEFAULT ON CLICKS (Catch AI custom buttons)
     document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button, input[type="submit"], input[type="button"]');
+        const btn = e.target.closest('button[type="submit"], button:not([type]), input[type="submit"]');
         if (btn) {
             const form = btn.closest('form');
             if (form) {
-                setTimeout(() => handleFirebaseSubmit(form, btn), 10);
+                e.preventDefault(); 
+                handleFirebaseSubmit(form, btn);
             }
         }
     }, true);
