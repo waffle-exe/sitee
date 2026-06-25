@@ -539,9 +539,9 @@ function populateDashboard() {
 
     // Format total text nicely
     if (totalMB < 1024) {
-         totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
+        totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
     } else {
-         totalText = totalMB > 0 ? `${(totalMB / 1024).toFixed(0)} GB total` : 'N/A';
+        totalText = totalMB > 0 ? `${(totalMB / 1024).toFixed(0)} GB total` : 'N/A';
     }
 
     const usagePercentage = totalMB > 0 ? (storageUsedMB / totalMB) * 100 : 0;
@@ -865,12 +865,12 @@ async function getAuthHeaders() {
 function updateCreditDisplay() {
     if (currentUser) {
         const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
-        
+
         if (plan === 'free') {
             // Calculate generations used, ignoring the hidden chat history
             const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
             const generationsLeft = Math.max(0, 2 - generationsUsed);
-            
+
             creditDisplay.textContent = `Generations: ${generationsLeft} / 2`;
         } else {
             // Show standard credits for paid/custom plans
@@ -1482,11 +1482,35 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     fullBtn.title = 'Fullscreen';
     windowControls.appendChild(fullBtn);
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'control-btn delete-btn';
-    deleteBtn.innerHTML = deleteIcon;
-    deleteBtn.title = 'Delete';
-    windowControls.appendChild(deleteBtn);
+    // --- NEW: Only create and show the Delete button if NOT on Free plan ---
+    let deleteBtn = null;
+    const currentPlan = (currentUser?.subscriptionTier || 'free').toLowerCase();
+
+    if (currentPlan !== 'free') {
+        deleteBtn = document.createElement('button');
+        deleteBtn.className = 'control-btn delete-btn';
+        deleteBtn.innerHTML = deleteIcon;
+        deleteBtn.title = 'Delete';
+        windowControls.appendChild(deleteBtn);
+
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const timestamp = parseInt(container.dataset.timestamp);
+            if (!timestamp) {
+                container.remove();
+                return;
+            }
+            showConfirmationModal('Delete Project', 'Are you sure you want to delete this project?', async () => {
+                const success = await deleteProject(timestamp);
+                if (success) {
+                    if (container.classList.contains('fullscreen')) {
+                        document.body.classList.remove('site-fullscreen-active');
+                    }
+                    container.remove();
+                }
+            }, 'danger');
+        });
+    }
 
     header.appendChild(windowControls);
     container.appendChild(header);
