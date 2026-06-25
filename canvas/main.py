@@ -78,17 +78,28 @@ except Exception as e:
     sys.exit(1)
 
 # Initialize AI Clients
+
+# 1. BLUESMINDS (Primary)
+client_bluesminds = openai.AsyncOpenAI(
+    api_key=os.getenv("BLUESMINDS_API_KEY") or "MISSING_KEY",
+    base_url="https://api.bluesminds.com/v1"
+)
+
+# 2. FIREWORKS (Fallback 1)
 client_fireworks = openai.AsyncOpenAI(
     api_key=os.getenv("FIREWORKS_API_KEY") or "MISSING_KEY",
     base_url="https://api.fireworks.ai/inference/v1"
 )
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY") or "MISSING_KEY")
-
+# 3. GROQ (Fallback 2)
 client_groq = openai.AsyncOpenAI(
     api_key=os.getenv("GROQ_API_KEY") or "MISSING_KEY",
     base_url="https://api.groq.com/openai/v1"
 )
+
+# 4. GEMINI (Fallback 3)
+genai.configure(api_key=os.getenv("GEMINI_API_KEY") or "MISSING_KEY")
+
 
 # Vercel Config
 VERCEL_TOKEN = os.getenv("VERCEL_ACCESS_TOKEN")
@@ -256,6 +267,24 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
+    # PRIORITY 1: BLUESMINDS
+    try:
+        response = await client_bluesminds.chat.completions.create(
+            model="kimi-k2.5", 
+            messages=messages_ai, 
+            max_tokens=8000,
+            temperature=0.2,
+            timeout=180.0
+        )
+        return {
+            "html": clean_ai_html(response.choices[0].message.content),
+            "model": "kimi-k2.5 (Bluesminds)",
+            "tokens": response.usage.total_tokens if response.usage else 0
+        }
+    except Exception as e:
+        print(f"Bluesminds Failed: {e}")
+
+    # FALLBACK 1: FIREWORKS
     try:
         response = await client_fireworks.chat.completions.create(
             model="accounts/fireworks/models/kimi-k2p7-code", 
@@ -266,11 +295,13 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
         )
         return {
             "html": clean_ai_html(response.choices[0].message.content),
+            "model": "kimi-k2p7-code (Fireworks)",
             "tokens": response.usage.total_tokens if response.usage else 0
         }
     except Exception as e:
-        print(f"Primary Failed: {e}")
+        print(f"Fireworks Failed: {e}")
 
+    # FALLBACK 2: GROQ
     try:
         if not images:
             response = await client_groq.chat.completions.create(
@@ -279,13 +310,14 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
                 max_tokens=8000
             )
             return {
-    "html": clean_ai_html(response.choices[0].message.content),
-    "model": "llama3.3-70b",
-    "tokens": response.usage.total_tokens if response.usage else 0
-}
+                "html": clean_ai_html(response.choices[0].message.content),
+                "model": "llama3.3-70b (Groq)",
+                "tokens": response.usage.total_tokens if response.usage else 0
+            }
     except Exception as e:
         print(f"Groq Failed: {e}")
 
+    # FALLBACK 3: GEMINI
     try:
         gemini_model = genai.GenerativeModel('gemini-3.0-pro')
         response = await gemini_model.generate_content_async(prompt)
@@ -402,6 +434,7 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
             
         return {
             "html": result.get("html"),
+            "model_used": result.get("model"),
             "tokens_used": total_tokens,
             "credits_deducted": credits_to_deduct,
             "credits_remaining": credits_remaining,
