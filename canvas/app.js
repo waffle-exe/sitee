@@ -861,9 +861,21 @@ async function getAuthHeaders() {
     }
     return headers;
 }
+
 function updateCreditDisplay() {
     if (currentUser) {
-        creditDisplay.textContent = `Credits: ${currentUser.credits}`;
+        const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
+        
+        if (plan === 'free') {
+            // Calculate generations used, ignoring the hidden chat history
+            const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
+            const generationsLeft = Math.max(0, 2 - generationsUsed);
+            
+            creditDisplay.textContent = `Generations: ${generationsLeft} / 2`;
+        } else {
+            // Show standard credits for paid/custom plans
+            creditDisplay.textContent = `Credits: ${currentUser.credits}`;
+        }
     }
 }
 
