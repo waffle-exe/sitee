@@ -601,12 +601,45 @@ async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = 
     return {"new_html": req.get("new_outer_html")}
 
 
+
+@app.delete("/users/{user_id}/projects/{timestamp}")
+async def delete_project_endpoint(user_id: str, timestamp: str, current_user: dict = Depends(get_current_user)):
+    if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    db.collection("users").document(user_id).collection("projects").document(timestamp).delete()
+    
+    # We removed the old legacy logic here that kept re-writing the massive array!
+    return {"status": "success"}
+
+@app.delete("/users/{user_id}/projects")
+async def delete_all_projects_endpoint(user_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    projects_ref = db.collection("users").document(user_id).collection("projects")
+    for doc in projects_ref.stream():
+        if doc.id != CHAT_HISTORY_PROJECT_NAME: doc.reference.delete()
+            
+    # We removed the old legacy logic here too!
+    return {"status": "success"}
+
+
+# --- Firebase Config Endpoints ---
+
 @app.post("/users/me/firebase-config")
 async def save_firebase_config(req: FirebaseConfigRequest, current_user: dict = Depends(get_current_user)):
     try:
         uid = current_user['uid']
-        # Use .set() with merge=True to prevent 500 crashes if the doc doesn't exist yet
-        db.collection("users").document(uid).set({
+        user_ref = db.collection("users").document(uid)
+        
+        # THE FIX: Automatically wipe the massive, obsolete 'projects' array from the 
+        # root document to immediately free up the 1MB space limit.
+        try:
+            user_ref.update({"projects": firestore.DELETE_FIELD})
+        except Exception:
+            pass # Ignore if it's already gone
+            
+        # Now we can safely save the config without hitting the size limit
+        user_ref.set({
             "custom_firebase_config": req.dict()
         }, merge=True)
         
@@ -619,8 +652,6 @@ async def save_firebase_config(req: FirebaseConfigRequest, current_user: dict = 
 async def delete_firebase_config(current_user: dict = Depends(get_current_user)):
     try:
         uid = current_user['uid']
-        # Using .update() here is fine because if they are deleting it, the doc definitely exists,
-        # but wrapping it in try/except ensures we don't throw an ugly 500 error if it fails.
         db.collection("users").document(uid).update({
             "custom_firebase_config": firestore.DELETE_FIELD
         })
