@@ -419,25 +419,31 @@ const showLoginView = () => {
 };
 
 function updateHeaderButtons() {
-    // This function now correctly handles the new login button
+    const submissionsBtn = document.getElementById('submissions-btn'); // Grab the new button
+
     if (currentUser) {
         // User is LOGGED IN
         loginBtn.style.display = 'none';
         dashboardBtn.style.display = 'flex';
 
-        // THE FIX: Use 'subscriptionTier' to be consistent with the rest of your code.
+        // Show the Submissions button when logged in
+        if (submissionsBtn) submissionsBtn.style.display = 'flex';
+
         const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
 
         if (plan === 'creator' || plan === 'free') {
-            upgradeBtn.style.display = 'flex'; // SHOW button for 'creator' and 'free'
+            upgradeBtn.style.display = 'flex';
         } else {
-            upgradeBtn.style.display = 'none'; // HIDE button for 'pro' and other plans
+            upgradeBtn.style.display = 'none';
         }
     } else {
         // User is LOGGED OUT
         loginBtn.style.display = 'flex';
         dashboardBtn.style.display = 'none';
         upgradeBtn.style.display = 'none';
+
+        // Hide the Submissions button when logged out
+        if (submissionsBtn) submissionsBtn.style.display = 'none';
     }
 }
 function renderImagePreviews() {
@@ -624,7 +630,7 @@ let currentTableHTML = '';
 function initUserDatabase() {
     if (userDb) return userDb;
     if (!currentUser || !currentUser.custom_firebase_config || !currentUser.custom_firebase_config.apiKey) return null;
-    
+
     try {
         // We name the app "UserConfigApp" so it doesn't conflict with your main app
         userFirebaseApp = initializeApp(currentUser.custom_firebase_config, "UserConfigApp");
@@ -696,7 +702,7 @@ async function loadSubmissionsForProject(project, activeBtn) {
 function buildSubmissionsTable(dataObj) {
     // Convert Firebase object to Array
     const entries = Object.values(dataObj);
-    
+
     // Sort by date (newest first) if submittedAt exists
     entries.sort((a, b) => {
         const timeA = a.submittedAt ? a.submittedAt : 0;
@@ -718,7 +724,7 @@ function buildSubmissionsTable(dataObj) {
 
     entries.forEach(entry => {
         html += '<tr>';
-        
+
         // Format Date
         let dateStr = 'Unknown';
         if (entry.submittedAt) {
@@ -731,12 +737,12 @@ function buildSubmissionsTable(dataObj) {
         headers.forEach(h => {
             html += `<td>${entry[h] || '-'}</td>`;
         });
-        
+
         html += '</tr>';
     });
 
     html += '</tbody></table>';
-    
+
     currentTableHTML = html; // Save for the new window feature
     tableContainer.innerHTML = html;
     openNewWindowBtn.style.display = 'block';
@@ -964,14 +970,14 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
         stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
 
-        
+
         const newProjectId = container.dataset.timestamp || Date.now().toString();
         container.dataset.timestamp = newProjectId; // Ensure container has it
 
         const existingTimestamp = container.dataset.timestamp;
-        const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function' 
-        ? injectDynamicFirebaseForms(result.html, currentUser, existingTimestamp) 
-        : result.html;
+        const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
+            ? injectDynamicFirebaseForms(result.html, currentUser, existingTimestamp)
+            : result.html;
         // ---------------------------------------
 
         const loadTimeout = setTimeout(() => {
@@ -4559,6 +4565,6 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
         });
     });
 </script>`;
-    
+
     return htmlCode.replace(/<\/body>/i, `${injectionScript}\n</body>`);
 }
