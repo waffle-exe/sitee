@@ -391,7 +391,7 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
         # --- 2. UPDATE CREDIT DEDUCTION: Only apply to paid users ---
         if plan != 'free':
             if user_data.get('credits', 0) < credits_to_deduct:
-                raise HTTPException(status_code=402, detail=f"Insufficient credits. This complex generation requires {credits_to_deduct} credits.")
+                raise HTTPException(status_code=402, detail=f"Sitee Model is Busy. This complex generation requires {credits_to_deduct} credits.")
                 
             user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
             credits_remaining = user_data.get('credits', 0) - credits_to_deduct
