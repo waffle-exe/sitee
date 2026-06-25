@@ -267,8 +267,8 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
             model="kimi-k2.5",
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.95,
-            timeout=35.0  # Reduced from 180s
+            temperature=0.2,
+            timeout=45.0  # Reduced from 180s
         )
         return {
             "html": clean_ai_html(response.choices[0].message.content),
