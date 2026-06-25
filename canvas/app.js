@@ -656,7 +656,7 @@ window.openSubmissionsModal = () => {
     submissionsHeader.style.display = 'none';
     currentProjectTitle.textContent = 'Select a project';
 
-    const realProjects = currentUser?.projects?.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME) || [];
+    const realProjects = currentUser?.projects?.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).sort((a, b) => b.timestamp - a.timestamp) || [];
 
     if (realProjects.length === 0) {
         submissionsTabs.innerHTML = '<p style="color: var(--text-muted-color); font-size: 0.85rem; text-align: center; margin-top: 2rem;">No projects found.</p>';
@@ -2212,21 +2212,22 @@ function populateThemes() {
         });
         themeDropdown.appendChild(item);
     });
-} async function saveProject(name, htmlCode, isUpdate = false, timestampToUpdate = null, originalProject = null) {
+}
+
+async function saveProject(name, htmlCode, isUpdate = false, timestampToUpdate = null, originalProject = null) {
     let projectPayload;
 
     if (isUpdate && originalProject) {
-        // For updates, use all original project data and just overwrite the HTML
         projectPayload = {
             ...originalProject,
             html: htmlCode
         };
     } else {
-        // For new projects, create a complete new object
         projectPayload = {
             name,
             html: htmlCode,
-            timestamp: Date.now(),
+            // FIX: Use the existing timestamp so the form data matches the project ID
+            timestamp: timestampToUpdate || Date.now(),
             published_url: null,
             react: null,
             suggestions: null
@@ -2250,7 +2251,7 @@ function populateThemes() {
         if (projectIndex > -1) {
             currentUser.projects[projectIndex] = savedProject;
         } else {
-            currentUser.projects.push(savedProject);
+            currentUser.projects.unshift(savedProject); // <--- Fix
         }
 
         if (name !== CHAT_HISTORY_PROJECT_NAME) {
