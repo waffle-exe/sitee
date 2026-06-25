@@ -30,9 +30,10 @@ const RAZORPAY_KEY_ID = "rzp_live_ROEwepn6yDqGCa";
 const REGION_STORAGE_KEY = 'sitee_user_region';
 
 const plans = {
-    in: { currency: "INR", symbol: "₹", creator: 249, pro: 999, creatorYearly: 2499, proYearly: 9999, rates: { credit: 2, publish: 100 } },
+    in: { currency: "INR", symbol: "₹", creator: 250, pro: 999, creatorYearly: 2499, proYearly: 9999, rates: { credit: 2, publish: 100 } },
     us: { currency: "USD", symbol: "$", creator: 9, pro: 29, creatorYearly: 90, proYearly: 290, rates: { credit: 0.03, publish: 2 } }
 };
+
 let currentRegion = 'us'; // Default fallback
 let currentBillingCycle = 'monthly';
 
@@ -285,7 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const expiryDate = data.subscriptionTier !== 'free' && data.plan_validity ? new Date(data.plan_validity).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A';
                 const storageUsedMB = data.storage_used_mb || 0; let totalMB = 0;
                 const plan = (data.subscriptionTier || 'Free').toLowerCase();
-                if (plan === 'creator') totalMB = 2 * 1024; else if (plan === 'pro') totalMB = 10 * 1024;
+                if (plan.includes('creator')) totalMB = 500;
+                else if (plan.includes('pro')) totalMB = 2 * 1024;
                 const usedText = storageUsedMB < 1024 ? `${storageUsedMB.toFixed(2)} MB` : `${(storageUsedMB / 1024).toFixed(2)} GB`;
                 const totalText = totalMB > 0 ? `${(totalMB / 1024)} GB total` : 'N/A';
                 const usagePercentage = totalMB > 0 ? (storageUsedMB / totalMB) * 100 : 0;
@@ -390,69 +392,91 @@ document.addEventListener('DOMContentLoaded', () => {
         const proSavingsLine = billingCycle === 'yearly' ? `<li style="color: #fff; background: rgba(144, 202, 249, 0.2); padding: 5px 10px; border-radius: 5px; margin-bottom: 10px;"><b>Save ${planData.symbol}${proSavings} (2 months free)</b></li>` : '';
 
         container.innerHTML = `
-                <article class="plan-card free">
-                    <h2 class="plan-title">Free</h2>
-                    <div class="plan-price">${planData.symbol}0</div><br>
-                    <p class="description">Perfect for getting started and exploring the platform.</p>
-                    <ul class="plan-features">
-                        <li>${checkIcon} 10 AI Credits (One-Time)</li>
-                        <li>${checkIcon} Generate Unlimited Previews</li>
-                        <li>${checkIcon} Sitee Branding</li>
-                    </ul>
-                    <button class="choose-plan-btn" disabled>Your Current Plan</button>
-                </article>
-                
-                
+    <article class="plan-card free">
+        <h2 class="plan-title">Free</h2>
+        <div class="plan-price">${planData.symbol}0</div><br>
+        <p class="description">Perfect for getting started and exploring the platform.</p>
+        <ul class="plan-features">
+            <li>${checkIcon} 2 Generations</li>
+            <li>${checkIcon} Live Publish (Only 1 Website)</li>
+            <li>${checkIcon} Visual Editor</li>
+            <li>${checkIcon} Live Code Editor</li>
+            <li>${checkIcon} Get Full Source Code</li>
+            <li>${checkIcon} Backend Integration</li>
+            <li>${checkIcon} Sitee Branding</li>
+        </ul>
+        <button class="choose-plan-btn" disabled>Your Current Plan</button>
+    </article>
 
-                <article class="plan-card creator">
-                    <div class="popular-badge">Most Popular</div>
-                    <h2 class="plan-title">Creator <!--<span style="color: #9981c7 ">(sitee. ✦)</span>--></h2>
-                    <div class="plan-price">${creatorPriceDisplay}<span>${billingPeriod}</span></div>
-                    <p class="description">For non-coders and business owners who need a live website.</p>
-                    <ul class="plan-features">${creatorSavingsLine}<li>${checkIcon} 250 AI Credits per month</li><li>${checkIcon} Visual Editor</li><li>${checkIcon} Live Code Editor</li><li>${checkIcon} Get Full Source Code</li><li>${checkIcon}Publish up to 1 Websites</li><li>${checkIcon} 500 MB Storage</li><li>${checkIcon} No Sitee Branding</li></ul>
-                    <button class="choose-plan-btn" data-plan="creator">Choose Creator</button>
-                </article>
+    <article class="plan-card creator">
+        <div class="popular-badge">Most Popular</div>
+        <h2 class="plan-title">Creator</h2>
+        <div class="plan-price">${creatorPriceDisplay}<span>${billingPeriod}</span></div>
+        <p class="description">For non-coders and business owners who need a live website.</p>
+        <ul class="plan-features">
+            ${creatorSavingsLine}
+            <li>${checkIcon} 300 AI Credits per month</li>
+            <li>${checkIcon} Visual Editor</li>
+            <li>${checkIcon} Live Code Editor</li>
+            <li>${checkIcon} Get Full Source Code</li>
+            <li>${checkIcon} Publish up to 7 Websites</li>
+            <li>${checkIcon} 500 MB Storage</li>
+            <li>${checkIcon} Backend Integration</li>
+            <li>${checkIcon} No Sitee Branding</li>
+        </ul>
+        <button class="choose-plan-btn" data-plan="creator">Choose Creator</button>
+    </article>
 
-                <article class="plan-card pro">
-                    <div class="popular-badge" style="background-color:#ffaa00">Coders Love</div>
-                    <h2 class="plan-title">Pro <!--<span style="color:#ffaa00 ">(sitee. ✦)</span>--></h2>
-                    <div class="plan-price">${proPriceDisplay}<span>${billingPeriod}</span></div>
-                    <p class="description">For developers and agencies who need full control.</p>
-                    <ul class="plan-features">${proSavingsLine}<li>${checkIcon} Priority Access to Sitee Model</li><li>${checkIcon} 1,000 AI Credits per month</li><li>${checkIcon} Visual Editor</li><li>${checkIcon} Live Code Editor</li><li>${checkIcon} Get Full Source Code</li><li>${checkIcon} Github Deployment</li><li>${checkIcon} Publish up to 5 Websites</li><li>${checkIcon} 5 GB Storage</li><li>${checkIcon} No Sitee Branding</li></ul>
-                    <button class="choose-plan-btn" data-plan="pro">Choose Pro</button>
-                </article>
-                <article class="plan-card custom">
-                    <h2 class="plan-title">Custom</h2>
-                    <div class="plan-price" id="custom-plan-price">${planData.symbol}0.00</div><br>
-                    <p class="description">Pay-as-you-go. Ideal for small projects or occasional use.</p>
-                    <ul class="plan-features">
-                        <li>${checkIcon} Buy Credits as needed</li>
-                        <li>
-                            <div class="control-group">
-                                <label for="ai-credits-select">AI Credits</label>
-                                <select id="ai-credits-select" class="custom-select">
-                                    <option value="0">0</option><option value="25">25</option><option value="50">50</option><option value="100">100</option><option value="300">300</option><option value="500">500</option><option value="700">700</option><option value="1000">1000</option>
-                                </select>
-                            </div>
-                        </li> 
-                        <li>
-                            <div class="control-group">
-                                <label for="publish-credits-input">Publish</label>
-                                <div class="quantity-selector">
-                                    <button type="button" class="quantity-btn" data-action="decrement">-</button>
-                                    <input type="number" id="publish-credits-input" class="quantity-input" value="10" min="10">
-                                    <button type="button" class="quantity-btn" data-action="increment">+</button>
-                                </div>
-                            </div>
-                        </li>
-                <li><small style="font-size: 10px;">*Add-on credits/publish are add-on to your current plan.
-                </small></li>
-
-                    </ul>
-                    <button class="choose-plan-btn" data-plan="custom">Add On</button>
-                </article>
-            `;
-
+    <article class="plan-card pro">
+        <div class="popular-badge" style="background-color:#ffaa00">Coders Love</div>
+        <h2 class="plan-title">Pro</h2>
+        <div class="plan-price">${proPriceDisplay}<span>${billingPeriod}</span></div>
+        <p class="description">For developers and agencies who need full control.</p>
+        <ul class="plan-features">
+            ${proSavingsLine}
+            <li>${checkIcon} Priority Access to Sitee Model</li>
+            <li>${checkIcon} 1,200 AI Credits per month</li>
+            <li>${checkIcon} Visual Editor</li>
+            <li>${checkIcon} Live Code Editor</li>
+            <li>${checkIcon} Get Full Source Code</li>
+            <li>${checkIcon} Github Deployment</li>
+            <li>${checkIcon} Publish up to 5 Websites</li>
+            <li>${checkIcon} 2 GB Storage</li>
+            <li>${checkIcon} Backend Integration</li>
+            <li>${checkIcon} No Sitee Branding</li>
+        </ul>
+        <button class="choose-plan-btn" data-plan="pro">Choose Pro</button>
+    </article>
+    
+    <article class="plan-card custom">
+        <h2 class="plan-title">Custom</h2>
+        <div class="plan-price" id="custom-plan-price">${planData.symbol}0.00</div><br>
+        <p class="description">Buy Credits and Publish as needed add on to existing plan.</p>
+        <ul class="plan-features">
+            <li>${checkIcon} Buy Credits as needed</li>
+            <li>
+                <div class="control-group">
+                    <label for="ai-credits-select">AI Credits</label>
+                    <select id="ai-credits-select" class="custom-select">
+                        <option value="0">0</option><option value="25">25</option><option value="50">50</option><option value="100">100</option><option value="300">300</option><option value="500">500</option><option value="700">700</option><option value="1000">1000</option>
+                    </select>
+                </div>
+            </li> 
+            <li>
+                <div class="control-group">
+                    <label for="publish-credits-input">Publish</label>
+                    <div class="quantity-selector">
+                        <button type="button" class="quantity-btn" data-action="decrement">-</button>
+                        <input type="number" id="publish-credits-input" class="quantity-input" value="1" min="1">
+                        <button type="button" class="quantity-btn" data-action="increment">+</button>
+                    </div>
+                </div>
+            </li>
+            <li><small style="font-size: 10px;">*1 Publish = ₹100 | 25 Credits = ₹50.</small></li>
+        </ul>
+        <button class="choose-plan-btn" data-plan="custom">Add On</button>
+    </article>
+`;
         loader.style.display = 'none';
         container.style.display = 'grid';
         // --- ATTACH EVENT LISTENERS for the new custom card ---
