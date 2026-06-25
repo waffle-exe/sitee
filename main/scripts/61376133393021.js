@@ -278,22 +278,53 @@ document.addEventListener('DOMContentLoaded', () => {
             const user = auth.currentUser; if (!user) return;
             dashboardContent.innerHTML = `<p>Loading your details...</p>`;
             dashboardModal.style.display = 'flex'; setTimeout(() => dashboardModal.classList.add('active'), 10);
+            // --- Inside your dashboardButtonContainer click handler ---
             try {
                 const token = await user.getIdToken();
                 const response = await fetch(`${BACKEND_URL}/users/me`, { headers: { 'Authorization': `Bearer ${token}` } });
                 if (!response.ok) throw new Error('Could not fetch user data.');
                 const data = await response.json();
+
                 const expiryDate = data.subscriptionTier !== 'free' && data.plan_validity ? new Date(data.plan_validity).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A';
-                const storageUsedMB = data.storage_used_mb || 0; let totalMB = 0;
+                const storageUsedMB = data.storage_used_mb || 0;
+                let totalMB = 0;
+
                 const plan = (data.subscriptionTier || 'Free').toLowerCase();
                 if (plan.includes('creator')) totalMB = 500;
-                else if (plan.includes('pro')) totalMB = 2 * 1024;
+                else if (plan.includes('pro')) totalMB = 2 * 1024; // 2 GB
+
                 const usedText = storageUsedMB < 1024 ? `${storageUsedMB.toFixed(2)} MB` : `${(storageUsedMB / 1024).toFixed(2)} GB`;
                 const totalText = totalMB > 0 ? `${(totalMB / 1024)} GB total` : 'N/A';
                 const usagePercentage = totalMB > 0 ? (storageUsedMB / totalMB) * 100 : 0;
-                const storageHTML = totalMB > 0 ? `<div class="storage-progress-container"><div class="storage-progress-text"><span>${usedText} used</span><span>${totalText}</span></div><div class="storage-progress-bar"><div class="storage-progress-bar-fill" style="width: ${usagePercentage}%;"></div></div></div>` : 'N/A';
-                dashboardContent.innerHTML = `<div class="detail-item"><span class="detail-label">Email:</span> <span class="detail-value" title="${user.email}">${user.email}</span></div><div class="detail-item"><span class="detail-label">Current Plan:</span> <span class="detail-value" style="text-transform: capitalize;">${plan}</span></div><div class="detail-item"><span class="detail-label">Remaining Credits:</span> <span class="detail-value">${data.credits}</span></div><div class="detail-item"><span class="detail-label">Image Storage:</span><div class="detail-value" style="flex: 1; max-width: 60%;">${storageHTML}</div></div><div class="detail-item"><span class="detail-label">Plan Validity:</span> <span class="detail-value">${expiryDate}</span></div>`;
-            } catch (error) { dashboardContent.innerHTML = `<p style="color: #F87171;">Could not load plan details.</p>`; }
+
+                const storageHTML = totalMB > 0 ? `
+        <div class="storage-progress-container">
+            <div class="storage-progress-text"><span>${usedText} used</span><span>${totalText}</span></div>
+            <div class="storage-progress-bar"><div class="storage-progress-bar-fill" style="width: ${usagePercentage}%;"></div></div>
+        </div>` : 'N/A';
+
+                // NEW: Conditional row item for Credits vs Generations depending on the plan tier
+                let allowanceRow = '';
+                if (plan === 'free') {
+                    // Fallback or count generations from projects array length if tracked there, otherwise show total allocation limit
+                    const generationsUsed = data.projects ? data.projects.length : 0;
+                    const generationsLeft = Math.max(0, 2 - generationsUsed);
+                    allowanceRow = `<div class="detail-item"><span class="detail-label">Generations Left:</span> <span class="detail-value">${generationsLeft} / 2</span></div>`;
+                } else {
+                    allowanceRow = `<div class="detail-item"><span class="detail-label">Remaining Credits:</span> <span class="detail-value">${data.credits}</span></div>`;
+                }
+
+                // Build finalized inner HTML
+                dashboardContent.innerHTML = `
+        <div class="detail-item"><span class="detail-label">Email:</span> <span class="detail-value" title="${user.email}">${user.email}</span></div>
+        <div class="detail-item"><span class="detail-label">Current Plan:</span> <span class="detail-value" style="text-transform: capitalize;">${plan}</span></div>
+        ${allowanceRow}
+        <div class="detail-item"><span class="detail-label">Image Storage:</span><div class="detail-value" style="flex: 1; max-width: 60%;">${storageHTML}</div></div>
+        <div class="detail-item"><span class="detail-label">Plan Validity:</span> <span class="detail-value">${expiryDate}</span></div>
+    `;
+            } catch (error) {
+                dashboardContent.innerHTML = `<p style="color: #F87171;">Could not load plan details.</p>`;
+            }
         });
     }
     if (logoutBtn) { logoutBtn.addEventListener('click', () => signOut(auth).then(closeAllModals)); }
@@ -567,4 +598,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
