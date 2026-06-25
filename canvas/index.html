@@ -2890,29 +2890,26 @@
             width: 100%;
             text-align: left;
             background: transparent;
-            border: 1px solid transparent;
+            border: none;
             color: var(--text-muted-color);
-            padding: 12px 14px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            margin-bottom: 5px;
+            transition: all 0.2s;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            font-size: 0.9rem;
-            font-weight: 500;
         }
 
         .project-tab-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .project-tab-btn.active {
-            background: rgba(59, 130, 246, 0.15);
-            color: #ffffff;
-            border-color: rgba(59, 130, 246, 0.3);
-            box-shadow: inset 4px 0 0 var(--accent-color);
+            background: rgba(59, 130, 246, 0.2);
+            color: white;
+            border-left: 3px solid var(--accent-color);
         }
     </style>
 </head>
@@ -3086,90 +3083,65 @@
             <button id="logout-btn" class="auth-btn btn-primary" style="margin-top: 1.5rem;">Log Out</button>
         </div>
     </div>
-    <div id="submissions-modal"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 15, 0.75); backdrop-filter: blur(10px); z-index: 15000; align-items: center; justify-content: center; padding: 1rem;">
-        <div class="modal-content glassy"
-            style="max-width: 1300px; width: 95vw; height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 16px; margin: auto;">
 
-            <!-- Header -->
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
-                <h2 style="margin: 0; font-size: 1.4rem; font-weight: 600;">Project Admin Panel</h2>
-                <button id="close-submissions-btn" class="close-modal-btn"
-                    style="position: static; margin: 0; font-size: 2rem;">&times;</button>
+    <div id="submissions-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 15, 0.75); backdrop-filter: blur(10px); z-index: 15000; align-items: center; justify-content: center; padding: 1rem;">
+    <div class="modal-content glassy" style="max-width: 1300px; width: 95vw; height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 16px; margin: auto;">
+
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+            <h2 style="margin: 0; font-size: 1.4rem; font-weight: 600;">Project Admin Panel</h2>
+            <button id="close-submissions-btn" class="close-modal-btn" style="position: static; margin: 0; font-size: 2rem;">&times;</button>
+        </div>
+
+        <!-- Body -->
+        <div style="display: flex; flex: 1; overflow: hidden;">
+
+            <!-- Left Sidebar: Project Tabs -->
+            <div id="submissions-tabs" style="width: 280px; background: rgba(0,0,0,0.2); border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0;">
+                <!-- JS will inject project buttons here -->
             </div>
 
-            <!-- Body -->
-            <div style="display: flex; flex: 1; overflow: hidden;">
+            <!-- Right Content: Dashboard -->
+            <div style="flex: 1; padding: 1.5rem; display: flex; flex-direction: column; overflow-y: auto; gap: 1.5rem; background: rgba(0,0,0,0.1);">
 
-                <!-- Left Sidebar: Project Tabs -->
-                <div id="submissions-tabs"
-                    style="width: 280px; background: rgba(0,0,0,0.2); border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0;">
-                    <!-- JS will inject project buttons here -->
+                <!-- Title Row -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-shrink: 0;">
+                    <h3 id="current-project-title" style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1.2;">Select a project</h3>
+                    <button id="open-new-window-btn" class="auth-btn btn-primary" style="width: auto; padding: 0.5rem 1rem; display: none; margin: 0; flex-shrink: 0;">Export Submissions</button>
                 </div>
 
-                <!-- Right Content: Dashboard -->
-                <div
-                    style="flex: 1; padding: 1.5rem; display: flex; flex-direction: column; overflow-y: auto; gap: 1.5rem; background: rgba(0,0,0,0.1);">
-
-                    <!-- Title Row -->
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-shrink: 0;">
-                        <h3 id="current-project-title"
-                            style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1.2;">
-                            Select a project</h3>
-                        <button id="open-new-window-btn" class="auth-btn btn-primary"
-                            style="width: auto; padding: 0.5rem 1rem; display: none; margin: 0; flex-shrink: 0;">Export
-                            Submissions</button>
-                    </div>
-
-                    <!-- Details Row (Preview & Prompt) -->
-                    <div id="admin-project-details"
-                        style="display: none; grid-template-columns: 1fr 1fr; gap: 1.5rem; height: 240px; min-height: 240px; flex-shrink: 0;">
-
-                        <!-- Iframe Preview (Scaled Snapshot) -->
-                        <div
-                            style="background: #0A0B0F; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); display: flex; flex-direction: column;">
-                            <div
-                                style="background: rgba(255,255,255,0.05); padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600; color: var(--text-muted-color); border-bottom: 1px solid rgba(255,255,255,0.1); text-transform: uppercase; letter-spacing: 1px;">
-                                Live Snapshot</div>
-                            <div style="flex: 1; position: relative; overflow: hidden; background: #fff;">
-                                <iframe id="admin-site-preview" scrolling="no"
-                                    style="width: 200%; height: 200%; border: none; transform: scale(0.5); transform-origin: top left; pointer-events: none; position: absolute; top: 0; left: 0; overflow: hidden;"></iframe>
-                            </div>
-                        </div>
-
-                        <!-- Prompt Display -->
-                        <div
-                            style="background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); display: flex; flex-direction: column; overflow: hidden;">
-                            <div
-                                style="background: rgba(255,255,255,0.05); padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600; color: var(--text-muted-color); border-bottom: 1px solid rgba(255,255,255,0.1); text-transform: uppercase; letter-spacing: 1px;">
-                                Original Prompt</div>
-                            <div id="admin-site-prompt"
-                                style="flex: 1; overflow-y: auto; padding: 1rem; font-size: 0.85rem; line-height: 1.5; color: #E2E8F0; text-align: left; white-space: pre-wrap;">
-                            </div>
+                <!-- Details Row (Preview & Prompt) -->
+                <div id="admin-project-details" style="display: none; grid-template-columns: 1fr 1fr; gap: 1.5rem; height: 350px; flex-shrink: 0;">
+                    
+                    <!-- Iframe Preview (Scaled to look like a mini desktop) -->
+                    <div style="background: #0A0B0F; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); display: flex; flex-direction: column;">
+                        <div style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted-color); border-bottom: 1px solid rgba(255,255,255,0.1); text-transform: uppercase; letter-spacing: 1px;">Live Preview</div>
+                        <div style="flex: 1; position: relative; overflow: hidden; background: #fff;">
+                            <iframe id="admin-site-preview" style="width: 200%; height: 200%; border: none; transform: scale(0.5); transform-origin: top left; pointer-events: none; position: absolute; top: 0; left: 0;"></iframe>
                         </div>
                     </div>
 
-                    <!-- Table Container -->
-                    <div
-                        style="display: flex; flex-direction: column; flex: 1; min-height: 250px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); overflow: hidden;">
-                        <div
-                            style="background: rgba(255,255,255,0.05); padding: 0.75rem 1rem; font-size: 0.85rem; font-weight: 600; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-                            <span id="submissions-header"
-                                style="display: none; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted-color); font-size: 0.8rem;">Form
-                                Submissions Data</span>
-                        </div>
-                        <div id="submissions-table-container" style="flex: 1; overflow: auto; padding: 0;">
-                            <p style="text-align: center; color: #8A9A9E; padding: 3rem;">Select a project on the left
-                                to view details.</p>
-                        </div>
+                    <!-- Prompt Display -->
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); display: flex; flex-direction: column; overflow: hidden;">
+                        <div style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted-color); border-bottom: 1px solid rgba(255,255,255,0.1); text-transform: uppercase; letter-spacing: 1px;">Original Prompt</div>
+                        <div id="admin-site-prompt" style="flex: 1; overflow-y: auto; padding: 1.2rem; font-size: 0.95rem; line-height: 1.6; color: #E2E8F0; text-align: left; white-space: pre-wrap;"></div>
                     </div>
-
                 </div>
+
+                <!-- Table Container -->
+                <div style="display: flex; flex-direction: column; flex: 1; min-height: 250px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); overflow: hidden;">
+                     <div style="background: rgba(255,255,255,0.05); padding: 0.75rem 1rem; font-size: 0.85rem; font-weight: 600; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                        <span id="submissions-header" style="display: none; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted-color); font-size: 0.8rem;">Form Submissions Data</span>
+                     </div>
+                    <div id="submissions-table-container" style="flex: 1; overflow: auto; padding: 0;">
+                        <p style="text-align: center; color: #8A9A9E; padding: 3rem;">Select a project on the left to view details.</p>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
+</div>
 
     <div id="confirmation-modal" style="display: none;">
         <div class="modal-content glassy">
