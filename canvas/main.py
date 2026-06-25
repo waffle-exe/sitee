@@ -2,10 +2,11 @@ import os
 import re
 import asyncio
 import base64
+import json
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Body, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -132,38 +133,16 @@ class FirebaseConfigRequest(BaseModel):
 
 # ---------------- HELPER FUNCTIONS ----------------
 
-async def get_current_user(
-    creds: HTTPAuthorizationCredentials = Depends(security)
-) -> dict:
+async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     try:
-        print("AUTH STEP 1: Request received")
-
         token = creds.credentials
-
-        print("AUTH STEP 2: Token extracted")
-        print(f"Token length: {len(token)}")
-
-        print("AUTH STEP 3: Starting Firebase verification")
-
-        decoded_token = auth.verify_id_token(
-            token,
-            check_revoked=False
-        )
-
-        print("AUTH STEP 4: Verification successful")
-        print(f"UID: {decoded_token.get('uid')}")
-
+        decoded_token = auth.verify_id_token(token, check_revoked=False)
         return {
             "uid": decoded_token["uid"],
             "email": decoded_token.get("email", "")
         }
-
     except Exception as e:
-        print(f"AUTH ERROR: {repr(e)}")
-        raise HTTPException(
-            status_code=401,
-            detail=f"Invalid or expired token: {str(e)}"
-        )
+        raise HTTPException(status_code=401, detail=f"Invalid or expired token: {str(e)}")
     
     
 def clean_ai_html(raw_html: str) -> str:
@@ -198,11 +177,9 @@ def get_user_profile(uid: str, email: str = "") -> dict:
             try:
                 expiry_date = datetime.fromisoformat(plan_validity_str)
                 if datetime.now(timezone.utc) > expiry_date:
-                    print(f"User {uid} plan expired. Downgrading to Free.")
                     user_data["subscriptionTier"] = "free"
                     user_data["credits"] = 10  
                     user_data["plan_validity"] = None
-                    
                     user_ref.update({
                         "subscriptionTier": "free",
                         "credits": 10,
@@ -235,20 +212,20 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     user_data["projects"] = combined_projects
     return user_data
 
+# ---------------- STREAMING GENERATOR ----------------
 
-async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
+async def stream_generator(prompt: str, images: Optional[List[str]], target_lang: str, uid: str, plan: str, user_ref):
     system_instruction = f"""
     You are an elite, top-tier web developer and UX/UI designer. 
     Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code.
 
-    CRITICAL DIRECTIVES (YOU MUST FOLLOW THESE OR FAIL):
-    0. NO LAZINESS & NO PLACEHOLDERS: You MUST generate the ENTIRE website. Do NOT stop after the header. Do NOT use comments like "" or "/* Continue CSS */". Write every single line of code, including full body sections (Hero, Features, Testimonials, Footer, etc.) with dummy text/images if needed.
-    1. ZERO EXPLANATIONS: Absolutely NO markdown commentary, introductory/concluding remarks, or conversational text.
-    2. STRICTLY NO THINKING: Do NOT generate <think> tags, chain-of-thought, or internal reasoning. Begin the output directly with the code.
-    3. ALL-IN-ONE-FILE: You MUST combine all HTML, CSS, and JavaScript into ONE single file. Place CSS inside <style> tags and JavaScript inside <script> tags right before the closing </body> tag.
-    4. NO CODE BLOCKS: Do NOT wrap the code inside markdown code blocks (e.g., DO NOT write ```html). Output completely RAW, executable plain text.
-    5. PREMIUM DESIGN: Construct highly polished, elegant, and modern user interfaces using the Tailwind CSS CDN (<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>) or native advanced CSS. Ensure Z-index is correct, mobile responsiveness is perfect, and JS functions flawlessly without errors.
-    6. If you output a single word of text outside the executable codebase, or if you truncate the code, the parsing engine will crash. Output the full DOM.
+    CRITICAL DIRECTIVES:
+    0. NO LAZINESS & NO PLACEHOLDERS: Generate the ENTIRE website. Do NOT stop after the header. 
+    1. ZERO EXPLANATIONS: Absolutely NO markdown commentary, introductory/concluding remarks.
+    2. STRICTLY NO THINKING: Do NOT generate <think> tags.
+    3. ALL-IN-ONE-FILE: Combine all HTML, CSS, and JavaScript into ONE single file.
+    4. NO CODE BLOCKS: Do NOT wrap the code inside markdown code blocks. Output RAW text.
+    5. PREMIUM DESIGN: Use Tailwind CSS CDN (<script src="https://cdn.tailwindcss.com"></script>).
     """
 
     messages_ai = [{"role": "system", "content": system_instruction}]
@@ -261,69 +238,101 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
-    # 1. Primary: Bluesminds (Fast Fail Timeout)
-    try:
-        response = await client_bluesminds.chat.completions.create(
-            model="kimi-k2.5",
-            messages=messages_ai,
-            max_tokens=8000,
-            temperature=0.2,
-            timeout=45.0  # Reduced from 180s
-        )
-        return {
-            "html": clean_ai_html(response.choices[0].message.content),
-            "tokens": response.usage.total_tokens if response.usage else 0
-        }
-    except Exception as e:
-        print(f"Bluesminds Failed (falling back): {e}")
-    
-    # 2. Secondary: Fireworks
-    try:
-        response = await client_fireworks.chat.completions.create(
-            model="accounts/fireworks/models/kimi-k2p7-code", 
-            messages=messages_ai, 
-            max_tokens=8000,
-            temperature=0.2,
-            timeout=45.0  # Reduced from 180s
-        )
-        return {
-            "html": clean_ai_html(response.choices[0].message.content),
-            "tokens": response.usage.total_tokens if response.usage else 0
-        }
-    except Exception as e:
-        print(f"Fireworks Failed (falling back): {e}")
+    generated_text = ""
+    has_streamed = False
 
-    # 3. Tertiary: Groq (Blazing fast, good for ultimate fallback)
+    # Helper to calculate and deduct credits at the end
+    def process_credits(final_text: str):
+        TOKEN_COST_RATE = 0.00106
+        estimated_tokens = len(final_text) // 4
+        vision_multiplier = 1.8 if images else 1.0
+        credits_to_deduct = max(2.0, round((estimated_tokens * TOKEN_COST_RATE) * vision_multiplier, 1))
+        
+        if plan != 'free':
+            user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
+        
+        return {
+            "status": "DONE",
+            "tokens_used": estimated_tokens,
+            "credits_deducted": 0 if plan == 'free' else credits_to_deduct
+        }
+
+    # 1. Primary: Bluesminds
     try:
-        if not images:
-            response = await client_groq.chat.completions.create(
-                model="llama-3.3-70b-versatile", # Ensure correct endpoint model name
-                messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": prompt}],
-                max_tokens=6000,
-                timeout=30.0
-            )
-            return {
-                "html": clean_ai_html(response.choices[0].message.content),
-                "model": "llama3.3-70b",
-                "tokens": response.usage.total_tokens if response.usage else 0
-            }
+        stream = await client_bluesminds.chat.completions.create(
+            model="kimi-k2.5", messages=messages_ai, max_tokens=8000, temperature=0.2, stream=True
+        )
+        async for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                has_streamed = True
+                content = chunk.choices[0].delta.content
+                generated_text += content
+                yield f"data: {json.dumps({'chunk': content})}\n\n"
+        
+        if has_streamed:
+            yield f"data: {json.dumps(process_credits(generated_text))}\n\n"
+            return
     except Exception as e:
-        print(f"Groq Failed (falling back): {e}")
+        print(f"Bluesminds Stream Failed: {e}")
+
+    # 2. Secondary: Fireworks
+    if not has_streamed:
+        try:
+            stream = await client_fireworks.chat.completions.create(
+                model="accounts/fireworks/models/kimi-k2p7-code", messages=messages_ai, max_tokens=8000, temperature=0.2, stream=True
+            )
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    has_streamed = True
+                    content = chunk.choices[0].delta.content
+                    generated_text += content
+                    yield f"data: {json.dumps({'chunk': content})}\n\n"
+            
+            if has_streamed:
+                yield f"data: {json.dumps(process_credits(generated_text))}\n\n"
+                return
+        except Exception as e:
+            print(f"Fireworks Stream Failed: {e}")
+
+    # 3. Tertiary: Groq (Text Only)
+    if not has_streamed and not images:
+        try:
+            stream = await client_groq.chat.completions.create(
+                model="llama-3.3-70b-versatile", messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": prompt}], max_tokens=6000, stream=True
+            )
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    has_streamed = True
+                    content = chunk.choices[0].delta.content
+                    generated_text += content
+                    yield f"data: {json.dumps({'chunk': content})}\n\n"
+            
+            if has_streamed:
+                yield f"data: {json.dumps(process_credits(generated_text))}\n\n"
+                return
+        except Exception as e:
+            print(f"Groq Stream Failed: {e}")
 
     # 4. Final: Gemini
-    try:
-        gemini_model = genai.GenerativeModel('gemini-2.5-pro') # Updated to latest stable version
-        # You may want to wrap this in asyncio.wait_for for a strict timeout
-        response = await asyncio.wait_for(gemini_model.generate_content_async(prompt), timeout=45.0)
-        return {
-            "html": clean_ai_html(response.text),
-            "model": "gemini-2.5-pro",
-            "tokens": response.usage_metadata.total_token_count if response.usage_metadata else 0
-        }
-    except Exception as e:
-        print(f"Gemini Failed: {e}")
+    if not has_streamed:
+        try:
+            gemini_model = genai.GenerativeModel('gemini-2.5-pro')
+            response = await gemini_model.generate_content_async(prompt, stream=True)
+            async for chunk in response:
+                if chunk.text:
+                    has_streamed = True
+                    generated_text += chunk.text
+                    yield f"data: {json.dumps({'chunk': chunk.text})}\n\n"
+            
+            if has_streamed:
+                yield f"data: {json.dumps(process_credits(generated_text))}\n\n"
+                return
+        except Exception as e:
+            print(f"Gemini Stream Failed: {e}")
 
-    raise HTTPException(status_code=503, detail="All AI models failed due to high load or timeouts.")
+    # If all models fail
+    if not has_streamed:
+        yield f"data: {json.dumps({'error': 'All AI models failed due to high load or timeouts.'})}\n\n"
 
 # ---------------- API ENDPOINTS ----------------
 @app.post("/upgrade-user-plan/")
@@ -331,28 +340,18 @@ async def upgrade_user_plan(req: UpgradeRequest, current_user: dict = Depends(ge
     uid = current_user['uid']
     user_ref = db.collection("users").document(uid)
     
-    plan_credits = {
-        "creator": 300,
-        "pro": 1200
-    }
-    
+    plan_credits = {"creator": 300, "pro": 1200}
     tier = req.plan_tier.lower()
     cycle = req.billing_cycle.lower()
     
     if tier not in plan_credits:
-        raise HTTPException(status_code=400, detail="Invalid plan tier. Choose 'creator' or 'pro'.")
+        raise HTTPException(status_code=400, detail="Invalid plan tier.")
     if cycle not in ["monthly", "yearly"]:
-        raise HTTPException(status_code=400, detail="Invalid billing cycle. Choose 'monthly' or 'yearly'.")
+        raise HTTPException(status_code=400, detail="Invalid billing cycle.")
         
     now = datetime.now(timezone.utc)
-    if cycle == "monthly":
-        expiry_date = now + timedelta(days=30)
-    else:  
-        expiry_date = now + timedelta(days=365)
-        
-    allocated_credits = plan_credits[tier]
-    if cycle == "yearly":
-        allocated_credits = plan_credits[tier] * 12 
+    expiry_date = now + timedelta(days=30) if cycle == "monthly" else now + timedelta(days=365)
+    allocated_credits = plan_credits[tier] if cycle == "monthly" else plan_credits[tier] * 12 
 
     user_ref.update({
         "subscriptionTier": f"{tier}_{cycle}", 
@@ -369,16 +368,12 @@ async def upgrade_user_plan(req: UpgradeRequest, current_user: dict = Depends(ge
 
 @app.post("/create-user")
 async def create_user(current_user: dict = Depends(get_current_user)):
-    uid = current_user.get("uid")
-    email = current_user.get("email", "")
-    get_user_profile(uid, email)
+    get_user_profile(current_user.get("uid"), current_user.get("email", ""))
     return {"status": "success"}
 
 @app.get("/users/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
-    uid = current_user.get("uid")
-    email = current_user.get("email", "")
-    return get_user_profile(uid, email)
+    return get_user_profile(current_user.get("uid"), current_user.get("email", ""))
 
 @app.post("/generate/")
 async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depends(get_current_user)):
@@ -390,58 +385,34 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     user_data = get_user_profile(uid) 
     plan = user_data.get('subscriptionTier', 'free').lower()
     
-    # --- 1. NEW FREE PLAN LOGIC: Check Generation Count ---
+    # 1. Pre-Check Free Plan
     if plan == 'free':
-        # Filter out the internal chat history to count real generated websites
         active_projects = [p for p in user_data.get('projects', []) if p.get('name') != CHAT_HISTORY_PROJECT_NAME]
         if len(active_projects) >= 2:
-            raise HTTPException(
-                status_code=402, 
-                detail="You have reached the maximum limit of 2 generations for the Free Plan. Please upgrade to continue."
-            )
+            raise HTTPException(status_code=402, detail="You have reached the max limit of 2 generations for the Free Plan.")
     
-    TOKEN_COST_RATE = 0.00106
-    
-    try:
-        result = await generate_with_fallback(
+    # 2. Pre-Check Paid Plan Credits (ensure they have at least a baseline amount to start)
+    if plan != 'free':
+        if user_data.get('credits', 0) < 2.0:
+            raise HTTPException(status_code=402, detail="Insufficient credits to start a generation.")
+            
+    # Return Streaming Response
+    return StreamingResponse(
+        stream_generator(
             prompt=req.prompt, 
             images=req.image_data, 
-            target_lang=req.target_language
-        )
-        
-        total_tokens = result.get("tokens", 0)
-        has_image = bool(req.image_data)
-        vision_multiplier = 1.8 if has_image else 1.0
-        credits_to_deduct = max(2.0, round((total_tokens * TOKEN_COST_RATE) * vision_multiplier, 1))
-        
-        # --- 2. UPDATE CREDIT DEDUCTION: Only apply to paid users ---
-        if plan != 'free':
-            if user_data.get('credits', 0) < credits_to_deduct:
-                raise HTTPException(status_code=402, detail=f"Sitee Model is Busy. This complex generation requires {credits_to_deduct} credits.")
-                
-            user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
-            credits_remaining = user_data.get('credits', 0) - credits_to_deduct
-        else:
-            # Free users don't use credits for generation anymore
-            credits_to_deduct = 0
-            credits_remaining = user_data.get('credits', 0)
-            
-        return {
-            "html": result.get("html"),
-            "tokens_used": total_tokens,
-            "credits_deducted": credits_to_deduct,
-            "credits_remaining": credits_remaining,
-            "user_profile": get_user_profile(uid) 
-        }
-    except Exception as e:
-        print(f"Error in /generate/: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+            target_lang=req.target_language,
+            uid=uid,
+            plan=plan,
+            user_ref=user_ref
+        ), 
+        media_type="text/event-stream"
+    )
     
 # --- Projects Management ---
 @app.post("/users/{user_id}/projects")
 async def save_project_endpoint(user_id: str, project: dict = Body(...), current_user: dict = Depends(get_current_user)):
     if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
-    
     timestamp = str(project.get("timestamp"))
     db.collection("users").document(user_id).collection("projects").document(timestamp).set(project)
     return project
@@ -449,7 +420,6 @@ async def save_project_endpoint(user_id: str, project: dict = Body(...), current
 @app.put("/users/{user_id}/projects/{timestamp}")
 async def update_project_endpoint(user_id: str, timestamp: str, project: dict = Body(...), current_user: dict = Depends(get_current_user)):
     if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
-        
     doc_ref = db.collection("users").document(user_id).collection("projects").document(timestamp)
     if not doc_ref.get().exists: doc_ref.set(project)
     else: doc_ref.update(project)
@@ -458,14 +428,12 @@ async def update_project_endpoint(user_id: str, timestamp: str, project: dict = 
 @app.delete("/users/{user_id}/projects/{timestamp}")
 async def delete_project_endpoint(user_id: str, timestamp: str, current_user: dict = Depends(get_current_user)):
     if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
-        
     db.collection("users").document(user_id).collection("projects").document(timestamp).delete()
     return {"status": "success"}
 
 @app.delete("/users/{user_id}/projects")
 async def delete_all_projects_endpoint(user_id: str, current_user: dict = Depends(get_current_user)):
     if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
-        
     projects_ref = db.collection("users").document(user_id).collection("projects")
     for doc in projects_ref.stream():
         if doc.id != CHAT_HISTORY_PROJECT_NAME: doc.reference.delete()
@@ -474,10 +442,7 @@ async def delete_all_projects_endpoint(user_id: str, current_user: dict = Depend
 # --- File Upload ---
 @app.post("/upload-image/{project_id}")
 async def upload_image_endpoint(
-    project_id: str, 
-    file: UploadFile = File(...), 
-    file_size_bytes: int = Form(default=0),
-    current_user: dict = Depends(get_current_user)
+    project_id: str, file: UploadFile = File(...), file_size_bytes: int = Form(default=0), current_user: dict = Depends(get_current_user)
 ):
     uid = current_user['uid']
     try:
@@ -488,54 +453,43 @@ async def upload_image_endpoint(
         public_url = blob_obj.public_url
     except Exception as e:
         print(f"Warning: Firebase Storage upload failed: {e}")
-        public_url = f"[https://storage.sitee.in/uploads/](https://storage.sitee.in/uploads/){uid}/{file.filename}"
+        public_url = f"https://storage.sitee.in/uploads/{uid}/{file.filename}"
     
     user_ref = db.collection("users").document(uid)
     user_doc = user_ref.get().to_dict() or {}
-    current_mb = user_doc.get("storage_used_mb", 0.0)
-    new_mb = current_mb + (file_size_bytes / (1024 * 1024))
+    new_mb = user_doc.get("storage_used_mb", 0.0) + (file_size_bytes / (1024 * 1024))
     user_ref.update({"storage_used_mb": new_mb})
-    
     return {"url": public_url, "user_profile": get_user_profile(uid)}
-
 
 # --- Deployment & Publishing ---
 @app.post("/users/{user_id}/projects/{timestamp}/publish")
 async def publish_external_endpoint(user_id: str, timestamp: str, content: dict = Body(...), current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
     if uid != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
-        
-    user_ref = db.collection('users').document(uid)
-    user_doc = user_ref.get()
+    user_doc = db.collection('users').document(uid).get()
     
     if not user_doc.exists or user_doc.to_dict().get("subscriptionTier", "free") == "free":
         raise HTTPException(status_code=403, detail="Publishing is a premium feature.")
-        
     if not VERCEL_TOKEN:
         raise HTTPException(status_code=500, detail="Server is not configured for Vercel publishing.")
 
     project_name = content.get("project_name", f"sitee-{uid.lower()[:8]}-{timestamp}")
-    html_code = content.get("html_content", "")
-    
     headers = {"Authorization": f"Bearer {VERCEL_TOKEN}"}
     if VERCEL_TEAM_ID: headers["x-vercel-team-id"] = VERCEL_TEAM_ID
     
-    api_url = "[https://api.vercel.com/v13/deployments](https://api.vercel.com/v13/deployments)"
-    payload = {"name": project_name, "files": [{"file": "index.html", "data": html_code}]}
+    payload = {"name": project_name, "files": [{"file": "index.html", "data": content.get("html_content", "")}]}
 
     try:
-        response = requests.post(api_url, headers=headers, json=payload, timeout=60)
+        response = requests.post("https://api.vercel.com/v13/deployments", headers=headers, json=payload, timeout=60)
         response.raise_for_status()
-        data = response.json()
-        deployment_url = f"https://{data['url']}"
+        deployment_url = f"https://{response.json()['url']}"
 
         doc_ref = db.collection("users").document(uid).collection("projects").document(timestamp)
         if doc_ref.get().exists: doc_ref.update({"published_url": deployment_url})
-        
         return {"url": deployment_url}
     except requests.exceptions.RequestException as e:
-        error_details = e.response.json() if e.response else {}
-        raise HTTPException(status_code=502, detail=f"Publishing service error: {error_details.get('error', {}).get('message')}")
+        error_msg = e.response.json().get('error', {}).get('message') if e.response else str(e)
+        raise HTTPException(status_code=502, detail=f"Publishing service error: {error_msg}")
 
 @app.put("/users/{user_id}/projects/{timestamp}/publish")
 async def update_external_publish_endpoint(user_id: str, timestamp: str, content: dict = Body(...), current_user: dict = Depends(get_current_user)):
@@ -550,32 +504,23 @@ async def check_subdomain_endpoint(name: str, current_user: dict = Depends(get_c
 @app.post("/publish-sitee")
 async def publish_sitee_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
-    subdomain = req.get("subdomain")
     timestamp = str(req.get("project_timestamp"))
-    html_content = req.get("html_content") 
+    published_url = f"https://{req.get('subdomain')}-app.sitee.in"
     
-    published_url = f"https://{subdomain}-app.sitee.in"
     doc_ref = db.collection("users").document(uid).collection("projects").document(timestamp)
-    
     if doc_ref.get().exists: 
-        doc_ref.update({
-            "published_url": published_url,
-            "html": html_content
-        })
-        
+        doc_ref.update({"published_url": published_url, "html": req.get("html_content")})
     return {"url": published_url, "status": "success"}
 
 @app.delete("/unpublish-sitee/{timestamp}")
 async def unpublish_sitee_endpoint(timestamp: str, current_user: dict = Depends(get_current_user)):
-    uid = current_user['uid']
-    doc_ref = db.collection("users").document(uid).collection("projects").document(timestamp)
+    doc_ref = db.collection("users").document(current_user['uid']).collection("projects").document(timestamp)
     if doc_ref.get().exists: doc_ref.update({"published_url": None})
     return {"status": "success"}
 
 @app.post("/users/me/github-token")
 async def save_github_token_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    uid = current_user['uid']
-    db.collection("users").document(uid).update({
+    db.collection("users").document(current_user['uid']).update({
         "github_token": req.get("github_token"),
         "github_token_expiry": str(firestore.SERVER_TIMESTAMP)
     })
@@ -583,105 +528,61 @@ async def save_github_token_endpoint(req: dict = Body(...), current_user: dict =
 
 @app.delete("/users/me/github-token")
 async def remove_github_token_endpoint(current_user: dict = Depends(get_current_user)):
-    uid = current_user['uid']
-    db.collection("users").document(uid).update({"github_token": None, "github_token_expiry": None})
+    db.collection("users").document(current_user['uid']).update({"github_token": None, "github_token_expiry": None})
     return {"status": "success"}
 
 @app.post("/deploy-github")
 async def deploy_github_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    uid = current_user['uid']
-    user_doc = db.collection("users").document(uid).get().to_dict()
-    token = user_doc.get("github_token")
-    if not token: raise HTTPException(status_code=401, detail="GitHub token missing or expired.")
-        
-    mock_url = f"[https://github.com/your-username/](https://github.com/your-username/){req.get('repo_name')}"
-    return {"url": mock_url, "status": "success"}
+    user_doc = db.collection("users").document(current_user['uid']).get().to_dict()
+    if not user_doc.get("github_token"): raise HTTPException(status_code=401, detail="GitHub token missing.")
+    return {"url": f"https://github.com/your-username/{req.get('repo_name')}", "status": "success"}
 
 @app.post("/suggest_improvements/")
 async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
     user_ref = db.collection("users").document(uid)
-    user_doc = user_ref.get()
-    
-    current_credits = user_doc.to_dict().get("credits", 0)
-    if current_credits < 1: raise HTTPException(status_code=403, detail="Insufficient credits for suggestions.")
+    if user_ref.get().to_dict().get("credits", 0) < 1: raise HTTPException(status_code=403, detail="Insufficient credits.")
     user_ref.update({"credits": firestore.Increment(-1)})
 
-    mock_suggestions = [{
+    return {"suggestions": [{
         "description": "Improve button contrast for better accessibility.",
         "selector": "button",
         "new_outer_html": "<button style='background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 8px; border: none;'>Improved Button</button>"
-    }]
-    
-    return {"suggestions": mock_suggestions, "user_profile": get_user_profile(uid)}
+    }], "user_profile": get_user_profile(uid)}
 
 @app.post("/apply-suggestion-fix/")
 async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     return {"new_html": req.get("new_outer_html")}
 
-# --- Firebase Config Endpoints ---
-
 @app.post("/users/me/firebase-config")
 async def save_firebase_config(req: FirebaseConfigRequest, current_user: dict = Depends(get_current_user)):
     try:
-        uid = current_user['uid']
-        user_ref = db.collection("users").document(uid)
-        
-        try:
-            user_ref.update({"projects": firestore.DELETE_FIELD})
-        except Exception:
-            pass 
-            
-        user_ref.set({
-            "custom_firebase_config": req.dict()
-        }, merge=True)
-        
+        user_ref = db.collection("users").document(current_user['uid'])
+        try: user_ref.update({"projects": firestore.DELETE_FIELD})
+        except Exception: pass 
+        user_ref.set({"custom_firebase_config": req.dict()}, merge=True)
         return {"status": "success", "message": "Firebase config saved!"}
     except Exception as e:
-        print(f"Error saving firebase config: {e}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.delete("/users/me/firebase-config")
 async def delete_firebase_config(current_user: dict = Depends(get_current_user)):
     try:
-        uid = current_user['uid']
-        db.collection("users").document(uid).update({
-            "custom_firebase_config": firestore.DELETE_FIELD
-        })
+        db.collection("users").document(current_user['uid']).update({"custom_firebase_config": firestore.DELETE_FIELD})
         return {"status": "success"}
     except Exception as e:
-        print(f"Error deleting firebase config: {e}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-
-# ---------------- CATCH-ALL ROUTE FOR DYNAMIC SUBDOMAINS ----------------
-# This must remain at the very bottom, right above the __main__ block
-
+# ---------------- CATCH-ALL ROUTE ----------------
 @app.get("/{path:path}")
 async def serve_dynamic_subdomain(request: Request, path: str):
     host = request.headers.get("host", "")
-    
-    # 1. Check if the request is trying to hit a published sitee.in subdomain
     if "sitee.in" in host and not host.startswith("www."):
-        
-        # Force HTTPS if behind a proxy like Render/Vercel
         protocol = request.headers.get("x-forwarded-proto", "https")
-        target_url = f"{protocol}://{host}"
-        
-        # 2. Query Firebase across all users for a project matching this URL
-        # Note: This requires a 'collection_group' index in Firestore
-        projects_ref = db.collection_group("projects").where("published_url", "==", target_url).limit(1).stream()
-        
+        projects_ref = db.collection_group("projects").where("published_url", "==", f"{protocol}://{host}").limit(1).stream()
         for doc in projects_ref:
-            project_data = doc.to_dict()
-            html_content = project_data.get("html", "<h1>No content found</h1>")
-            # 3. Return the raw HTML to render the site
-            return HTMLResponse(content=html_content, status_code=200)
-        
-        # If subdomain points to server but isn't in the database
+            return HTMLResponse(content=doc.to_dict().get("html", "<h1>No content found</h1>"), status_code=200)
         return HTMLResponse(content="<h1>Site Not Found or Unpublished</h1>", status_code=404)
-    
-    # If it's a standard API request that just missed a route
     raise HTTPException(status_code=404, detail="Not Found")
 
 if __name__ == "__main__":
