@@ -985,8 +985,9 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         container.dataset.timestamp = newProjectId; // Ensure container has it
 
         const existingTimestamp = container.dataset.timestamp;
+        const timestamp = parseInt(container.dataset.timestamp);
         const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
-            ? injectDynamicFirebaseForms(result.html, currentUser, existingTimestamp)
+            ? injectDynamicFirebaseForms(result.html, currentUser, timestamp)
             : result.html;
         // ---------------------------------------
 
@@ -1011,7 +1012,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
         // Pass the injected HTML to the iframe and the database
         iframe.srcdoc = finalHtmlCode;
-        const savedProject = await saveProject(prompt, finalHtmlCode);
+        const savedProject = await saveProject(prompt, finalHtmlCode, false, timestamp);
         if (savedProject) container.dataset.timestamp = savedProject.timestamp;
 
         updateCreditDisplay();
