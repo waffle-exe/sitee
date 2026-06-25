@@ -142,22 +142,11 @@ async def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
     try:
-        print("AUTH STEP 1: Request received")
-
         token = creds.credentials
-
-        print("AUTH STEP 2: Token extracted")
-        print(f"Token length: {len(token)}")
-
-        print("AUTH STEP 3: Starting Firebase verification")
-
         decoded_token = auth.verify_id_token(
             token,
             check_revoked=False
         )
-
-        print("AUTH STEP 4: Verification successful")
-        print(f"UID: {decoded_token.get('uid')}")
 
         return {
             "uid": decoded_token["uid"],
@@ -165,7 +154,6 @@ async def get_current_user(
         }
 
     except Exception as e:
-        print(f"AUTH ERROR: {repr(e)}")
         raise HTTPException(
             status_code=401,
             detail=f"Invalid or expired token: {str(e)}"
@@ -195,7 +183,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
         }
         user_ref.set(user_data)
     else:
-        user_data = doc.to_dict()
+        user_data = doc.to_dict() or {}
         if "id" not in user_data:
             user_data["id"] = uid
             
@@ -204,7 +192,6 @@ def get_user_profile(uid: str, email: str = "") -> dict:
             try:
                 expiry_date = datetime.fromisoformat(plan_validity_str)
                 if datetime.now(timezone.utc) > expiry_date:
-                    print(f"User {uid} plan expired. Downgrading to Free.")
                     user_data["subscriptionTier"] = "free"
                     user_data["credits"] = 10  
                     user_data["plan_validity"] = None
@@ -610,7 +597,9 @@ async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dic
     user_ref = db.collection("users").document(uid)
     user_doc = user_ref.get()
     
-    current_credits = user_doc.to_dict().get("credits", 0)
+    user_data = user_doc.to_dict() or {}
+    current_credits = user_data.get("credits", 0)
+    
     if current_credits < 1: raise HTTPException(status_code=403, detail="Insufficient credits for suggestions.")
     user_ref.update({"credits": firestore.Increment(-1)})
 
