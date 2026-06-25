@@ -78,28 +78,22 @@ except Exception as e:
     sys.exit(1)
 
 # Initialize AI Clients
-
-# 1. BLUESMINDS (Primary)
-client_bluesminds = openai.AsyncOpenAI(
-    api_key=os.getenv("BLUESMINDS_API_KEY") or "MISSING_KEY",
-    base_url="https://api.bluesminds.com/v1"
-)
-
-# 2. FIREWORKS (Fallback 1)
 client_fireworks = openai.AsyncOpenAI(
     api_key=os.getenv("FIREWORKS_API_KEY") or "MISSING_KEY",
     base_url="https://api.fireworks.ai/inference/v1"
 )
 
-# 3. GROQ (Fallback 2)
+client_bluesminds = openai.AsyncOpenAI(
+    api_key=os.getenv("BLUESMINDS_API_KEY") or "MISSING_KEY",
+    base_url="https://api.bluesminds.com/v1"
+)
+
+genai.configure(api_key=os.getenv("GEMINI_API_KEY") or "MISSING_KEY")
+
 client_groq = openai.AsyncOpenAI(
     api_key=os.getenv("GROQ_API_KEY") or "MISSING_KEY",
     base_url="https://api.groq.com/openai/v1"
 )
-
-# 4. GEMINI (Fallback 3)
-genai.configure(api_key=os.getenv("GEMINI_API_KEY") or "MISSING_KEY")
-
 
 # Vercel Config
 VERCEL_TOKEN = os.getenv("VERCEL_ACCESS_TOKEN")
@@ -142,11 +136,22 @@ async def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
     try:
+        print("AUTH STEP 1: Request received")
+
         token = creds.credentials
+
+        print("AUTH STEP 2: Token extracted")
+        print(f"Token length: {len(token)}")
+
+        print("AUTH STEP 3: Starting Firebase verification")
+
         decoded_token = auth.verify_id_token(
             token,
             check_revoked=False
         )
+
+        print("AUTH STEP 4: Verification successful")
+        print(f"UID: {decoded_token.get('uid')}")
 
         return {
             "uid": decoded_token["uid"],
@@ -154,6 +159,7 @@ async def get_current_user(
         }
 
     except Exception as e:
+        print(f"AUTH ERROR: {repr(e)}")
         raise HTTPException(
             status_code=401,
             detail=f"Invalid or expired token: {str(e)}"
@@ -183,7 +189,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
         }
         user_ref.set(user_data)
     else:
-        user_data = doc.to_dict() or {}
+        user_data = doc.to_dict()
         if "id" not in user_data:
             user_data["id"] = uid
             
@@ -192,6 +198,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
             try:
                 expiry_date = datetime.fromisoformat(plan_validity_str)
                 if datetime.now(timezone.utc) > expiry_date:
+                    print(f"User {uid} plan expired. Downgrading to Free.")
                     user_data["subscriptionTier"] = "free"
                     user_data["credits"] = 10  
                     user_data["plan_validity"] = None
@@ -254,24 +261,22 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
-    # PRIORITY 1: BLUESMINDS
     try:
         response = await client_bluesminds.chat.completions.create(
-            model="kimi-k2.5", 
-            messages=messages_ai, 
-            max_tokens=8000,
-            temperature=0.2,
-            timeout=180.0
+        model="kimi-k2.5",
+        messages=messages_ai,
+        max_tokens=15000,
+        temperature=0.2,
+        timeout=180.0
         )
+
         return {
-            "html": clean_ai_html(response.choices[0].message.content),
-            "model": "kimi-k2.5 (Bluesminds)",
-            "tokens": response.usage.total_tokens if response.usage else 0
+        "html": clean_ai_html(response.choices[0].message.content),
+        "tokens": response.usage.total_tokens if response.usage else 0
         }
     except Exception as e:
-        print(f"Bluesminds Failed: {e}")
-
-    # FALLBACK 1: FIREWORKS
+        print("Bluesminds Failed:", e)
+    
     try:
         response = await client_fireworks.chat.completions.create(
             model="accounts/fireworks/models/kimi-k2p7-code", 
@@ -282,13 +287,11 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
         )
         return {
             "html": clean_ai_html(response.choices[0].message.content),
-            "model": "kimi-k2p7-code (Fireworks)",
             "tokens": response.usage.total_tokens if response.usage else 0
         }
     except Exception as e:
-        print(f"Fireworks Failed: {e}")
+        print(f"Primary Failed: {e}")
 
-    # FALLBACK 2: GROQ
     try:
         if not images:
             response = await client_groq.chat.completions.create(
@@ -297,14 +300,13 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
                 max_tokens=8000
             )
             return {
-                "html": clean_ai_html(response.choices[0].message.content),
-                "model": "llama3.3-70b (Groq)",
-                "tokens": response.usage.total_tokens if response.usage else 0
-            }
+    "html": clean_ai_html(response.choices[0].message.content),
+    "model": "llama3.3-70b",
+    "tokens": response.usage.total_tokens if response.usage else 0
+}
     except Exception as e:
         print(f"Groq Failed: {e}")
 
-    # FALLBACK 3: GEMINI
     try:
         gemini_model = genai.GenerativeModel('gemini-3.0-pro')
         response = await gemini_model.generate_content_async(prompt)
@@ -421,7 +423,6 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
             
         return {
             "html": result.get("html"),
-            "model_used": result.get("model"),
             "tokens_used": total_tokens,
             "credits_deducted": credits_to_deduct,
             "credits_remaining": credits_remaining,
@@ -597,9 +598,7 @@ async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dic
     user_ref = db.collection("users").document(uid)
     user_doc = user_ref.get()
     
-    user_data = user_doc.to_dict() or {}
-    current_credits = user_data.get("credits", 0)
-    
+    current_credits = user_doc.to_dict().get("credits", 0)
     if current_credits < 1: raise HTTPException(status_code=403, detail="Insufficient credits for suggestions.")
     user_ref.update({"credits": firestore.Increment(-1)})
 
