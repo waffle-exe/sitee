@@ -672,37 +672,107 @@ window.openSubmissionsModal = () => {
         submissionsTabs.appendChild(btn);
     });
 };
+// =======================================================
+// --- PROJECT ADMIN PANEL & SUBMISSIONS LOGIC ---
+// =======================================================
+const submissionsModal = document.getElementById('submissions-modal');
+const closeSubmissionsBtn = document.getElementById('close-submissions-btn');
+const submissionsTabs = document.getElementById('submissions-tabs');
+const tableContainer = document.getElementById('submissions-table-container');
+const currentProjectTitle = document.getElementById('current-project-title');
+const openNewWindowBtn = document.getElementById('open-new-window-btn');
+
+// New elements for the Admin UI (These must be declared!)
+const adminProjectDetails = document.getElementById('admin-project-details');
+const adminSitePreview = document.getElementById('admin-site-preview');
+const adminSitePrompt = document.getElementById('admin-site-prompt');
+const submissionsHeader = document.getElementById('submissions-header');
+
+let userFirebaseApp = null;
+let userDb = null;
+let currentTableHTML = '';
+
+// 1. Initialize the User's Personal Database
+function initUserDatabase() {
+    if (userDb) return userDb;
+    if (!currentUser || !currentUser.custom_firebase_config || !currentUser.custom_firebase_config.apiKey) return null;
+
+    try {
+        userFirebaseApp = initializeApp(currentUser.custom_firebase_config, "UserConfigApp");
+        userDb = getDatabase(userFirebaseApp);
+        return userDb;
+    } catch (e) {
+        console.error("Could not init user DB:", e);
+        return null;
+    }
+}
+
+// 2. Open the Modal and Load Tabs
+window.openSubmissionsModal = () => {
+    if (!submissionsModal) return;
+    submissionsModal.style.display = 'flex';
+
+    if (submissionsTabs) submissionsTabs.innerHTML = '';
+
+    // Reset UI state safely
+    if (tableContainer) tableContainer.innerHTML = '<p style="text-align: center; color: #8A9A9E; padding: 3rem;">Select a project on the left to view details.</p>';
+    if (openNewWindowBtn) openNewWindowBtn.style.display = 'none';
+    if (adminProjectDetails) adminProjectDetails.style.display = 'none';
+    if (submissionsHeader) submissionsHeader.style.display = 'none';
+    if (currentProjectTitle) currentProjectTitle.textContent = 'Select a project';
+
+    const realProjects = currentUser?.projects?.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME) || [];
+
+    if (realProjects.length === 0) {
+        if (submissionsTabs) {
+            submissionsTabs.innerHTML = '<p style="color: var(--text-muted-color); font-size: 0.85rem; text-align: center; margin-top: 2rem;">No projects found.</p>';
+        }
+        return;
+    }
+
+    realProjects.forEach(project => {
+        const btn = document.createElement('button');
+        btn.className = 'project-tab-btn';
+
+        // Safety check if project has no name
+        const pName = project.name || "Untitled Project";
+        btn.textContent = pName.length > 30 ? pName.substring(0, 30) + '...' : pName;
+
+        btn.onclick = () => loadAdminPanelForProject(project, btn);
+        if (submissionsTabs) submissionsTabs.appendChild(btn);
+    });
+};
+
 // 3. Load Data & Details for a specific project
 async function loadAdminPanelForProject(project, activeBtn) {
     // Highlight active tab
     document.querySelectorAll('.project-tab-btn').forEach(b => b.classList.remove('active'));
-    activeBtn.classList.add('active');
+    if (activeBtn) activeBtn.classList.add('active');
 
-    // Populate Top Details (Title, Prompt, Preview)
-    // Truncate the title so it doesn't break the layout if the prompt is massive
-    const shortTitle = project.name.length > 60 ? project.name.substring(0, 60) + "..." : project.name;
-    currentProjectTitle.textContent = `Project: ${shortTitle}`;
+    // Populate Top Details safely
+    const shortTitle = (project.name || "Untitled Project").length > 60 ? (project.name || "").substring(0, 60) + "..." : (project.name || "Untitled Project");
+    if (currentProjectTitle) currentProjectTitle.textContent = `Project: ${shortTitle}`;
+    if (adminSitePrompt) adminSitePrompt.textContent = project.name || "No prompt available.";
+    if (adminSitePreview) adminSitePreview.srcdoc = project.html || "";
 
-    adminSitePrompt.textContent = project.name; // The full prompt
-    adminSitePreview.srcdoc = project.html;     // The website preview
-
-    // IMPORTANT: Change to 'grid' to perfectly split the preview and prompt 50/50
-    adminProjectDetails.style.display = 'grid';
-    submissionsHeader.style.display = 'block';
+    if (adminProjectDetails) adminProjectDetails.style.display = 'grid';
+    if (submissionsHeader) submissionsHeader.style.display = 'block';
 
     // Check Firebase Connection before fetching data
     if (!initUserDatabase()) {
-        tableContainer.innerHTML = `
-            <div style="text-align: center; padding: 4rem 2rem;">
-                <p style="color: #E57373; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Database Not Connected</p>
-                <p style="color: var(--text-muted-color); font-size: 0.95rem;">Connect your Firebase Database in the Dashboard to view form submissions for this site.</p>
-            </div>`;
-        openNewWindowBtn.style.display = 'none';
+        if (tableContainer) {
+            tableContainer.innerHTML = `
+                <div style="text-align: center; padding: 4rem 2rem;">
+                    <p style="color: #E57373; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Database Not Connected</p>
+                    <p style="color: var(--text-muted-color); font-size: 0.95rem;">Connect your Firebase Database in the Dashboard to view form submissions for this site.</p>
+                </div>`;
+        }
+        if (openNewWindowBtn) openNewWindowBtn.style.display = 'none';
         return;
     }
 
-    tableContainer.innerHTML = '<div class="spinner" style="margin: 3rem auto;"></div>';
-    openNewWindowBtn.style.display = 'none';
+    if (tableContainer) tableContainer.innerHTML = '<div class="spinner" style="margin: 3rem auto;"></div>';
+    if (openNewWindowBtn) openNewWindowBtn.style.display = 'none';
 
     try {
         const dbRef = ref(userDb);
@@ -712,13 +782,14 @@ async function loadAdminPanelForProject(project, activeBtn) {
             const data = snapshot.val();
             buildSubmissionsTable(data);
         } else {
-            tableContainer.innerHTML = '<p style="text-align: center; color: #8A9A9E; padding: 3rem;">No form submissions have been received for this project yet.</p>';
+            if (tableContainer) tableContainer.innerHTML = '<p style="text-align: center; color: #8A9A9E; padding: 3rem;">No form submissions have been received for this project yet.</p>';
         }
     } catch (error) {
         console.error("Error fetching submissions:", error);
-        tableContainer.innerHTML = '<p style="text-align: center; color: #E57373; padding: 3rem;">Error loading data. Check your Firebase security rules.</p>';
+        if (tableContainer) tableContainer.innerHTML = '<p style="text-align: center; color: #E57373; padding: 3rem;">Error loading data. Check your Firebase security rules.</p>';
     }
 }
+
 // 4. Build the HTML Table
 function buildSubmissionsTable(dataObj) {
     const entries = Object.values(dataObj);
@@ -760,42 +831,48 @@ function buildSubmissionsTable(dataObj) {
     html += '</tbody></table>';
 
     currentTableHTML = html;
-    tableContainer.innerHTML = html;
-    openNewWindowBtn.style.display = 'block';
+    if (tableContainer) tableContainer.innerHTML = html;
+    if (openNewWindowBtn) openNewWindowBtn.style.display = 'block';
 }
 
 // 5. Export to New Window
-openNewWindowBtn.addEventListener('click', () => {
-    const newWindow = window.open("", "_blank");
-    newWindow.document.write(`
-        <html>
-        <head>
-            <title>Submissions Export</title>
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 2rem; background: #f9fafb; color: #111827; }
-                h1 { margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
-                table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
-                th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-                th { background-color: #f3f4f6; font-weight: 600; color: #374151; }
-                tr:hover { background-color: #f9fafb; }
-            </style>
-        </head>
-        <body>
-            <h1>Data Export</h1>
-            ${currentTableHTML}
-            <script>window.print();</script>
-        </body>
-        </html>
-    `);
-    newWindow.document.close();
-});
+if (openNewWindowBtn) {
+    openNewWindowBtn.addEventListener('click', () => {
+        const newWindow = window.open("", "_blank");
+        newWindow.document.write(`
+            <html>
+            <head>
+                <title>Submissions Export</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 2rem; background: #f9fafb; color: #111827; }
+                    h1 { margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
+                    table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+                    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+                    th { background-color: #f3f4f6; font-weight: 600; color: #374151; }
+                    tr:hover { background-color: #f9fafb; }
+                </style>
+            </head>
+            <body>
+                <h1>Data Export</h1>
+                ${currentTableHTML}
+                <script>window.print();</script>
+            </body>
+            </html>
+        `);
+        newWindow.document.close();
+    });
+}
 
 // 6. Close Listeners
-closeSubmissionsBtn.addEventListener('click', () => { submissionsModal.style.display = 'none'; });
-submissionsModal.addEventListener('click', (e) => { if (e.target === submissionsModal) submissionsModal.style.display = 'none'; });
+if (closeSubmissionsBtn) {
+    closeSubmissionsBtn.addEventListener('click', () => { submissionsModal.style.display = 'none'; });
+}
+if (submissionsModal) {
+    submissionsModal.addEventListener('click', (e) => {
+        if (e.target === submissionsModal) submissionsModal.style.display = 'none';
+    });
+}
 
-// --- CORE APP LOGIC & UI FUNCTIONS ---
-// Add this function
 function clearImageUpload() {
     uploadedImageFile = null;
     imageUploadInput.value = ''; // Clear the file input
