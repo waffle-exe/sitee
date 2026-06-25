@@ -299,9 +299,86 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutBtn) { logoutBtn.addEventListener('click', () => signOut(auth).then(closeAllModals)); }
 
     // --- Form Submission Handlers ---
-    // ... (signupForm, loginForm, forgotPasswordForm listeners are the same) ...
-    if (forgotPasswordForm) { forgotPasswordForm.addEventListener('submit', (e) => { /* ... */ }); }
-    if (newsletterForm) { /* ... same as before ... */ }
+
+    // 1. Forgot Password Form
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const emailInput = document.getElementById('forgot-password-email');
+            const messageEl = document.getElementById('forgot-password-message');
+            const submitBtn = forgotPasswordForm.querySelector('button[type="submit"]');
+
+            // Reset UI State
+            messageEl.textContent = '';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            sendPasswordResetEmail(auth, emailInput.value)
+                .then(() => {
+                    messageEl.textContent = 'Password reset link sent! Check your email.';
+                    messageEl.style.color = '#4ADE80'; // Success green
+                    forgotPasswordForm.reset();
+                })
+                .catch((error) => {
+                    // Firebase error messages are sometimes technical, you can map them to friendlier text if desired
+                    messageEl.textContent = error.message;
+                    messageEl.style.color = '#F87171'; // Error red
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send Reset Link';
+                });
+        });
+    }
+
+    // 2. Newsletter Subscription Form
+    if (newsletterForm) {
+        newsletterForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const emailInput = document.getElementById('email');
+            const submitBtn = document.getElementById('msgSubmit');
+            const responseMsg = document.getElementById('responseMsg');
+            
+            if (!emailInput.value) return;
+
+            // Update UI to Loading State
+            submitBtn.disabled = true;
+            submitBtn.value = 'Subscribing...';
+            responseMsg.style.display = 'none';
+
+            try {
+                // Send request to your FastAPI backend
+                const response = await fetch(`${BACKEND_URL}/subscribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailInput.value })
+                });
+
+                if (!response.ok) throw new Error('Subscription failed');
+
+                // Success State
+                responseMsg.textContent = 'Thank you for subscribing!';
+                responseMsg.style.color = '#4ADE80'; // Green
+                responseMsg.style.display = 'block';
+                newsletterForm.reset();
+
+            } catch (error) {
+                // Error State
+                responseMsg.textContent = 'Something went wrong. Please try again.';
+                responseMsg.style.color = '#F87171'; // Red
+                responseMsg.style.display = 'block';
+            } finally {
+                // Reset Button
+                submitBtn.disabled = false;
+                submitBtn.value = 'Subscribe';
+                
+                // Optional: Hide the success message after 5 seconds
+                setTimeout(() => {
+                    responseMsg.style.display = 'none';
+                }, 5000);
+            }
+        });
+    }
 
 
     // --- Payment Logic (Updated) ---
