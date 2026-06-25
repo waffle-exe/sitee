@@ -573,6 +573,23 @@ async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dic
     
     return {"suggestions": mock_suggestions, "user_profile": get_user_profile(uid)}
 
+@app.post("/subscribe")
+async def subscribe_newsletter(req: dict = Body(...)):
+    email = req.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    try:
+        # Save the subscriber to a new 'subscribers' collection in Firestore
+        db.collection("subscribers").document(email).set({
+            "email": email,
+            "subscribed_at": firestore.SERVER_TIMESTAMP
+        })
+        return {"status": "success", "message": "Subscribed successfully"}
+    except Exception as e:
+        print(f"Newsletter Subscription Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save subscription")
+
 @app.post("/apply-suggestion-fix/")
 async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     return {"new_html": req.get("new_outer_html")}
