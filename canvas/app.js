@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getDatabase, ref, push, get, child, serverTimestamp as dbServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 import { getFirestore, collection, addDoc, serverTimestamp as fsServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -1533,7 +1532,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
 
     const iframe = document.createElement('iframe');
 
-    iframe.sandbox = "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox";
+    iframe.sandbox = "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms";
     iframe.addEventListener('contextmenu', e => e.preventDefault());
     preview.appendChild(iframe);
 
@@ -4501,9 +4500,7 @@ Promise.all([minDelayPromise, pageLoadPromise]).then(() => {
 });
 
 // --- DYNAMIC FIREBASE FORM INJECTOR ---
-// --- DYNAMIC FIREBASE FORM INJECTOR ---
 function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
-    if (!htmlCode.toLowerCase().includes('<form')) return htmlCode;
     if (htmlCode.includes('id="sitee-firebase-injector"')) return htmlCode;
 
     const userConfig = currentUser?.custom_firebase_config;
@@ -4512,12 +4509,12 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
     if (!userConfig || !userConfig.apiKey) {
         const warningScript = `
 <script id="sitee-firebase-injector">
-    document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', (e) => {
+    document.addEventListener('submit', (e) => {
+        if (e.target.tagName === 'FORM') {
             e.preventDefault();
             alert("Forms are disabled. The website owner has not connected their Firebase database yet.");
-        });
-    });
+        }
+    }, true);
 </script>`;
         return htmlCode.replace(/<\/body>/i, `${warningScript}\n</body>`);
     }
@@ -4531,51 +4528,71 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getDatabase, ref, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-    // Injected custom user configuration
     const firebaseConfig = ${JSON.stringify(userConfig, null, 4)};
-
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const btn = form.querySelector('button[type="submit"]') || form.querySelector('input[type="submit"]');
-            const originalText = btn ? (btn.innerText || btn.value) : '';
-            if (btn) {
-                if (btn.innerText) btn.innerText = 'Submitting...';
-                if (btn.value) btn.value = 'Submitting...';
-                btn.disabled = true;
-            }
+    async function handleFirebaseSubmit(form, btn) {
+        if (form.dataset.submitting === 'true') return;
+        form.dataset.submitting = 'true';
 
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            data.submittedAt = serverTimestamp();
+        const originalText = btn ? (btn.innerText || btn.value) : '';
+        if (btn) {
+            if (btn.innerText) btn.innerText = 'Submitting...';
+            if (btn.value) btn.value = 'Submitting...';
+        }
 
-            try {
-                // Save directly to the specific project folder in THEIR database
-                const submissionsRef = ref(db, 'website_form_submissions/${safeProjectId}');
-                await push(submissionsRef, data);
-                
-                const successMsg = document.createElement('div');
-                successMsg.style.cssText = 'color: #10B981; margin-top: 12px; font-weight: 500; text-align: center; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px;';
-                successMsg.innerText = 'Submitted successfully!';
-                form.appendChild(successMsg);
-                form.reset();
-                setTimeout(() => successMsg.remove(), 4000);
-            } catch (error) {
-                console.error('Submission failed:', error);
-                alert('Database Error: The website owner has an invalid Firebase configuration.');
-            } finally {
-                if (btn) {
-                    if (btn.innerText) btn.innerText = originalText;
-                    if (btn.value) btn.value = originalText;
-                    btn.disabled = false;
-                }
+        // FIX 2: Automatically assign 'name' attributes to inputs that lack them
+        form.querySelectorAll('input, select, textarea').forEach((el, index) => {
+            if (!el.name) {
+                const rawName = el.id || el.getAttribute('placeholder') || 'field_' + index;
+                el.name = rawName.toLowerCase().replace(/[^a-z0-9]/g, '_');
             }
         });
-    });
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        data.submittedAt = serverTimestamp();
+
+        try {
+            const submissionsRef = ref(db, 'website_form_submissions/${safeProjectId}');
+            await push(submissionsRef, data);
+            
+            const successMsg = document.createElement('div');
+            successMsg.style.cssText = 'color: #10B981; margin-top: 12px; font-weight: 500; text-align: center; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; z-index: 9999; position: relative;';
+            successMsg.innerText = 'Data saved to database!';
+            form.appendChild(successMsg);
+            setTimeout(() => successMsg.remove(), 4000);
+        } catch (error) {
+            console.error('Submission failed:', error);
+            alert('Database Error: Check your Firebase rules and configuration.');
+        } finally {
+            if (btn) {
+                if (btn.innerText) btn.innerText = originalText;
+                if (btn.value) btn.value = originalText;
+            }
+            form.dataset.submitting = 'false';
+        }
+    }
+
+    // FIX 3A: Listen for traditional submits via event delegation (catches dynamic forms)
+    document.addEventListener('submit', (e) => {
+        if (e.target.tagName === 'FORM') {
+            const btn = e.target.querySelector('button[type="submit"], input[type="submit"]');
+            handleFirebaseSubmit(e.target, btn);
+        }
+    }, true);
+
+    // FIX 3B: Listen for AI overriding standard submissions with click events
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('button, input[type="submit"], input[type="button"]');
+        if (btn) {
+            const form = btn.closest('form');
+            if (form) {
+                setTimeout(() => handleFirebaseSubmit(form, btn), 10);
+            }
+        }
+    }, true);
 </script>`;
 
     return htmlCode.replace(/<\/body>/i, `${injectionScript}\n</body>`);
