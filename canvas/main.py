@@ -4,7 +4,8 @@ import asyncio
 import base64
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Body
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Body, Request
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -53,7 +54,7 @@ try:
     cred_path = os.path.join(BASE_DIR, "firebase-service-account.json")
 
     if os.path.exists(cred_path):
-        print("✅ Successfully loaded Firebase Service Account key.")
+        print("Successfully loaded Firebase Service Account key.")
         cred = credentials.Certificate(cred_path)
     else:
         raise FileNotFoundError(f"Could not find the file at: {cred_path}")
@@ -68,7 +69,7 @@ try:
     
 except Exception as e:
     print("\n" + "!"*75)
-    print("🔥 CRITICAL ERROR: Firebase Admin initialization failed! 🔥")
+    print("CRITICAL ERROR: Firebase Admin initialization failed!")
     print("!"*75)
     print(f"Error Details: {str(e)}")
     print("\nPlease make sure 'firebase-service-account.json' is inside the 'canvas' folder.")
@@ -164,7 +165,6 @@ def clean_ai_html(raw_html: str) -> str:
     clean = raw_html.strip()
     clean = re.sub(r"^```[a-zA-Z]*\s*\n", "", clean, flags=re.IGNORECASE)
     clean = re.sub(r"\n?\s*```$", "", clean)
-    # Strip stray thinking blocks just in case the AI ignored the system prompt
     clean = re.sub(r"<think>.*?</think>", "", clean, flags=re.DOTALL)
     return clean.strip()
 
@@ -178,7 +178,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
             "email": email,
             "credits": 10, 
             "subscriptionTier": "free",
-            "plan_validity": None,  # <-- Tracks expiry
+            "plan_validity": None,  
             "storage_used_mb": 0.0,
             "projects": []
         }
@@ -188,20 +188,16 @@ def get_user_profile(uid: str, email: str = "") -> dict:
         if "id" not in user_data:
             user_data["id"] = uid
             
-        # --- NEW: LAZY EXPIRATION LOGIC ---
         plan_validity_str = user_data.get("plan_validity")
         if plan_validity_str:
             try:
                 expiry_date = datetime.fromisoformat(plan_validity_str)
-                # Check if current time has passed the expiry date
                 if datetime.now(timezone.utc) > expiry_date:
                     print(f"User {uid} plan expired. Downgrading to Free.")
-                    # Reset to free tier
                     user_data["subscriptionTier"] = "free"
                     user_data["credits"] = 10  
                     user_data["plan_validity"] = None
                     
-                    # Update Firestore immediately
                     user_ref.update({
                         "subscriptionTier": "free",
                         "credits": 10,
@@ -209,7 +205,6 @@ def get_user_profile(uid: str, email: str = "") -> dict:
                     })
             except Exception as e:
                 print(f"Date parsing error for user {uid}: {e}")
-        # ----------------------------------
             
     existing_projects_array = user_data.get("projects", [])
     if not isinstance(existing_projects_array, list):
@@ -261,7 +256,6 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
-    # 1. PRIMARY: Fireworks
     try:
         response = await client_fireworks.chat.completions.create(
             model="accounts/fireworks/models/kimi-k2p7-code", 
@@ -277,7 +271,6 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     except Exception as e:
         print(f"Primary Failed: {e}")
 
-    # 2. FALLBACK: Groq
     try:
         if not images:
             response = await client_groq.chat.completions.create(
@@ -293,11 +286,9 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     except Exception as e:
         print(f"Groq Failed: {e}")
 
-    # 3. FALLBACK: Gemini
     try:
         gemini_model = genai.GenerativeModel('gemini-3.0-pro')
         response = await gemini_model.generate_content_async(prompt)
-        # Gemini token usage is in usage_metadata
         tokens = response.usage_metadata.total_token_count if response.usage_metadata else 0
         return {
             "html": clean_ai_html(response.text),
@@ -314,7 +305,6 @@ async def upgrade_user_plan(req: UpgradeRequest, current_user: dict = Depends(ge
     uid = current_user['uid']
     user_ref = db.collection("users").document(uid)
     
-    # Define credit allocations based on plan tier
     plan_credits = {
         "creator": 300,
         "pro": 1200
@@ -328,21 +318,18 @@ async def upgrade_user_plan(req: UpgradeRequest, current_user: dict = Depends(ge
     if cycle not in ["monthly", "yearly"]:
         raise HTTPException(status_code=400, detail="Invalid billing cycle. Choose 'monthly' or 'yearly'.")
         
-    # Calculate validity duration based on cycle
     now = datetime.now(timezone.utc)
     if cycle == "monthly":
         expiry_date = now + timedelta(days=30)
-    else:  # yearly
+    else:  
         expiry_date = now + timedelta(days=365)
         
-    # Give them all the credits upfront for their billing cycle
     allocated_credits = plan_credits[tier]
     if cycle == "yearly":
         allocated_credits = plan_credits[tier] * 12 
 
-    # Update database
     user_ref.update({
-        "subscriptionTier": f"{tier}_{cycle}", # e.g., "pro_monthly"
+        "subscriptionTier": f"{tier}_{cycle}", 
         "credits": firestore.Increment(allocated_credits),
         "plan_validity": expiry_date.isoformat()
     })
@@ -381,7 +368,6 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     TOKEN_COST_RATE = 0.00106
     
     try:
-        # Pass actual parameters here
         result = await generate_with_fallback(
             prompt=req.prompt, 
             images=req.image_data, 
@@ -389,12 +375,9 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
         )
         
         total_tokens = result.get("tokens", 0)
-        
-        # If an image was uploaded, multiply the cost by 1.8 (80% surcharge for Vision processing)
         has_image = bool(req.image_data)
         vision_multiplier = 1.8 if has_image else 1.0
         credits_to_deduct = max(2.0, round((total_tokens * TOKEN_COST_RATE) * vision_multiplier, 1))
-        
         
         if user_data.get('credits', 0) < credits_to_deduct:
             raise HTTPException(status_code=402, detail=f"Insufficient credits. This complex generation requires {credits_to_deduct} credits.")
@@ -406,7 +389,7 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
             "tokens_used": total_tokens,
             "credits_deducted": credits_to_deduct,
             "credits_remaining": user_data.get('credits', 0) - credits_to_deduct,
-            "user_profile": get_user_profile(uid) # Fetches fresh profile to return to frontend
+            "user_profile": get_user_profile(uid) 
         }
     except Exception as e:
         print(f"Error in /generate/: {e}")
@@ -435,13 +418,6 @@ async def delete_project_endpoint(user_id: str, timestamp: str, current_user: di
     if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
         
     db.collection("users").document(user_id).collection("projects").document(timestamp).delete()
-    
-    user_ref = db.collection("users").document(user_id)
-    user_data = user_ref.get().to_dict()
-    old_projects = user_data.get("projects", [])
-    new_projects = [p for p in old_projects if str(p.get("timestamp")) != timestamp]
-    if len(old_projects) != len(new_projects):
-        user_ref.update({"projects": new_projects})
     return {"status": "success"}
 
 @app.delete("/users/{user_id}/projects")
@@ -451,12 +427,6 @@ async def delete_all_projects_endpoint(user_id: str, current_user: dict = Depend
     projects_ref = db.collection("users").document(user_id).collection("projects")
     for doc in projects_ref.stream():
         if doc.id != CHAT_HISTORY_PROJECT_NAME: doc.reference.delete()
-            
-    user_ref = db.collection("users").document(user_id)
-    user_data = user_ref.get().to_dict()
-    old_projects = user_data.get("projects", [])
-    new_projects = [p for p in old_projects if p.get("name") == CHAT_HISTORY_PROJECT_NAME]
-    user_ref.update({"projects": new_projects})
     return {"status": "success"}
 
 # --- File Upload ---
@@ -476,7 +446,7 @@ async def upload_image_endpoint(
         public_url = blob_obj.public_url
     except Exception as e:
         print(f"Warning: Firebase Storage upload failed: {e}")
-        public_url = f"https://storage.sitee.in/uploads/{uid}/{file.filename}"
+        public_url = f"[https://storage.sitee.in/uploads/](https://storage.sitee.in/uploads/){uid}/{file.filename}"
     
     user_ref = db.collection("users").document(uid)
     user_doc = user_ref.get().to_dict() or {}
@@ -508,7 +478,7 @@ async def publish_external_endpoint(user_id: str, timestamp: str, content: dict 
     headers = {"Authorization": f"Bearer {VERCEL_TOKEN}"}
     if VERCEL_TEAM_ID: headers["x-vercel-team-id"] = VERCEL_TEAM_ID
     
-    api_url = "https://api.vercel.com/v13/deployments"
+    api_url = "[https://api.vercel.com/v13/deployments](https://api.vercel.com/v13/deployments)"
     payload = {"name": project_name, "files": [{"file": "index.html", "data": html_code}]}
 
     try:
@@ -540,10 +510,17 @@ async def publish_sitee_endpoint(req: dict = Body(...), current_user: dict = Dep
     uid = current_user['uid']
     subdomain = req.get("subdomain")
     timestamp = str(req.get("project_timestamp"))
+    html_content = req.get("html_content") 
     
     published_url = f"https://{subdomain}-app.sitee.in"
     doc_ref = db.collection("users").document(uid).collection("projects").document(timestamp)
-    if doc_ref.get().exists: doc_ref.update({"published_url": published_url})
+    
+    if doc_ref.get().exists: 
+        doc_ref.update({
+            "published_url": published_url,
+            "html": html_content
+        })
+        
     return {"url": published_url, "status": "success"}
 
 @app.delete("/unpublish-sitee/{timestamp}")
@@ -575,7 +552,7 @@ async def deploy_github_endpoint(req: dict = Body(...), current_user: dict = Dep
     token = user_doc.get("github_token")
     if not token: raise HTTPException(status_code=401, detail="GitHub token missing or expired.")
         
-    mock_url = f"https://github.com/your-username/{req.get('repo_name')}"
+    mock_url = f"[https://github.com/your-username/](https://github.com/your-username/){req.get('repo_name')}"
     return {"url": mock_url, "status": "success"}
 
 @app.post("/suggest_improvements/")
@@ -600,29 +577,6 @@ async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dic
 async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     return {"new_html": req.get("new_outer_html")}
 
-
-
-@app.delete("/users/{user_id}/projects/{timestamp}")
-async def delete_project_endpoint(user_id: str, timestamp: str, current_user: dict = Depends(get_current_user)):
-    if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
-        
-    db.collection("users").document(user_id).collection("projects").document(timestamp).delete()
-    
-    # We removed the old legacy logic here that kept re-writing the massive array!
-    return {"status": "success"}
-
-@app.delete("/users/{user_id}/projects")
-async def delete_all_projects_endpoint(user_id: str, current_user: dict = Depends(get_current_user)):
-    if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
-        
-    projects_ref = db.collection("users").document(user_id).collection("projects")
-    for doc in projects_ref.stream():
-        if doc.id != CHAT_HISTORY_PROJECT_NAME: doc.reference.delete()
-            
-    # We removed the old legacy logic here too!
-    return {"status": "success"}
-
-
 # --- Firebase Config Endpoints ---
 
 @app.post("/users/me/firebase-config")
@@ -631,14 +585,11 @@ async def save_firebase_config(req: FirebaseConfigRequest, current_user: dict = 
         uid = current_user['uid']
         user_ref = db.collection("users").document(uid)
         
-        # THE FIX: Automatically wipe the massive, obsolete 'projects' array from the 
-        # root document to immediately free up the 1MB space limit.
         try:
             user_ref.update({"projects": firestore.DELETE_FIELD})
         except Exception:
-            pass # Ignore if it's already gone
+            pass 
             
-        # Now we can safely save the config without hitting the size limit
         user_ref.set({
             "custom_firebase_config": req.dict()
         }, merge=True)
@@ -659,6 +610,37 @@ async def delete_firebase_config(current_user: dict = Depends(get_current_user))
     except Exception as e:
         print(f"Error deleting firebase config: {e}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+# ---------------- CATCH-ALL ROUTE FOR DYNAMIC SUBDOMAINS ----------------
+# This must remain at the very bottom, right above the __main__ block
+
+@app.get("/{path:path}")
+async def serve_dynamic_subdomain(request: Request, path: str):
+    host = request.headers.get("host", "")
+    
+    # 1. Check if the request is trying to hit a published sitee.in subdomain
+    if "sitee.in" in host and not host.startswith("www."):
+        
+        # Force HTTPS if behind a proxy like Render/Vercel
+        protocol = request.headers.get("x-forwarded-proto", "https")
+        target_url = f"{protocol}://{host}"
+        
+        # 2. Query Firebase across all users for a project matching this URL
+        # Note: This requires a 'collection_group' index in Firestore
+        projects_ref = db.collection_group("projects").where("published_url", "==", target_url).limit(1).stream()
+        
+        for doc in projects_ref:
+            project_data = doc.to_dict()
+            html_content = project_data.get("html", "<h1>No content found</h1>")
+            # 3. Return the raw HTML to render the site
+            return HTMLResponse(content=html_content, status_code=200)
+        
+        # If subdomain points to server but isn't in the database
+        return HTMLResponse(content="<h1>Site Not Found or Unpublished</h1>", status_code=404)
+    
+    # If it's a standard API request that just missed a route
+    raise HTTPException(status_code=404, detail="Not Found")
 
 if __name__ == "__main__":
     import uvicorn
