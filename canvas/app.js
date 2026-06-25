@@ -504,7 +504,6 @@ function openDashboardModal() {
     dashboardModal.style.display = 'flex';
     setTimeout(() => dashboardModal.classList.add('active'), 10);
 }
-
 function populateDashboard() {
     if (!currentUser || !auth.currentUser) {
         dashboardContent.innerHTML = '<p>Could not load user data. Please log in again.</p>';
@@ -522,26 +521,32 @@ function populateDashboard() {
     let usedText = '';
     let totalText = '';
 
-    if (plan === 'creator') {
+    // Set storage limits based on the new plans
+    if (plan.includes('creator')) {
+        totalMB = 500; // 500 MB
+    } else if (plan.includes('pro')) {
         totalMB = 2 * 1024; // 2 GB
-    } else if (plan === 'pro') {
-        totalMB = 10 * 1024; // 10 GB
     }
 
     // Conditionally display MB or GB based on usage
     if (storageUsedMB < 1024) {
         // If less than 1 GB used, show in MB
         usedText = `${storageUsedMB.toFixed(2)} MB used`;
-        totalText = `${(totalMB / 1024).toFixed(0)} GB total`;
     } else {
         // If 1 GB or more is used, show in GB
         usedText = `${(storageUsedMB / 1024).toFixed(2)} GB used`;
-        totalText = `${(totalMB / 1024).toFixed(0)} GB total`;
+    }
+
+    // Format total text nicely
+    if (totalMB < 1024) {
+         totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
+    } else {
+         totalText = totalMB > 0 ? `${(totalMB / 1024).toFixed(0)} GB total` : 'N/A';
     }
 
     const usagePercentage = totalMB > 0 ? (storageUsedMB / totalMB) * 100 : 0;
 
-    const storageHTML = `
+    const storageHTML = totalMB > 0 ? `
         <div class="storage-progress-container">
             <div class="storage-progress-text">
                 <span>${usedText}</span>
@@ -551,9 +556,29 @@ function populateDashboard() {
                 <div class="storage-progress-bar-fill" style="width: ${usagePercentage}%;"></div>
             </div>
         </div>
-    `;
+    ` : 'N/A';
     // --- END: MODIFIED LOGIC ---
 
+    // --- NEW: Conditional row item for Credits vs Generations ---
+    let allowanceRow = '';
+    if (plan === 'free') {
+        // Count actual projects (filter out the hidden chat history document)
+        const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
+        const generationsLeft = Math.max(0, 2 - generationsUsed);
+        allowanceRow = `
+        <div class="detail-item">
+            <span class="detail-label">Generations Left:</span> 
+            <span class="detail-value">${generationsLeft} / 2</span>
+        </div>`;
+    } else {
+        allowanceRow = `
+        <div class="detail-item">
+            <span class="detail-label">Remaining Credits:</span> 
+            <span class="detail-value">${credits}</span>
+        </div>`;
+    }
+
+    // Render the final HTML inside the modal
     dashboardContent.innerHTML = `
         <div class="detail-item">
             <span class="detail-label">Email:</span>
@@ -563,10 +588,7 @@ function populateDashboard() {
             <span class="detail-label">Current Plan:</span>
             <span class="detail-value" style="text-transform: capitalize;">${plan}</span>
         </div>
-        <div class="detail-item">
-            <span class="detail-label">Remaining Credits:</span>
-            <span class="detail-value">${credits}</span>
-        </div>
+        ${allowanceRow}
         <div class="detail-item">
             <span class="detail-label">Image Storage:</span>
             <div class="detail-value" style="flex: 1; max-width: 60%;">${storageHTML}</div>
@@ -577,7 +599,7 @@ function populateDashboard() {
         </div>
     `;
 
-    // Add this inside populateDashboard() after setting dashboardContent.innerHTML
+    // --- FIREBASE CONFIGURATION UI UPDATES ---
     const fbForm = document.getElementById('firebase-config-form');
     const fbStatusBadge = document.getElementById('firebase-status-badge');
     const saveFbBtn = document.getElementById('save-firebase-btn');
@@ -594,15 +616,17 @@ function populateDashboard() {
         document.getElementById('fb-appId').value = currentUser.custom_firebase_config.appId || '';
 
         // Update the UI states
-        fbStatusBadge.innerHTML = 'Status: Connected ✅';
-        fbStatusBadge.style.color = '#4ADE80';
-        saveFbBtn.style.display = 'none';
-        disconnectFbBtn.style.display = 'block';
+        if (fbStatusBadge) {
+            fbStatusBadge.innerHTML = 'Status: Connected';
+            fbStatusBadge.style.color = '#4ADE80';
+        }
+        if (saveFbBtn) saveFbBtn.style.display = 'none';
+        if (disconnectFbBtn) disconnectFbBtn.style.display = 'block';
     } else {
         // Ensure clear state if not connected
         if (fbForm) fbForm.reset();
         if (fbStatusBadge) {
-            fbStatusBadge.innerHTML = 'Status: Not Connected ❌';
+            fbStatusBadge.innerHTML = 'Status: Not Connected';
             fbStatusBadge.style.color = 'var(--text-muted-color)';
         }
         if (saveFbBtn) saveFbBtn.style.display = 'block';
