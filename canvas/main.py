@@ -359,11 +359,20 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     uid = current_user['uid']
     if req.image_data and len(req.image_data) > 3:
         raise HTTPException(status_code=400, detail="Maximum of 3 reference images allowed.")
+    
     user_ref = db.collection("users").document(uid)
     user_data = get_user_profile(uid) 
+    plan = user_data.get('subscriptionTier', 'free').lower()
     
-    if user_data.get('subscriptionTier') == 'free' and user_data.get('credits', 0) < 2:
-        raise HTTPException(status_code=402, detail="Please upgrade your plan to generate more websites.")
+    # --- 1. NEW FREE PLAN LOGIC: Check Generation Count ---
+    if plan == 'free':
+        # Filter out the internal chat history to count real generated websites
+        active_projects = [p for p in user_data.get('projects', []) if p.get('name') != CHAT_HISTORY_PROJECT_NAME]
+        if len(active_projects) >= 2:
+            raise HTTPException(
+                status_code=402, 
+                detail="You have reached the maximum limit of 2 generations for the Free Plan. Please upgrade to continue."
+            )
     
     TOKEN_COST_RATE = 0.00106
     
@@ -379,16 +388,23 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
         vision_multiplier = 1.8 if has_image else 1.0
         credits_to_deduct = max(2.0, round((total_tokens * TOKEN_COST_RATE) * vision_multiplier, 1))
         
-        if user_data.get('credits', 0) < credits_to_deduct:
-            raise HTTPException(status_code=402, detail=f"Insufficient credits. This complex generation requires {credits_to_deduct} credits.")
+        # --- 2. UPDATE CREDIT DEDUCTION: Only apply to paid users ---
+        if plan != 'free':
+            if user_data.get('credits', 0) < credits_to_deduct:
+                raise HTTPException(status_code=402, detail=f"Insufficient credits. This complex generation requires {credits_to_deduct} credits.")
+                
+            user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
+            credits_remaining = user_data.get('credits', 0) - credits_to_deduct
+        else:
+            # Free users don't use credits for generation anymore
+            credits_to_deduct = 0
+            credits_remaining = user_data.get('credits', 0)
             
-        user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
-        
         return {
             "html": result.get("html"),
             "tokens_used": total_tokens,
             "credits_deducted": credits_to_deduct,
-            "credits_remaining": user_data.get('credits', 0) - credits_to_deduct,
+            "credits_remaining": credits_remaining,
             "user_profile": get_user_profile(uid) 
         }
     except Exception as e:
