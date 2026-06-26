@@ -240,8 +240,8 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
         response = await client_bluesminds.chat.completions.create(
             model="deepseek-v4-flash",  # Matches the identifier in your screenshot
             messages=messages_ai,
-            max_tokens=4000,
-            temperature=0.2,
+            max_tokens=8000,
+            temperature=0.95,
             timeout=180.0
         )
         print("Bluesminds successful!")
