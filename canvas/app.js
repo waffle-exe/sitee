@@ -973,10 +973,10 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         loading.appendChild(stopBtn);
     }
 
-    // 1. IMPROVED TIMER: Assign to a variable and clear it precisely
+    // 1. IMPROVED TIMER
     let timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Calculating Credits...</span>`;
+        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Generating...</span>`;
     }, 1000);
 
     try {
@@ -986,6 +986,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             user_id: currentUser.id,
             is_punjabi_mode: currentMode === 'canvas-pa'
         };
+        
         if (imageData && imageData.data && imageData.size) {
             requestBody.image_data = imageData.data;
             requestBody.image_size_bytes = imageData.size;
@@ -999,33 +1000,85 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         });
 
         if (!response.ok) {
-            const errData = await response.json();
+            const errData = await response.json().catch(() => ({}));
             throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
+        // ==========================================
+        // NEW: STREAMING LOGIC INTEGRATION
+        // ==========================================
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        
+        let completeHtml = "";
+        let finalStats = null;
 
-        // 2. CLEAR TIMER IMMEDIATELY ONCE DATA ARRIVES
+        // Hide the primary loading spinner as soon as the first byte arrives!
+        if (loading) loading.style.background = 'transparent'; 
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunkText = decoder.decode(value, { stream: true });
+            const events = chunkText.split("\n\n");
+
+            for (const event of events) {
+                if (!event.trim()) continue;
+
+                if (event.startsWith("data: ")) {
+                    const rawJsonStr = event.replace("data: ", "").trim();
+                    
+                    try {
+                        const parsedData = JSON.parse(rawJsonStr);
+
+                        if (parsedData.chunk) {
+                            completeHtml += parsedData.chunk;
+                            // Live update the iframe so the user watches it build
+                            iframe.srcdoc = completeHtml;
+                        }
+
+                        if (parsedData.error) {
+                            throw new Error(parsedData.error);
+                        }
+
+                        if (parsedData.status === "DONE") {
+                            finalStats = parsedData;
+                        }
+                    } catch (e) {
+                        // Catch partial JSON strings that might get cut off in stream buffering
+                        console.warn("Partial stream chunk received, waiting for next frame...");
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // POST-PROCESSING (Runs after stream finishes)
+        // ==========================================
         clearInterval(timerInterval);
 
-        if (result.user_profile) currentUser = result.user_profile;
+        // Fetch fresh user profile to get exact remaining credits
+        const userRes = await fetch(`${backendUrl}/users/me`, { headers: await getAuthHeaders() });
+        if (userRes.ok) currentUser = await userRes.json();
 
-        const rawHtmlCode = result.html;
-        const tokensUsed = result.tokens_used || 0;
-        const creditsDeducted = result.credits_deducted || 0;
+        const tokensUsed = finalStats?.tokens_used || 0;
+        const creditsDeducted = finalStats?.credits_deducted || 0;
 
         stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
 
-
         const newProjectId = container.dataset.timestamp || Date.now().toString();
-        container.dataset.timestamp = newProjectId; // Ensure container has it
+        container.dataset.timestamp = newProjectId; 
 
-        const existingTimestamp = container.dataset.timestamp;
         const timestamp = parseInt(container.dataset.timestamp);
+        
+        // Inject forms now that the HTML is 100% complete
         const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
-            ? injectDynamicFirebaseForms(result.html, currentUser, timestamp)
-            : result.html;
-        // ---------------------------------------
+            ? injectDynamicFirebaseForms(completeHtml, currentUser, timestamp)
+            : completeHtml;
+            
+        // Final strict push to iframe
+        iframe.srcdoc = finalHtmlCode;
 
         const loadTimeout = setTimeout(() => {
             if (loading && loading.style.display !== 'none') {
@@ -1046,8 +1099,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             pushStateForIframe(iframe);
         };
 
-        // Pass the injected HTML to the iframe and the database
-        iframe.srcdoc = finalHtmlCode;
+        // Save the project to the database
         const savedProject = await saveProject(prompt, finalHtmlCode, false, timestamp);
         if (savedProject) container.dataset.timestamp = savedProject.timestamp;
 
@@ -1064,14 +1116,15 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         } else {
             console.error("Error generating website:", error);
             preview.innerHTML = `<div style="color: var(--error-color); padding: 1rem;">Error: ${error.message}</div>`;
-            promptInput.value = prompt;
+            // If they have a prompt input variable defined globally
+            if (typeof promptInput !== 'undefined') promptInput.value = prompt;
 
-            // 3. SHOW DELETE BUTTON ON ERROR (So user can delete the failed window)
+            // SHOW DELETE BUTTON ON ERROR
             if (deleteBtn) deleteBtn.style.display = 'flex';
         }
     }
     finally {
-        clearInterval(timerInterval); // Final safety clear
+        clearInterval(timerInterval); 
         if (document.querySelectorAll('.loading').length <= 1) {
             document.body.classList.remove('generating');
         }
@@ -1601,8 +1654,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     const refineBtn = refineControls.querySelector('.refine-btn');
 
     // ALL EVENT LISTENERS ARE ATTACHED HERE
-
-    refineBtn.addEventListener('click', async () => {
+refineBtn.addEventListener('click', async () => {
         pushStateForIframe(iframe); // Save state before refining
         const refinePrompt = refineInput.value.trim();
         if (!refinePrompt) return showNotification('Please enter what you want to refine.', 'error');
@@ -1617,7 +1669,8 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
             preview.appendChild(loading);
         }
         loading.style.display = 'flex';
-        feedbackWidget.style.display = 'none'; // Hide feedback during refinement
+        loading.style.background = 'transparent'; // Let the user watch it build!
+        feedbackWidget.style.display = 'none'; 
         document.body.classList.add('generating');
 
         try {
@@ -1626,31 +1679,68 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
                 headers: await getAuthHeaders(),
                 body: JSON.stringify({ prompt: refinePrompt, existing_html: currentHtml, user_id: currentUser.id })
             });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const result = await response.json();
 
-            if (result.user_profile) currentUser = result.user_profile;
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
+            }
 
-            // --- NEW: DYNAMIC FIREBASE INJECTION ---
-            // Re-inject the script in case the AI accidentally removed or broke it during refinement
+            // ==========================================
+            // STREAMING LOGIC FOR REFINEMENT
+            // ==========================================
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            
+            let completeHtml = "";
+            let finalStats = null;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunkText = decoder.decode(value, { stream: true });
+                const events = chunkText.split("\n\n");
+
+                for (const event of events) {
+                    if (!event.trim()) continue;
+
+                    if (event.startsWith("data: ")) {
+                        const rawJsonStr = event.replace("data: ", "").trim();
+                        try {
+                            const parsedData = JSON.parse(rawJsonStr);
+                            
+                            if (parsedData.chunk) {
+                                completeHtml += parsedData.chunk;
+                                iframe.srcdoc = completeHtml; // Live update the iframe!
+                            }
+                            if (parsedData.error) throw new Error(parsedData.error);
+                            if (parsedData.status === "DONE") finalStats = parsedData;
+                        } catch (e) {
+                            console.warn("Partial stream chunk received...");
+                        }
+                    }
+                }
+            }
+
+            // --- Post-Processing ---
+            const userRes = await fetch(`${backendUrl}/users/me`, { headers: await getAuthHeaders() });
+            if (userRes.ok) currentUser = await userRes.json();
+
             const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
-                ? injectDynamicFirebaseForms(result.html, currentUser)
-                : result.html;
-            // ---------------------------------------
+                ? injectDynamicFirebaseForms(completeHtml, currentUser)
+                : completeHtml;
 
             iframe.srcdoc = finalHtmlCode;
-            compareBtn.style.display = 'flex'; // Show compare button after refinement
+            compareBtn.style.display = 'flex'; 
 
             const timestamp = parseInt(container.dataset.timestamp);
             if (timestamp) await updateProjectCode(timestamp, finalHtmlCode);
 
-            if (result.credits_remaining !== undefined) {
-                currentUser.credits = result.credits_remaining;
-                updateCreditDisplay();
-            }
+            updateCreditDisplay();
             checkCreditStatus();
             refineInput.value = '';
 
+            // Reset feedback widget
             const count = parseInt(feedbackWidget.dataset.refinementCount, 10) + 1;
             feedbackWidget.dataset.refinementCount = count;
             feedbackWidget.classList.remove('submitted');
@@ -1665,13 +1755,13 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
 
         } catch (error) {
             console.error("Error refining website:", error);
-            showNotification('Could not refine the website.', 'error');
+            showNotification(error.message || 'Could not refine the website.', 'error');
         } finally {
             loading.style.display = 'none';
             document.body.classList.remove('generating');
         }
     });
-
+    
     suggestionBtn.addEventListener('click', (e) => {
         e.stopPropagation();
 
