@@ -76,7 +76,7 @@ except Exception as e:
     import sys
     sys.exit(1)
 
-# Initialize AI Clients (Only Bluesminds and Fireworks)
+# Initialize AI Clients
 client_bluesminds = openai.AsyncOpenAI(
     api_key=os.getenv("BLUESMINDS_API_KEY") or "MISSING_KEY",
     base_url="https://api.bluesminds.com/v1",
@@ -207,9 +207,6 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     return user_data
 
 async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
-    # ---------------------------------------------------------
-    # NEW SYSTEM PROMPT: Forces complete layout, prevents laziness
-    # ---------------------------------------------------------
     system_instruction = f"""
     You are an elite UX/UI Frontend Developer. Your ONLY task is to output a single, complete, production-ready {target_lang.upper()} file containing HTML, CSS, and JS.
 
@@ -234,24 +231,31 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
-    # 1. Primary: Bluesminds (Generous 140s Timeout for complex Tailwind layouts)
+    bluesminds_error = None
+    fireworks_error = None
+
+    # 1. Primary: Bluesminds
     try:
+        print("Attempting generation with Bluesminds API...")
         response = await client_bluesminds.chat.completions.create(
-            model="gemini-3-flash-preview",
+            model="gemini-3-flash-preview", # <-- Double check this model name with Bluesminds documentation
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.2,  # Increased slightly to allow for creative design choices
+            temperature=0.2,
             timeout=140.0
         )
+        print("Bluesminds successful!")
         return {
             "html": clean_ai_html(response.choices[0].message.content),
             "tokens": response.usage.total_tokens if response.usage else 0
         }
     except Exception as e:
-        print(f"Bluesminds Failed: {e}. Falling back to Fireworks...")
+        bluesminds_error = str(e)
+        print(f"Bluesminds Failed: {bluesminds_error}. Falling back to Fireworks...")
     
     # 2. Secondary: Fireworks
     try:
+        print("Attempting generation with Fireworks API...")
         response = await client_fireworks.chat.completions.create(
             model="accounts/fireworks/models/kimi-k2p7-code", 
             messages=messages_ai, 
@@ -259,13 +263,18 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
             temperature=0.2,
             timeout=120.0
         )
+        print("Fireworks successful!")
         return {
             "html": clean_ai_html(response.choices[0].message.content),
             "tokens": response.usage.total_tokens if response.usage else 0
         }
     except Exception as e:
-        print(f"Fireworks Failed: {e}")
-        raise HTTPException(status_code=503, detail=f"Generation failed. Last error: {str(e)}")
+        fireworks_error = str(e)
+        print(f"Fireworks Failed: {fireworks_error}")
+
+    # Pass the actual errors back to the frontend so you can see exactly why Bluesminds failed
+    error_message = f"Bluesminds Error: {bluesminds_error} | Fireworks Error: {fireworks_error}"
+    raise HTTPException(status_code=503, detail=error_message)
 
 
 # ---------------- API ENDPOINTS ----------------
@@ -355,7 +364,8 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
             "user_profile": get_user_profile(uid) 
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Re-raise the exact exception so the 503 from generate_with_fallback bubbles up to the user
+        raise e
     
 # --- Projects Management ---
 @app.post("/users/{user_id}/projects")
