@@ -79,12 +79,14 @@ except Exception as e:
 # Initialize AI Clients (Only Bluesminds and Fireworks)
 client_bluesminds = openai.AsyncOpenAI(
     api_key=os.getenv("BLUESMINDS_API_KEY") or "MISSING_KEY",
-    base_url="https://api.bluesminds.com/v1"
+    base_url="https://api.bluesminds.com/v1",
+    max_retries=0
 )
 
 client_fireworks = openai.AsyncOpenAI(
     api_key=os.getenv("FIREWORKS_API_KEY") or "MISSING_KEY",
-    base_url="https://api.fireworks.ai/inference/v1"
+    base_url="https://api.fireworks.ai/inference/v1",
+    max_retries=0
 )
 
 # Vercel Config
@@ -233,7 +235,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
             messages=messages_ai,
             max_tokens=4000,
             temperature=0.8,
-            timeout=45.0  # Fast fail
+            timeout=120.0  # Fast fail
         )
         return {
             "html": clean_ai_html(response.choices[0].message.content),
@@ -249,7 +251,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
             messages=messages_ai, 
             max_tokens=6000,
             temperature=0.2,
-            timeout=45.0  # Fast fail
+            timeout=120.0  # Fast fail
         )
         return {
             "html": clean_ai_html(response.choices[0].message.content),
