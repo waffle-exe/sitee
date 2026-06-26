@@ -845,23 +845,27 @@ function makeIframeImagesEditable(iframe) {
         console.warn("Could not make iframe images editable:", error);
     }
 }
-// --- ADD THIS ENTIRE FUNCTION ---
 async function getAuthHeaders() {
     const headers = {
         'Content-Type': 'application/json'
     };
+    
+    // Wait for Firebase to finish initializing before checking for a user
+    await auth.authStateReady();
+
     if (auth.currentUser) {
         try {
-            const token = await auth.currentUser.getIdToken(true); // Force refresh token
-            headers['Authorization'] = `Bearer ${token}`;
+            // Remove 'true'. Empty () uses the cached token and only refreshes when expired.
+            const token = await auth.currentUser.getIdToken(); 
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
         } catch (error) {
             console.error("Could not get auth token:", error);
-            // Optionally handle the error, e.g., prompt for re-login
         }
     }
     return headers;
 }
-
 function updateCreditDisplay() {
     if (currentUser) {
         const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
