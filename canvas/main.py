@@ -207,15 +207,21 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     return user_data
 
 async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
-    # Optimized System Instruction for speed, structure, and avoiding token limits
+    # ---------------------------------------------------------
+    # NEW SYSTEM PROMPT: Forces complete layout, prevents laziness
+    # ---------------------------------------------------------
     system_instruction = f"""
-    You are an elite UX/UI engineer. Output valid, COMPLETE, and production-ready {target_lang.upper()} code.
+    You are an elite UX/UI Frontend Developer. Your ONLY task is to output a single, complete, production-ready {target_lang.upper()} file containing HTML, CSS, and JS.
 
-    CRITICAL DIRECTIVES:
-    1. LEAN & BRUTALIST AESTHETIC: Prioritize minimalist, academic, or "OS desktop" style interfaces. Avoid deeply nested DOM structures and bloated decorative styling. Keep the layout highly functional, modular, and fast to render.
-    2. ALL-IN-ONE-FILE: Combine all HTML, CSS (in <style>), and JS (in <script>) into ONE valid file. Ensure mobile responsiveness.
-    3. NO PLACEHOLDERS: Generate the entire functional structural shell. Use dummy text where necessary, but write out the actual DOM nodes.
-    4. ZERO EXPLANATIONS: Do NOT use markdown code blocks (e.g., no ```html). Output RAW, executable text from the first character to the last. No <think> tags.
+    CRITICAL DIRECTIVES (FAILING THESE MEANS COMPLETE FAILURE):
+    1. FULL PAGE STRUCTURE REQUIRED: You MUST generate a complete, multi-section website. Your output MUST include:
+       - A functional Navigation Bar (Header)
+       - A compelling Hero Section
+       - A Main Content Area (e.g., a grid of cards, feature lists, or articles)
+       - A complete Footer
+    2. NO LAZINESS & NO SPLASH SCREENS: Do NOT output a "coming soon", "loading", or "preparing" screen. You must build the actual UI. Populate the site with realistic dummy text and placeholder images (use source.unsplash.com or similar).
+    3. ADAPTIVE STYLING: You must perfectly adopt the visual style, theme, and vibe requested by the user. Use the Tailwind CSS CDN (<script src="https://cdn.tailwindcss.com"></script>) to rapidly build complex, beautiful layouts without bloated custom CSS.
+    4. ALL-IN-ONE-FILE: Everything must be in one file. Do NOT use markdown code blocks (e.g., no ```html). Output RAW, executable text from the very first character to the last. No <think> tags.
     """
 
     messages_ai = [{"role": "system", "content": system_instruction}]
@@ -228,14 +234,14 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
-    # 1. Primary: Bluesminds (Strict 45s Timeout)
+    # 1. Primary: Bluesminds (Generous 140s Timeout for complex Tailwind layouts)
     try:
         response = await client_bluesminds.chat.completions.create(
             model="gemini-3-flash-preview",
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.2,
-            timeout=140.0  # Fast fail
+            temperature=0.7,  # Increased slightly to allow for creative design choices
+            timeout=140.0
         )
         return {
             "html": clean_ai_html(response.choices[0].message.content),
@@ -244,14 +250,14 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     except Exception as e:
         print(f"Bluesminds Failed: {e}. Falling back to Fireworks...")
     
-    # 2. Secondary: Fireworks (Strict 45s Timeout)
+    # 2. Secondary: Fireworks
     try:
         response = await client_fireworks.chat.completions.create(
             model="accounts/fireworks/models/kimi-k2p7-code", 
             messages=messages_ai, 
-            max_tokens=6000,
+            max_tokens=8000,
             temperature=0.2,
-            timeout=120.0  # Fast fail
+            timeout=120.0
         )
         return {
             "html": clean_ai_html(response.choices[0].message.content),
@@ -261,6 +267,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
         print(f"Fireworks Failed: {e}")
 
     raise HTTPException(status_code=503, detail="Generation failed or timed out. Please try a more specific prompt.")
+
 
 # ---------------- API ENDPOINTS ----------------
 
