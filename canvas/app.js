@@ -539,9 +539,9 @@ function populateDashboard() {
 
     // Format total text nicely
     if (totalMB < 1024) {
-        totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
+         totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
     } else {
-        totalText = totalMB > 0 ? `${(totalMB / 1024).toFixed(0)} GB total` : 'N/A';
+         totalText = totalMB > 0 ? `${(totalMB / 1024).toFixed(0)} GB total` : 'N/A';
     }
 
     const usagePercentage = totalMB > 0 ? (storageUsedMB / totalMB) * 100 : 0;
@@ -865,12 +865,12 @@ async function getAuthHeaders() {
 function updateCreditDisplay() {
     if (currentUser) {
         const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
-
+        
         if (plan === 'free') {
             // Calculate generations used, ignoring the hidden chat history
             const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
             const generationsLeft = Math.max(0, 2 - generationsUsed);
-
+            
             creditDisplay.textContent = `Generations: ${generationsLeft} / 2`;
         } else {
             // Show standard credits for paid/custom plans
@@ -973,10 +973,10 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         loading.appendChild(stopBtn);
     }
 
-    // 1. IMPROVED TIMER
+    // 1. IMPROVED TIMER: Assign to a variable and clear it precisely
     let timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Generating...</span>`;
+        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Calculating Credits...</span>`;
     }, 1000);
 
     try {
@@ -986,7 +986,6 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             user_id: currentUser.id,
             is_punjabi_mode: currentMode === 'canvas-pa'
         };
-        
         if (imageData && imageData.data && imageData.size) {
             requestBody.image_data = imageData.data;
             requestBody.image_size_bytes = imageData.size;
@@ -1000,85 +999,33 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         });
 
         if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
+            const errData = await response.json();
             throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
         }
 
-        // ==========================================
-        // NEW: STREAMING LOGIC INTEGRATION
-        // ==========================================
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        
-        let completeHtml = "";
-        let finalStats = null;
+        const result = await response.json();
 
-        // Hide the primary loading spinner as soon as the first byte arrives!
-        if (loading) loading.style.background = 'transparent'; 
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunkText = decoder.decode(value, { stream: true });
-            const events = chunkText.split("\n\n");
-
-            for (const event of events) {
-                if (!event.trim()) continue;
-
-                if (event.startsWith("data: ")) {
-                    const rawJsonStr = event.replace("data: ", "").trim();
-                    
-                    try {
-                        const parsedData = JSON.parse(rawJsonStr);
-
-                        if (parsedData.chunk) {
-                            completeHtml += parsedData.chunk;
-                            // Live update the iframe so the user watches it build
-                            iframe.srcdoc = completeHtml;
-                        }
-
-                        if (parsedData.error) {
-                            throw new Error(parsedData.error);
-                        }
-
-                        if (parsedData.status === "DONE") {
-                            finalStats = parsedData;
-                        }
-                    } catch (e) {
-                        // Catch partial JSON strings that might get cut off in stream buffering
-                        console.warn("Partial stream chunk received, waiting for next frame...");
-                    }
-                }
-            }
-        }
-
-        // ==========================================
-        // POST-PROCESSING (Runs after stream finishes)
-        // ==========================================
+        // 2. CLEAR TIMER IMMEDIATELY ONCE DATA ARRIVES
         clearInterval(timerInterval);
 
-        // Fetch fresh user profile to get exact remaining credits
-        const userRes = await fetch(`${backendUrl}/users/me`, { headers: await getAuthHeaders() });
-        if (userRes.ok) currentUser = await userRes.json();
+        if (result.user_profile) currentUser = result.user_profile;
 
-        const tokensUsed = finalStats?.tokens_used || 0;
-        const creditsDeducted = finalStats?.credits_deducted || 0;
+        const rawHtmlCode = result.html;
+        const tokensUsed = result.tokens_used || 0;
+        const creditsDeducted = result.credits_deducted || 0;
 
         stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
 
-        const newProjectId = container.dataset.timestamp || Date.now().toString();
-        container.dataset.timestamp = newProjectId; 
 
+        const newProjectId = container.dataset.timestamp || Date.now().toString();
+        container.dataset.timestamp = newProjectId; // Ensure container has it
+
+        const existingTimestamp = container.dataset.timestamp;
         const timestamp = parseInt(container.dataset.timestamp);
-        
-        // Inject forms now that the HTML is 100% complete
         const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
-            ? injectDynamicFirebaseForms(completeHtml, currentUser, timestamp)
-            : completeHtml;
-            
-        // Final strict push to iframe
-        iframe.srcdoc = finalHtmlCode;
+            ? injectDynamicFirebaseForms(result.html, currentUser, timestamp)
+            : result.html;
+        // ---------------------------------------
 
         const loadTimeout = setTimeout(() => {
             if (loading && loading.style.display !== 'none') {
@@ -1099,7 +1046,8 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             pushStateForIframe(iframe);
         };
 
-        // Save the project to the database
+        // Pass the injected HTML to the iframe and the database
+        iframe.srcdoc = finalHtmlCode;
         const savedProject = await saveProject(prompt, finalHtmlCode, false, timestamp);
         if (savedProject) container.dataset.timestamp = savedProject.timestamp;
 
@@ -1116,15 +1064,14 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         } else {
             console.error("Error generating website:", error);
             preview.innerHTML = `<div style="color: var(--error-color); padding: 1rem;">Error: ${error.message}</div>`;
-            // If they have a prompt input variable defined globally
-            if (typeof promptInput !== 'undefined') promptInput.value = prompt;
+            promptInput.value = prompt;
 
-            // SHOW DELETE BUTTON ON ERROR
+            // 3. SHOW DELETE BUTTON ON ERROR (So user can delete the failed window)
             if (deleteBtn) deleteBtn.style.display = 'flex';
         }
     }
     finally {
-        clearInterval(timerInterval); 
+        clearInterval(timerInterval); // Final safety clear
         if (document.querySelectorAll('.loading').length <= 1) {
             document.body.classList.remove('generating');
         }
@@ -1538,7 +1485,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     // --- NEW: Only create and show the Delete button if NOT on Free plan ---
     let deleteBtn = null;
     const currentPlan = (currentUser?.subscriptionTier || 'free').toLowerCase();
-
+    
     if (currentPlan !== 'free') {
         deleteBtn = document.createElement('button');
         deleteBtn.className = 'control-btn delete-btn';
@@ -1546,22 +1493,22 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
         deleteBtn.title = 'Delete';
         windowControls.appendChild(deleteBtn);
 
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const timestamp = parseInt(container.dataset.timestamp);
-            if (!timestamp) {
-                container.remove();
-                return;
-            }
-            showConfirmationModal('Delete Project', 'Are you sure you want to delete this project?', async () => {
-                const success = await deleteProject(timestamp);
-                if (success) {
-                    if (container.classList.contains('fullscreen')) {
-                        document.body.classList.remove('site-fullscreen-active');
-                    }
-                    container.remove();
-                }
-            }, 'danger');
+        deleteBtn.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            const timestamp = parseInt(container.dataset.timestamp); 
+            if (!timestamp) { 
+                container.remove(); 
+                return; 
+            } 
+            showConfirmationModal('Delete Project', 'Are you sure you want to delete this project?', async () => { 
+                const success = await deleteProject(timestamp); 
+                if (success) { 
+                    if (container.classList.contains('fullscreen')) { 
+                        document.body.classList.remove('site-fullscreen-active'); 
+                    } 
+                    container.remove(); 
+                } 
+            }, 'danger'); 
         });
     }
 
@@ -1654,7 +1601,8 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     const refineBtn = refineControls.querySelector('.refine-btn');
 
     // ALL EVENT LISTENERS ARE ATTACHED HERE
-refineBtn.addEventListener('click', async () => {
+
+    refineBtn.addEventListener('click', async () => {
         pushStateForIframe(iframe); // Save state before refining
         const refinePrompt = refineInput.value.trim();
         if (!refinePrompt) return showNotification('Please enter what you want to refine.', 'error');
@@ -1669,8 +1617,7 @@ refineBtn.addEventListener('click', async () => {
             preview.appendChild(loading);
         }
         loading.style.display = 'flex';
-        loading.style.background = 'transparent'; // Let the user watch it build!
-        feedbackWidget.style.display = 'none'; 
+        feedbackWidget.style.display = 'none'; // Hide feedback during refinement
         document.body.classList.add('generating');
 
         try {
@@ -1679,68 +1626,31 @@ refineBtn.addEventListener('click', async () => {
                 headers: await getAuthHeaders(),
                 body: JSON.stringify({ prompt: refinePrompt, existing_html: currentHtml, user_id: currentUser.id })
             });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const result = await response.json();
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
-            }
+            if (result.user_profile) currentUser = result.user_profile;
 
-            // ==========================================
-            // STREAMING LOGIC FOR REFINEMENT
-            // ==========================================
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            
-            let completeHtml = "";
-            let finalStats = null;
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunkText = decoder.decode(value, { stream: true });
-                const events = chunkText.split("\n\n");
-
-                for (const event of events) {
-                    if (!event.trim()) continue;
-
-                    if (event.startsWith("data: ")) {
-                        const rawJsonStr = event.replace("data: ", "").trim();
-                        try {
-                            const parsedData = JSON.parse(rawJsonStr);
-                            
-                            if (parsedData.chunk) {
-                                completeHtml += parsedData.chunk;
-                                iframe.srcdoc = completeHtml; // Live update the iframe!
-                            }
-                            if (parsedData.error) throw new Error(parsedData.error);
-                            if (parsedData.status === "DONE") finalStats = parsedData;
-                        } catch (e) {
-                            console.warn("Partial stream chunk received...");
-                        }
-                    }
-                }
-            }
-
-            // --- Post-Processing ---
-            const userRes = await fetch(`${backendUrl}/users/me`, { headers: await getAuthHeaders() });
-            if (userRes.ok) currentUser = await userRes.json();
-
+            // --- NEW: DYNAMIC FIREBASE INJECTION ---
+            // Re-inject the script in case the AI accidentally removed or broke it during refinement
             const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
-                ? injectDynamicFirebaseForms(completeHtml, currentUser)
-                : completeHtml;
+                ? injectDynamicFirebaseForms(result.html, currentUser)
+                : result.html;
+            // ---------------------------------------
 
             iframe.srcdoc = finalHtmlCode;
-            compareBtn.style.display = 'flex'; 
+            compareBtn.style.display = 'flex'; // Show compare button after refinement
 
             const timestamp = parseInt(container.dataset.timestamp);
             if (timestamp) await updateProjectCode(timestamp, finalHtmlCode);
 
-            updateCreditDisplay();
+            if (result.credits_remaining !== undefined) {
+                currentUser.credits = result.credits_remaining;
+                updateCreditDisplay();
+            }
             checkCreditStatus();
             refineInput.value = '';
 
-            // Reset feedback widget
             const count = parseInt(feedbackWidget.dataset.refinementCount, 10) + 1;
             feedbackWidget.dataset.refinementCount = count;
             feedbackWidget.classList.remove('submitted');
@@ -1755,13 +1665,13 @@ refineBtn.addEventListener('click', async () => {
 
         } catch (error) {
             console.error("Error refining website:", error);
-            showNotification(error.message || 'Could not refine the website.', 'error');
+            showNotification('Could not refine the website.', 'error');
         } finally {
             loading.style.display = 'none';
             document.body.classList.remove('generating');
         }
     });
-    
+
     suggestionBtn.addEventListener('click', (e) => {
         e.stopPropagation();
 
