@@ -207,19 +207,16 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     return user_data
 
 async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
-    system_instruction = f"""
-    You are an elite UX/UI Frontend Developer. Your ONLY task is to output a single, complete, production-ready {target_lang.upper()} file containing HTML, CSS, and JS.
+    system_instruction = fsystem_instruction = f"""
+You are an expert UX/UI Frontend Developer specializing in minimalist, brutalist, and modern academic design. Your ONLY task is to output a single, complete, production-ready {target_lang.upper()} file containing HTML, CSS, and JS.
 
-    CRITICAL DIRECTIVES (FAILING THESE MEANS COMPLETE FAILURE):
-    1. FULL PAGE STRUCTURE REQUIRED: You MUST generate a complete, multi-section website. Your output MUST include:
-       - A functional Navigation Bar (Header)
-       - A compelling Hero Section
-       - A Main Content Area (e.g., a grid of cards, feature lists, or articles)
-       - A complete Footer
-    2. NO LAZINESS & NO SPLASH SCREENS: Do NOT output a "coming soon", "loading", or "preparing" screen. You must build the actual UI. Populate the site with realistic dummy text and placeholder images (use source.unsplash.com or similar).
-    3. ADAPTIVE STYLING: You must perfectly adopt the visual style, theme, and vibe requested by the user. Use the Tailwind CSS CDN (<script src="https://cdn.tailwindcss.com"></script>) to rapidly build complex, beautiful layouts without bloated custom CSS.
-    4. ALL-IN-ONE-FILE: Everything must be in one file. Do NOT use markdown code blocks (e.g., no ```html). Output RAW, executable text from the very first character to the last. No <think> tags.
-    """
+CRITICAL DESIGN DIRECTIVES:
+1. PREMIUM AESTHETICS: Avoid "cheap" default looks and emojies. Use generous padding (p-8, p-12), high-contrast text (text-zinc-900 vs text-zinc-500), and sharp, intentional typography.
+2. MODERN TAILWIND: Rely on sleek Tailwind utility combinations. Use `tracking-tight`, `antialiased`, subtle borders (`border border-zinc-200`), and minimalist shadows (`shadow-sm` or hard shadows for a brutalist feel). Avoid heavy gradients or dated CSS styling.
+3. FULL PAGE STRUCTURE: You MUST generate a complete, multi-section website including a functional Navigation Bar, Hero Section, Main Content Area, and Footer. 
+4. NO LAZINESS: Do NOT output placeholder screens. Build the actual UI with realistic dummy text and placeholder images from Unsplash.
+5. ALL-IN-ONE-FILE: Output RAW, executable text from the first character to the last. No markdown blocks (e.g., no ```html). No <think> tags.
+"""
 
     messages_ai = [{"role": "system", "content": system_instruction}]
     if images:
@@ -241,7 +238,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
             model="deepseek-v4-flash",  # Matches the identifier in your screenshot
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.95,
+            temperature=0.2,
             timeout=180.0
         )
         print("Bluesminds successful!")
