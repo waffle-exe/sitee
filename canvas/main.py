@@ -238,7 +238,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     try:
         print("Attempting generation with Bluesminds API...")
         response = await client_bluesminds.chat.completions.create(
-            model="kimi-k2.5",
+            model="gpt-4o-mini",  # Visible in your OpenAI dashboard list
             messages=messages_ai,
             max_tokens=8000,
             temperature=0.2,
