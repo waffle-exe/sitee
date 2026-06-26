@@ -206,12 +206,13 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     user_data["projects"] = combined_projects
     return user_data
 
+
 async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
-    system_instruction = fsystem_instruction = f"""
+    system_instruction = f"""
 You are an expert UX/UI Frontend Developer specializing in minimalist, brutalist, and modern academic design. Your ONLY task is to output a single, complete, production-ready {target_lang.upper()} file containing HTML, CSS, and JS.
 
 CRITICAL DESIGN DIRECTIVES:
-1. PREMIUM AESTHETICS: Avoid "cheap" default looks and emojies. Use generous padding (p-8, p-12), high-contrast text (text-zinc-900 vs text-zinc-500), and sharp, intentional typography.
+1. PREMIUM AESTHETICS: Avoid "cheap" default looks and emojis. Use generous padding (p-8, p-12), high-contrast text (text-zinc-900 vs text-zinc-500), and sharp, intentional typography.
 2. MODERN TAILWIND: Rely on sleek Tailwind utility combinations. Use `tracking-tight`, `antialiased`, subtle borders (`border border-zinc-200`), and minimalist shadows (`shadow-sm` or hard shadows for a brutalist feel). Avoid heavy gradients or dated CSS styling.
 3. FULL PAGE STRUCTURE: You MUST generate a complete, multi-section website including a functional Navigation Bar, Hero Section, Main Content Area, and Footer. 
 4. NO LAZINESS: Do NOT output placeholder screens. Build the actual UI with realistic dummy text and placeholder images from Unsplash.
@@ -219,26 +220,33 @@ CRITICAL DESIGN DIRECTIVES:
 """
 
     messages_ai = [{"role": "system", "content": system_instruction}]
+    
+    # 1. Dynamically select the model and format the payload based on image presence
     if images:
+        target_model = "gemini-3.1-flash-lite-preview"
         content = [{"type": "text", "text": prompt}]
         for b64_img in images:
-            if "," in b64_img: b64_img = b64_img.split(",")[1]
-            content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}})
+            if "," in b64_img: 
+                b64_img = b64_img.split(",")[1]
+            content.append({
+                "type": "image_url", 
+                "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}
+            })
         messages_ai.append({"role": "user", "content": content})
     else:
+        target_model = "deepseek-v4-flash"
         messages_ai.append({"role": "user", "content": prompt})
 
     bluesminds_error = None
-    fireworks_error = None
 
-    # 1. Primary: Bluesminds
+    # 2. Primary Execution Block: Bluesminds
     try:
-        print("Attempting generation with Bluesminds API...")
+        print(f"Attempting generation with Bluesminds API using model: {target_model}...")
         response = await client_bluesminds.chat.completions.create(
-            model="deepseek-v4-flash",  # Matches the identifier in your screenshot
+            model=target_model,
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.2,
+            temperature=0.15,  # Low temperature keeps generation crisp, precise, and structurally sound
             timeout=180.0
         )
         print("Bluesminds successful!")
@@ -248,24 +256,11 @@ CRITICAL DESIGN DIRECTIVES:
         }
     except Exception as e:
         bluesminds_error = str(e)
-        print(f"Bluesminds Failed: {bluesminds_error}. Falling back to Fireworks...")
+        print(f"Bluesminds Failed using {target_model}: {bluesminds_error}")
     
-    # 2. Secondary: Fireworks
-    # 2. Secondary: Fireworks (DISABLED)
-    # try:
-    #     print("Attempting generation with Fireworks API...")
-    #     response = await client_fireworks.chat.completions.create(...)
-    #     return {...}
-    # except Exception as e:
-    #     fireworks_error = str(e)
-    #     print(f"Fireworks Failed: {fireworks_error}")
-
-    # Just raise the Bluesminds error directly if it fails
-
-    # Pass the actual errors back to the frontend so you can see exactly why Bluesminds failed
-    error_message = f"Bluesminds Error: {bluesminds_error} | Fireworks Error: {fireworks_error}"
+    # 3. Clean Failure Handling (Fireworks Fallback Disabled)
+    error_message = f"Bluesminds Generation Failed ({target_model}). Error: {bluesminds_error}"
     raise HTTPException(status_code=503, detail=error_message)
-
 
 # ---------------- API ENDPOINTS ----------------
 
