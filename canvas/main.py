@@ -233,9 +233,9 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
         response = await client_bluesminds.chat.completions.create(
             model="gemini-3-flash-preview",
             messages=messages_ai,
-            max_tokens=4000,
-            temperature=0.8,
-            timeout=120.0  # Fast fail
+            max_tokens=8000,
+            temperature=0.95,
+            timeout=140.0  # Fast fail
         )
         return {
             "html": clean_ai_html(response.choices[0].message.content),
