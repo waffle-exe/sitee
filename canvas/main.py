@@ -264,7 +264,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     # 1. Primary: Bluesminds (Fast Fail Timeout)
     try:
         response = await client_bluesminds.chat.completions.create(
-            model="kimi-k2.5",
+            model="gemini-3-flash-preview",
             messages=messages_ai,
             max_tokens=8000,
             temperature=0.2,
