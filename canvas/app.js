@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getDatabase, ref, push, get, child, serverTimestamp as dbServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 import { getFirestore, collection, addDoc, serverTimestamp as fsServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -538,9 +539,9 @@ function populateDashboard() {
 
     // Format total text nicely
     if (totalMB < 1024) {
-        totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
+         totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
     } else {
-        totalText = totalMB > 0 ? `${(totalMB / 1024).toFixed(0)} GB total` : 'N/A';
+         totalText = totalMB > 0 ? `${(totalMB / 1024).toFixed(0)} GB total` : 'N/A';
     }
 
     const usagePercentage = totalMB > 0 ? (storageUsedMB / totalMB) * 100 : 0;
@@ -864,12 +865,12 @@ async function getAuthHeaders() {
 function updateCreditDisplay() {
     if (currentUser) {
         const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
-
+        
         if (plan === 'free') {
             // Calculate generations used, ignoring the hidden chat history
             const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
             const generationsLeft = Math.max(0, 2 - generationsUsed);
-
+            
             creditDisplay.textContent = `Generations: ${generationsLeft} / 2`;
         } else {
             // Show standard credits for paid/custom plans
@@ -972,10 +973,10 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         loading.appendChild(stopBtn);
     }
 
-    // 1. IMPROVED TIMER
+    // 1. IMPROVED TIMER: Assign to a variable and clear it precisely
     let timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Generating...</span>`;
+        stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Calculating Credits...</span>`;
     }, 1000);
 
     try {
@@ -985,7 +986,6 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             user_id: currentUser.id,
             is_punjabi_mode: currentMode === 'canvas-pa'
         };
-        
         if (imageData && imageData.data && imageData.size) {
             requestBody.image_data = imageData.data;
             requestBody.image_size_bytes = imageData.size;
@@ -999,89 +999,33 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         });
 
         if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
+            const errData = await response.json();
             throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
         }
 
-        // ==========================================
-        // NEW: STREAMING LOGIC INTEGRATION
-        // ==========================================
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        
-        let completeHtml = "";
-        let finalStats = null;
-        let lastIframeUpdate = Date.now(); // ADDED THROTTLE
+        const result = await response.json();
 
-        // Hide the primary loading spinner as soon as the first byte arrives!
-        if (loading) loading.style.background = 'transparent'; 
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunkText = decoder.decode(value, { stream: true });
-            const events = chunkText.split("\n\n");
-
-            for (const event of events) {
-                if (!event.trim()) continue;
-
-                if (event.startsWith("data: ")) {
-                    const rawJsonStr = event.replace("data: ", "").trim();
-                    
-                    try {
-                        const parsedData = JSON.parse(rawJsonStr);
-
-                        if (parsedData.chunk) {
-                            completeHtml += parsedData.chunk;
-                            // ADDED THROTTLE: Only update visual iframe every 400ms
-                            if (Date.now() - lastIframeUpdate > 400) {
-                                iframe.srcdoc = completeHtml;
-                                lastIframeUpdate = Date.now();
-                            }
-                        }
-
-                        if (parsedData.error) {
-                            throw new Error(parsedData.error);
-                        }
-
-                        if (parsedData.status === "DONE") {
-                            finalStats = parsedData;
-                        }
-                    } catch (e) {
-                        // Catch partial JSON strings that might get cut off in stream buffering
-                        console.warn("Partial stream chunk received, waiting for next frame...");
-                    }
-                }
-            }
-        }
-
-        // ==========================================
-        // POST-PROCESSING (Runs after stream finishes)
-        // ==========================================
+        // 2. CLEAR TIMER IMMEDIATELY ONCE DATA ARRIVES
         clearInterval(timerInterval);
 
-        // Fetch fresh user profile to get exact remaining credits
-        const userRes = await fetch(`${backendUrl}/users/me`, { headers: await getAuthHeaders() });
-        if (userRes.ok) currentUser = await userRes.json();
+        if (result.user_profile) currentUser = result.user_profile;
 
-        const tokensUsed = finalStats?.tokens_used || 0;
-        const creditsDeducted = finalStats?.credits_deducted || 0;
+        const rawHtmlCode = result.html;
+        const tokensUsed = result.tokens_used || 0;
+        const creditsDeducted = result.credits_deducted || 0;
 
         stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
 
-        const newProjectId = container.dataset.timestamp || Date.now().toString();
-        container.dataset.timestamp = newProjectId; 
 
+        const newProjectId = container.dataset.timestamp || Date.now().toString();
+        container.dataset.timestamp = newProjectId; // Ensure container has it
+
+        const existingTimestamp = container.dataset.timestamp;
         const timestamp = parseInt(container.dataset.timestamp);
-        
-        // Inject forms now that the HTML is 100% complete
         const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
-            ? injectDynamicFirebaseForms(completeHtml, currentUser, timestamp)
-            : completeHtml;
-            
-        // Final strict push to iframe
-        iframe.srcdoc = finalHtmlCode;
+            ? injectDynamicFirebaseForms(result.html, currentUser, timestamp)
+            : result.html;
+        // ---------------------------------------
 
         const loadTimeout = setTimeout(() => {
             if (loading && loading.style.display !== 'none') {
@@ -1102,7 +1046,8 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             pushStateForIframe(iframe);
         };
 
-        // Save the project to the database
+        // Pass the injected HTML to the iframe and the database
+        iframe.srcdoc = finalHtmlCode;
         const savedProject = await saveProject(prompt, finalHtmlCode, false, timestamp);
         if (savedProject) container.dataset.timestamp = savedProject.timestamp;
 
@@ -1119,15 +1064,14 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         } else {
             console.error("Error generating website:", error);
             preview.innerHTML = `<div style="color: var(--error-color); padding: 1rem;">Error: ${error.message}</div>`;
-            // If they have a prompt input variable defined globally
-            if (typeof promptInput !== 'undefined') promptInput.value = prompt;
+            promptInput.value = prompt;
 
-            // SHOW DELETE BUTTON ON ERROR
+            // 3. SHOW DELETE BUTTON ON ERROR (So user can delete the failed window)
             if (deleteBtn) deleteBtn.style.display = 'flex';
         }
     }
     finally {
-        clearInterval(timerInterval); 
+        clearInterval(timerInterval); // Final safety clear
         if (document.querySelectorAll('.loading').length <= 1) {
             document.body.classList.remove('generating');
         }
@@ -1256,8 +1200,7 @@ function appendTurn(turn, isLoading = false) {
     userMessageDiv.dataset.content = turn.prompt;
     const userAvatarImg = document.createElement('img');
     userAvatarImg.className = 'avatar';
-    // FIXED: Reliable fallback avatar URL
-    userAvatarImg.src = userAvatar.src || 'https://ui-avatars.com/api/?name=User&background=random';
+    userAvatarImg.src = userAvatar.src || 'avatar/image.png';
     const userMessageWrapper = document.createElement('div');
     userMessageWrapper.className = 'message-wrapper';
     const userContentDiv = document.createElement('div');
@@ -1357,8 +1300,7 @@ function appendTurn(turn, isLoading = false) {
     aiMessageDiv.className = 'chat-message ai-message';
     const aiAvatarImg = document.createElement('img');
     aiAvatarImg.className = 'avatar';
-    // FIXED: Reliable fallback avatar URL
-    aiAvatarImg.src = 'https://ui-avatars.com/api/?name=AI&background=0D8ABC&color=fff';
+    aiAvatarImg.src = 'avatar/site.png';
     const aiMessageWrapper = document.createElement('div');
     aiMessageWrapper.className = 'message-wrapper';
     aiMessageDiv.append(aiAvatarImg, aiMessageWrapper);
@@ -1387,77 +1329,25 @@ async function sendChatMessage(prompt, turnToUpdate = null) {
         return;
     }
     updateTurnUI(turnContainer, turn, true);
-    
     try {
         const response = await fetch(`${backendUrl}/generate/`, {
             method: 'POST',
             headers: await getAuthHeaders(),
             body: JSON.stringify({ prompt: prompt, is_chat_mode: true, user_id: currentUser.id })
         });
-        
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const result = await response.json();
+        const aiResponse = result.html;
 
-        // ==========================================
-        // STREAMING LOGIC FOR CHAT
-        // ==========================================
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        
-        let completeHtml = "";
-        let lastChatUpdate = Date.now(); // ADDED THROTTLE
-        
-        // Initialize an empty response so we can append to it live
-        turn.responses.push({ content: "" });
+        turn.responses.push({ content: aiResponse });
         turn.displayIndex = turn.responses.length - 1;
-        updateTurnUI(turnContainer, turn, false); // Stop loading spinner
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunkText = decoder.decode(value, { stream: true });
-            const events = chunkText.split("\n\n");
-
-            for (const event of events) {
-                if (!event.trim()) continue;
-
-                if (event.startsWith("data: ")) {
-                    const rawJsonStr = event.replace("data: ", "").trim();
-                    try {
-                        const parsedData = JSON.parse(rawJsonStr);
-                        
-                        if (parsedData.chunk) {
-                            completeHtml += parsedData.chunk;
-                            turn.responses[turn.displayIndex].content = completeHtml;
-                            // ADDED THROTTLE: Update UI every 100ms
-                            if (Date.now() - lastChatUpdate > 100) {
-                                updateTurnUI(turnContainer, turn, false);
-                                lastChatUpdate = Date.now();
-                            }
-                        }
-                        if (parsedData.error) throw new Error(parsedData.error);
-                    } catch (e) {
-                        console.warn("Partial stream chunk received...");
-                    }
-                }
-            }
-        }
-
-        // Final UI update to catch the last chunk
-        updateTurnUI(turnContainer, turn, false);
-
+        updateTurnUI(turnContainer, turn);
         await saveChatHistory();
-        
-        const userRes = await fetch(`${backendUrl}/users/me`, { headers: await getAuthHeaders() });
-        if (userRes.ok) {
-            currentUser = await userRes.json();
+        if (result.credits_remaining !== undefined) {
+            currentUser.credits = result.credits_remaining; // e.g., 98.45
             updateCreditDisplay();
         }
         checkCreditStatus();
-
     } catch (error) {
         console.error("Error in chat:", error);
         const errorContent = "Sorry, I couldn't get a response. Please check the server connection and try again.";
@@ -1595,7 +1485,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     // --- NEW: Only create and show the Delete button if NOT on Free plan ---
     let deleteBtn = null;
     const currentPlan = (currentUser?.subscriptionTier || 'free').toLowerCase();
-
+    
     if (currentPlan !== 'free') {
         deleteBtn = document.createElement('button');
         deleteBtn.className = 'control-btn delete-btn';
@@ -1603,22 +1493,22 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
         deleteBtn.title = 'Delete';
         windowControls.appendChild(deleteBtn);
 
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const timestamp = parseInt(container.dataset.timestamp);
-            if (!timestamp) {
-                container.remove();
-                return;
-            }
-            showConfirmationModal('Delete Project', 'Are you sure you want to delete this project?', async () => {
-                const success = await deleteProject(timestamp);
-                if (success) {
-                    if (container.classList.contains('fullscreen')) {
-                        document.body.classList.remove('site-fullscreen-active');
-                    }
-                    container.remove();
-                }
-            }, 'danger');
+        deleteBtn.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            const timestamp = parseInt(container.dataset.timestamp); 
+            if (!timestamp) { 
+                container.remove(); 
+                return; 
+            } 
+            showConfirmationModal('Delete Project', 'Are you sure you want to delete this project?', async () => { 
+                const success = await deleteProject(timestamp); 
+                if (success) { 
+                    if (container.classList.contains('fullscreen')) { 
+                        document.body.classList.remove('site-fullscreen-active'); 
+                    } 
+                    container.remove(); 
+                } 
+            }, 'danger'); 
         });
     }
 
@@ -1711,6 +1601,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     const refineBtn = refineControls.querySelector('.refine-btn');
 
     // ALL EVENT LISTENERS ARE ATTACHED HERE
+
     refineBtn.addEventListener('click', async () => {
         pushStateForIframe(iframe); // Save state before refining
         const refinePrompt = refineInput.value.trim();
@@ -1726,8 +1617,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
             preview.appendChild(loading);
         }
         loading.style.display = 'flex';
-        loading.style.background = 'transparent'; // Let the user watch it build!
-        feedbackWidget.style.display = 'none'; 
+        feedbackWidget.style.display = 'none'; // Hide feedback during refinement
         document.body.classList.add('generating');
 
         try {
@@ -1736,73 +1626,31 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
                 headers: await getAuthHeaders(),
                 body: JSON.stringify({ prompt: refinePrompt, existing_html: currentHtml, user_id: currentUser.id })
             });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const result = await response.json();
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
-            }
+            if (result.user_profile) currentUser = result.user_profile;
 
-            // ==========================================
-            // STREAMING LOGIC FOR REFINEMENT
-            // ==========================================
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            
-            let completeHtml = "";
-            let finalStats = null;
-            let lastIframeUpdate = Date.now(); // ADDED THROTTLE
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunkText = decoder.decode(value, { stream: true });
-                const events = chunkText.split("\n\n");
-
-                for (const event of events) {
-                    if (!event.trim()) continue;
-
-                    if (event.startsWith("data: ")) {
-                        const rawJsonStr = event.replace("data: ", "").trim();
-                        try {
-                            const parsedData = JSON.parse(rawJsonStr);
-                            
-                            if (parsedData.chunk) {
-                                completeHtml += parsedData.chunk;
-                                // ADDED THROTTLE: Update UI every 400ms
-                                if (Date.now() - lastIframeUpdate > 400) {
-                                    iframe.srcdoc = completeHtml; 
-                                    lastIframeUpdate = Date.now();
-                                }
-                            }
-                            if (parsedData.error) throw new Error(parsedData.error);
-                            if (parsedData.status === "DONE") finalStats = parsedData;
-                        } catch (e) {
-                            console.warn("Partial stream chunk received...");
-                        }
-                    }
-                }
-            }
-
-            // --- Post-Processing ---
-            const userRes = await fetch(`${backendUrl}/users/me`, { headers: await getAuthHeaders() });
-            if (userRes.ok) currentUser = await userRes.json();
-
+            // --- NEW: DYNAMIC FIREBASE INJECTION ---
+            // Re-inject the script in case the AI accidentally removed or broke it during refinement
             const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
-                ? injectDynamicFirebaseForms(completeHtml, currentUser)
-                : completeHtml;
+                ? injectDynamicFirebaseForms(result.html, currentUser)
+                : result.html;
+            // ---------------------------------------
 
             iframe.srcdoc = finalHtmlCode;
-            compareBtn.style.display = 'flex'; 
+            compareBtn.style.display = 'flex'; // Show compare button after refinement
 
             const timestamp = parseInt(container.dataset.timestamp);
             if (timestamp) await updateProjectCode(timestamp, finalHtmlCode);
 
-            updateCreditDisplay();
+            if (result.credits_remaining !== undefined) {
+                currentUser.credits = result.credits_remaining;
+                updateCreditDisplay();
+            }
             checkCreditStatus();
             refineInput.value = '';
 
-            // Reset feedback widget
             const count = parseInt(feedbackWidget.dataset.refinementCount, 10) + 1;
             feedbackWidget.dataset.refinementCount = count;
             feedbackWidget.classList.remove('submitted');
@@ -1817,13 +1665,13 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
 
         } catch (error) {
             console.error("Error refining website:", error);
-            showNotification(error.message || 'Could not refine the website.', 'error');
+            showNotification('Could not refine the website.', 'error');
         } finally {
             loading.style.display = 'none';
             document.body.classList.remove('generating');
         }
     });
-    
+
     suggestionBtn.addEventListener('click', (e) => {
         e.stopPropagation();
 
@@ -3895,98 +3743,96 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     // Inside DOMContentLoaded, replace the old githubDeployForm.onsubmit
 
-    if (githubDeployForm) {
-        githubDeployForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    githubDeployForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-            // Check if we are in "Save Token" mode or "Deploy" mode
-            const isSaveTokenMode = githubDeployConfirmBtn.textContent === 'Save Token';
+        // Check if we are in "Save Token" mode or "Deploy" mode
+        const isSaveTokenMode = githubDeployConfirmBtn.textContent === 'Save Token';
 
-            if (isSaveTokenMode) {
-                // --- Logic for SAVING the token ---
-                const token = githubTokenInput.value.trim();
-                if (!token) {
-                    githubDeployError.textContent = 'Please provide a Personal Access Token.';
-                    return;
-                }
-
-                githubDeployConfirmBtn.textContent = 'Saving...';
-                githubDeployConfirmBtn.disabled = true;
-                githubDeployError.textContent = '';
-
-                try {
-                    const response = await fetch(`${backendUrl}/users/me/github-token`, {
-                        method: 'POST',
-                        headers: await getAuthHeaders(),
-                        body: JSON.stringify({ github_token: token })
-                    });
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.detail);
-
-                    showNotification('GitHub token saved successfully! You can now deploy to Github', 'success');
-                    currentUser.github_token = 'exists'; // Update local state
-                    githubDeployModal.style.display = 'none';
-
-                } catch (error) {
-                    githubDeployError.textContent = error.message;
-                } finally {
-                    githubDeployConfirmBtn.textContent = 'Save Token';
-                    githubDeployConfirmBtn.disabled = false;
-                }
-
-            } else {
-                // --- Logic for DEPLOYING to GitHub ---
-                const repoName = githubRepoNameInput.value.trim();
-                const htmlContent = currentCodeCache.html;
-
-                if (!repoName) {
-                    githubDeployError.textContent = 'Repository name is required.';
-                    return;
-                }
-
-                githubDeployConfirmBtn.textContent = 'Deploying...';
-                githubDeployConfirmBtn.disabled = true;
-                githubDeployError.textContent = '';
-
-                try {
-                    const response = await fetch(`${backendUrl}/deploy-github`, {
-                        method: 'POST',
-                        headers: await getAuthHeaders(),
-                        body: JSON.stringify({
-                            html_content: htmlContent,
-                            repo_name: repoName,
-                            project_timestamp: currentEditingProjectTimestamp
-                        })
-                    });
-
-                    const result = await response.json();
-                    if (!response.ok) {
-                        // If token expired, backend returns 401
-                        if (response.status === 401) {
-                            currentUser.github_token = null; // Clear local state
-                            showNotification(result.detail, 'error');
-
-                            // THIS IS THE FIX: Call the helper function to reset the modal state
-                            showSaveTokenMode();
-
-                            return; // Stop execution here
-                        }
-                        throw new Error(result.detail || 'Deployment failed.');
-                    }
-
-                    showNotification('Successfully deployed to GitHub!', 'success');
-                    githubDeployModal.style.display = 'none';
-                    window.open(result.url, '_blank');
-
-                } catch (error) {
-                    githubDeployError.textContent = error.message;
-                } finally {
-                    githubDeployConfirmBtn.textContent = 'Deploy';
-                    githubDeployConfirmBtn.disabled = false;
-                }
+        if (isSaveTokenMode) {
+            // --- Logic for SAVING the token ---
+            const token = githubTokenInput.value.trim();
+            if (!token) {
+                githubDeployError.textContent = 'Please provide a Personal Access Token.';
+                return;
             }
-        });
-    }
+
+            githubDeployConfirmBtn.textContent = 'Saving...';
+            githubDeployConfirmBtn.disabled = true;
+            githubDeployError.textContent = '';
+
+            try {
+                const response = await fetch(`${backendUrl}/users/me/github-token`, {
+                    method: 'POST',
+                    headers: await getAuthHeaders(),
+                    body: JSON.stringify({ github_token: token })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail);
+
+                showNotification('GitHub token saved successfully! You can now deploy to Github', 'success');
+                currentUser.github_token = 'exists'; // Update local state
+                githubDeployModal.style.display = 'none';
+
+            } catch (error) {
+                githubDeployError.textContent = error.message;
+            } finally {
+                githubDeployConfirmBtn.textContent = 'Save Token';
+                githubDeployConfirmBtn.disabled = false;
+            }
+
+        } else {
+            // --- Logic for DEPLOYING to GitHub ---
+            const repoName = githubRepoNameInput.value.trim();
+            const htmlContent = currentCodeCache.html;
+
+            if (!repoName) {
+                githubDeployError.textContent = 'Repository name is required.';
+                return;
+            }
+
+            githubDeployConfirmBtn.textContent = 'Deploying...';
+            githubDeployConfirmBtn.disabled = true;
+            githubDeployError.textContent = '';
+
+            try {
+                const response = await fetch(`${backendUrl}/deploy-github`, {
+                    method: 'POST',
+                    headers: await getAuthHeaders(),
+                    body: JSON.stringify({
+                        html_content: htmlContent,
+                        repo_name: repoName,
+                        project_timestamp: currentEditingProjectTimestamp
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    // If token expired, backend returns 401
+                    if (response.status === 401) {
+                        currentUser.github_token = null; // Clear local state
+                        showNotification(result.detail, 'error');
+
+                        // THIS IS THE FIX: Call the helper function to reset the modal state
+                        showSaveTokenMode();
+
+                        return; // Stop execution here
+                    }
+                    throw new Error(result.detail || 'Deployment failed.');
+                }
+
+                showNotification('Successfully deployed to GitHub!', 'success');
+                githubDeployModal.style.display = 'none';
+                window.open(result.url, '_blank');
+
+            } catch (error) {
+                githubDeployError.textContent = error.message;
+            } finally {
+                githubDeployConfirmBtn.textContent = 'Deploy';
+                githubDeployConfirmBtn.disabled = false;
+            }
+        }
+    });
     loadGoogleFonts();
     populateFontDropdown();
 
@@ -4026,115 +3872,107 @@ document.addEventListener("DOMContentLoaded", () => {
             applyStyle('borderRadius', `${radius}px`);
         });
     }
-    if (signupForm) {
-        signupForm.addEventListener('submit', (e) => {
-            e.preventDefault();
+    signupForm.addEventListener('submit', (e) => {
+        e.preventDefault();
 
-            // --- 1. Get Button and Set Loading State ---
-            const submitBtn = signupForm.querySelector('button[type="submit"]');
-            const originalBtnText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>';
+        // --- 1. Get Button and Set Loading State ---
+        const submitBtn = signupForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>';
 
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            signupError.textContent = "";
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        signupError.textContent = "";
 
-            createUserWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    sendEmailVerification(userCredential.user).then(() => {
-                        signOut(auth);
-                        signupView.style.display = 'none';
-                        verificationEmailDisplay.textContent = userCredential.user.email;
-                        verificationView.style.display = 'block';
+        createUserWithEmailAndPassword(auth, email, password)
+            .then((userCredential) => {
+                sendEmailVerification(userCredential.user).then(() => {
+                    signOut(auth);
+                    signupView.style.display = 'none';
+                    verificationEmailDisplay.textContent = userCredential.user.email;
+                    verificationView.style.display = 'block';
 
-                        // Reset button for next time
+                    // Reset button for next time
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
+                });
+            })
+            .catch((error) => {
+                signupError.textContent = error.message;
+                // --- Reset Button on Error ---
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            });
+    });
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        // --- 1. Get Button and Set Loading State ---
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>';
+
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        loginError.textContent = "";
+
+        signInWithEmailAndPassword(auth, email, password)
+            .then(async (userCredential) => {
+                if (userCredential.user.emailVerified) {
+                    await createUserInBackend(userCredential.user);
+                    closeAllModals();
+                    // Reset button after successful login and modal close
+                    setTimeout(() => {
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalBtnText;
-                    });
-                })
-                .catch((error) => {
-                    signupError.textContent = error.message;
-                    // --- Reset Button on Error ---
+                    }, 500);
+                } else {
+                    loginError.textContent = "Please verify your email to sign in.";
+                    signOut(auth);
+                    // Reset button if not verified
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalBtnText;
-                });
-        });
-    }
-    
-    if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
+                }
+            })
+            .catch((error) => {
+                loginError.textContent = error.message;
+                // --- Reset Button on Error ---
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            });
+    });
 
-            // --- 1. Get Button and Set Loading State ---
-            const submitBtn = loginForm.querySelector('button[type="submit"]');
-            const originalBtnText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>';
+    forgotPasswordForm.addEventListener('submit', (e) => {
+        e.preventDefault();
 
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            loginError.textContent = "";
+        // --- 1. Get Button and Set Loading State ---
+        const submitBtn = forgotPasswordForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>';
 
-            signInWithEmailAndPassword(auth, email, password)
-                .then(async (userCredential) => {
-                    if (userCredential.user.emailVerified) {
-                        await createUserInBackend(userCredential.user);
-                        closeAllModals();
-                        // Reset button after successful login and modal close
-                        setTimeout(() => {
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = originalBtnText;
-                        }, 500);
-                    } else {
-                        loginError.textContent = "Please verify your email to sign in.";
-                        signOut(auth);
-                        // Reset button if not verified
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalBtnText;
-                    }
-                })
-                .catch((error) => {
-                    loginError.textContent = error.message;
-                    // --- Reset Button on Error ---
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalBtnText;
-                });
-        });
-    }
+        const email = document.getElementById('forgot-password-email').value;
+        forgotPasswordMessage.textContent = "";
+        forgotPasswordMessage.className = "";
 
-    if (forgotPasswordForm) {
-        forgotPasswordForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            // --- 1. Get Button and Set Loading State ---
-            const submitBtn = forgotPasswordForm.querySelector('button[type="submit"]');
-            const originalBtnText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>';
-
-            const email = document.getElementById('forgot-password-email').value;
-            forgotPasswordMessage.textContent = "";
-            forgotPasswordMessage.className = "";
-
-            sendPasswordResetEmail(auth, email)
-                .then(() => {
-                    forgotPasswordMessage.textContent = "Success! Check your inbox for a reset link.";
-                    forgotPasswordMessage.className = "auth-success";
-                    // Reset button
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalBtnText;
-                })
-                .catch((error) => {
-                    forgotPasswordMessage.textContent = error.message;
-                    forgotPasswordMessage.className = "auth-error";
-                    // Reset button on error
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalBtnText;
-                });
-        });
-    }
-
+        sendPasswordResetEmail(auth, email)
+            .then(() => {
+                forgotPasswordMessage.textContent = "Success! Check your inbox for a reset link.";
+                forgotPasswordMessage.className = "auth-success";
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            })
+            .catch((error) => {
+                forgotPasswordMessage.textContent = error.message;
+                forgotPasswordMessage.className = "auth-error";
+                // Reset button on error
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            });
+    });
     logoutBtn.addEventListener('click', () => {
         signOut(auth).then(() => {
             // This forces a full page refresh after logout.
@@ -4151,7 +3989,7 @@ document.addEventListener("DOMContentLoaded", () => {
     closeEditImageModalBtn.addEventListener('click', closeEditImageModal);
     editImageCancelBtn.addEventListener('click', closeEditImageModal);
 
-    // --- THIS IS THE NEW, CORRECTED CODE ---
+    // --- THIS IS THE NEW, CORRECTED CODE ---// --- THIS IS THE NEW, CORRECTED CODE ---
     editImageSaveBtn.addEventListener('click', async () => {
         if (!currentEditingImageElement) return;
 
@@ -4339,8 +4177,7 @@ document.addEventListener("DOMContentLoaded", () => {
         siteePublishConfirmBtn.disabled = true;
     };
 
-    if (selectSiteeBtn) selectSiteeBtn.onclick = showSiteeView;
-    
+    selectSiteeBtn.onclick = showSiteeView;
     const checkSubdomainAvailability = debounce(async () => {
         const subdomain = siteeSubdomainInput.value.trim();
         const suggestionsContainer = document.getElementById('subdomain-suggestions');
@@ -4401,135 +4238,285 @@ document.addEventListener("DOMContentLoaded", () => {
             siteePublishStatus.className = 'publish-status taken';
         }
     }, 300);
-    
-    if (siteeSubdomainInput) siteeSubdomainInput.addEventListener('input', checkSubdomainAvailability);
+    siteeSubdomainInput.addEventListener('input', checkSubdomainAvailability);
 
-    if (siteePublishForm) {
-        siteePublishForm.onsubmit = async (event) => {
-            event.preventDefault();
-            const timestamp = parseInt(publishModal.dataset.currentTimestamp, 10);
-            const container = document.querySelector(`.site-container[data-timestamp="${timestamp}"]`);
-            const iframe = container ? container.querySelector('iframe') : null;
-            const subdomain = siteeSubdomainInput.value.trim();
+    siteePublishForm.onsubmit = async (event) => {
+        event.preventDefault();
+        const timestamp = parseInt(publishModal.dataset.currentTimestamp, 10);
+        const container = document.querySelector(`.site-container[data-timestamp="${timestamp}"]`);
+        const iframe = container ? container.querySelector('iframe') : null;
+        const subdomain = siteeSubdomainInput.value.trim();
 
-            if (!subdomain || !iframe || !container) {
-                siteePublishStatus.textContent = "Error: Could not find project data.";
-                siteePublishStatus.className = 'publish-status taken';
-                return;
+        if (!subdomain || !iframe || !container) {
+            siteePublishStatus.textContent = "Error: Could not find project data.";
+            siteePublishStatus.className = 'publish-status taken';
+            return;
+        }
+
+        siteePublishConfirmBtn.textContent = 'Publishing...';
+        siteePublishConfirmBtn.disabled = true;
+        const htmlToPublish = getCleanIframeHtml(iframe);
+
+        try {
+            const response = await fetch(`${backendUrl}/publish-sitee`, {
+                method: 'POST',
+                headers: await getAuthHeaders(),
+                body: JSON.stringify({
+                    html_content: htmlToPublish,
+                    subdomain: subdomain,
+                    project_timestamp: timestamp
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.detail || 'Failed to publish to Sitee subdomain.');
+
+            const publishInfo = container.querySelector('.publish-info');
+            const publishBtnEl = container.querySelector('.publish-btn');
+            const updateBtnEl = container.querySelector('.update-btn');
+
+            displayPublishInfo(publishInfo, result.url, publishBtnEl, updateBtnEl, container);
+
+
+
+            showNotification('Published successfully! Link copied.', 'success');
+            navigator.clipboard.writeText(result.url);
+            publishModal.style.display = 'none';
+
+        } catch (error) {
+            siteePublishStatus.textContent = `Error: ${error.message}`;
+            siteePublishStatus.className = 'publish-status taken';
+        } finally {
+            siteePublishConfirmBtn.textContent = 'Publish';
+            // The button will be re-enabled or disabled by the input listener
+        }
+    };
+
+    // --- END: SITE SUBDOMAIN PUBLISH LOGIC ---
+    // Modal Close/Cancel Buttons
+    // --- FIX: Modal Stuck Issue ---
+    modalConfirmBtn.addEventListener('click', async () => {
+        try {
+            // Execute the specific action (delete, publish, etc.)
+            if (currentConfirmCallback) {
+                await currentConfirmCallback(); // Await ensures we catch async errors too
             }
-
-            siteePublishConfirmBtn.textContent = 'Publishing...';
-            siteePublishConfirmBtn.disabled = true;
-            const htmlToPublish = getCleanIframeHtml(iframe);
-
-            try {
-                const response = await fetch(`${backendUrl}/publish-sitee`, {
-                    method: 'POST',
-                    headers: await getAuthHeaders(),
-                    body: JSON.stringify({
-                        html_content: htmlToPublish,
-                        subdomain: subdomain,
-                        project_timestamp: timestamp
-                    })
-                });
-
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.detail || 'Failed to publish to Sitee subdomain.');
-
-                const publishInfo = container.querySelector('.publish-info');
-                const publishBtnEl = container.querySelector('.publish-btn');
-                const updateBtnEl = container.querySelector('.update-btn');
-
-                displayPublishInfo(publishInfo, result.url, publishBtnEl, updateBtnEl, container);
-
-                showNotification('Published successfully! Link copied.', 'success');
-                navigator.clipboard.writeText(result.url);
-                publishModal.style.display = 'none';
-
-            } catch (error) {
-                siteePublishStatus.textContent = `Error: ${error.message}`;
-                siteePublishStatus.className = 'publish-status taken';
-            } finally {
-                siteePublishConfirmBtn.textContent = 'Publish';
-                // The button will be re-enabled or disabled by the input listener
-            }
-        };
-    }
-
-    if (selectNetlifyBtn) selectNetlifyBtn.onclick = showNetlifyView;
-
-    document.querySelectorAll('.publish-back-btn').forEach(btn => {
-        if (btn) btn.onclick = showChoiceView;
+        } catch (error) {
+            console.error("Error during confirmation action:", error);
+            showNotification("An error occurred, but the action may have completed.", "error");
+        } finally {
+            // This ALWAYS runs, ensuring the popup closes no matter what
+            hideConfirmationModal();
+        }
     });
 
-    if (closePublishModalBtn) {
-        closePublishModalBtn.onclick = () => {
-            publishModal.style.display = 'none';
-        };
-    }
+    modalCancelBtn.addEventListener('click', hideConfirmationModal);
+    closeFeedbackModalBtn.addEventListener('click', () => { feedbackModal.style.display = 'none'; });
+    // --- START: MISSING FEEDBACK FORM SUBMISSION HANDLER ---
 
-    if (publishCancelBtn) {
-        publishCancelBtn.onclick = () => {
-            publishModal.style.display = 'none';
-        };
-    }
+    feedbackForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const feedbackText = feedbackTextarea.value.trim();
+        const originalMessage = feedbackModal.dataset.messageContent || 'N/A';
 
-    // The missing submission handler for the Netlify form
-    if (netlifyPublishForm) {
-        netlifyPublishForm.onsubmit = async (event) => {
-            event.preventDefault();
-
-            // Use the stored timestamp to find the correct container and iframe
-            const timestamp = publishModal.dataset.currentTimestamp;
-            const container = document.querySelector(`.site-container[data-timestamp="${timestamp}"]`);
-            const iframe = container ? container.querySelector('iframe') : null;
-            const projectName = netlifyProjectNameInput.value.trim();
-
-            // This check will now pass
-            if (!projectName || !iframe || !container) {
-                netlifyPublishError.textContent = "Could not find the project to publish.";
-                return;
-            }
-
-            netlifyPublishConfirmBtn.textContent = 'Publishing...';
-            netlifyPublishConfirmBtn.disabled = true;
-            netlifyPublishError.textContent = '';
-
-            const htmlToPublish = getCleanIframeHtml(iframe);
+        if (feedbackText) {
+            // Get the submit button and show a loading state
+            const submitBtn = document.getElementById('submit-feedback-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.disabled = true;
 
             try {
-                const response = await fetch(`${backendUrl}/users/${currentUser.id}/projects/${container.dataset.timestamp}/publish`, {
-                    method: 'POST',
-                    headers: await getAuthHeaders(),
-                    body: JSON.stringify({
-                        html_content: htmlToPublish,
-                        project_name: projectName
-                    })
-                });
-
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.detail || 'Failed to publish.');
-
-                const publishInfo = container.querySelector('.publish-info');
-                const publishBtnEl = container.querySelector('.publish-btn');
-                const updateBtnEl = container.querySelector('.update-btn');
-
-                container.dataset.projectName = projectName;
-                displayPublishInfo(publishInfo, result.url, publishBtnEl, updateBtnEl);
-
-                showNotification('Published to Netlify! Link copied.', 'success');
-                navigator.clipboard.writeText(result.url);
-                publishModal.style.display = 'none';
-
+                await saveFeedbackToFirebase(feedbackText, originalMessage);
+                feedbackTextarea.value = ''; // Clear the textarea
+                feedbackModal.style.display = 'none'; // Close the modal
             } catch (error) {
-                netlifyPublishError.textContent = error.message;
+                // Error is already handled in saveFeedbackToFirebase, but we can log it here too
+                console.error("Submission failed:", error);
             } finally {
-                netlifyPublishConfirmBtn.textContent = 'Publish';
-                netlifyPublishConfirmBtn.disabled = false;
+                // Restore button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
             }
-        };
-    }
-    
+        } else {
+            showNotification('Please enter your feedback before submitting.', 'error');
+        }
+    });
+
+    // --- END: MISSING FEEDBACK FORM SUBMISSION HANDLER ---
+    feedbackModal.addEventListener('click', (e) => { if (e.target === feedbackModal) { feedbackModal.style.display = 'none'; } });
+    closeSuggestionModalBtn.addEventListener('click', () => { suggestionModal.style.display = 'none'; });
+    suggestionModal.addEventListener('click', (e) => { if (e.target === suggestionModal) { suggestionModal.style.display = 'none'; } });
+    closeDownloadModalBtn.addEventListener('click', () => downloadModal.style.display = 'none');
+    downloadCancelBtn.addEventListener('click', () => downloadModal.style.display = 'none');
+    // Near the bottom of your <script type="module">, REPLACE the closeEditorBtn listener
+
+    closeEditorBtn.addEventListener('click', () => {
+        codeEditorModal.classList.remove('open');
+
+        // --- NEW: STOP LISTENING FOR LIVE CHANGES ---
+        codeEditorContent.removeEventListener('input', debouncedCodeEditorUpdate);
+
+        // Final save just in case
+        const updatedHtmlFromEditor = codeEditorContent.textContent;
+        if (currentEditingProjectTimestamp && updatedHtmlFromEditor) {
+            updateProjectCode(currentEditingProjectTimestamp, updatedHtmlFromEditor);
+            currentCodeCache.html = updatedHtmlFromEditor;
+        }
+    });
+
+    // **FIX 3: Download Button Functionality**
+    downloadCodeBtn.addEventListener('click', () => {
+        const project = currentUser.projects.find(p => p.timestamp === currentEditingProjectTimestamp);
+        filenameInput.value = project ? project.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'my_sitee_project';
+        downloadModal.style.display = 'flex';
+    });
+
+    downloadForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const format = fileFormatSelect.value;
+        const filename = filenameInput.value || 'download';
+        const content = format === 'jsx' ? currentCodeCache.react : currentCodeCache.html;
+        const mimeType = format === 'jsx' ? 'text/jsx' : 'text/html';
+
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        downloadModal.style.display = 'none';
+    });
+
+    // Visual Editor Toolbar Listeners
+    document.getElementById('text-color-picker').addEventListener('input', (e) => {
+        applyStyle('color', e.target.value);
+        e.target.parentElement.style.backgroundColor = e.target.value; // This updates the swatch
+    });
+    document.getElementById('bg-color-picker').addEventListener('input', (e) => {
+        applyStyle('backgroundColor', e.target.value);
+        e.target.parentElement.style.backgroundColor = e.target.value; // This updates the swatch
+    });
+    document.getElementById('font-size-increase').addEventListener('click', () => changeFontSize(1));
+    document.getElementById('font-size-decrease').addEventListener('click', () => changeFontSize(-1));
+    document.getElementById('font-bold-btn').addEventListener('click', toggleBold);
+    document.getElementById('font-italic-btn').addEventListener('click', toggleItalic);
+    document.getElementById('font-underline-btn').addEventListener('click', toggleUnderline);
+    document.getElementById('align-left-btn').addEventListener('click', () => applyTextAlign('left'));
+    document.getElementById('align-center-btn').addEventListener('click', () => applyTextAlign('center'));
+    document.getElementById('align-right-btn').addEventListener('click', () => applyTextAlign('right'));
+    document.getElementById('font-size-input').addEventListener('change', (e) => {
+        const newSize = parseInt(e.target.value);
+        if (!isNaN(newSize) && currentlySelectedElementInIframe) {
+            prepareToModifyElement();
+            currentlySelectedElementInIframe.style.fontSize = `${newSize}px`;
+            triggerVisualUpdateSave();
+        }
+    });
+    // REPLACE THE TWO LINES ABOVE WITH THIS BLOCK
+    undoBtn.addEventListener('click', () => {
+        if (currentlySelectedElementInIframe) {
+            const iframe = currentlySelectedElementInIframe.ownerDocument.defaultView.frameElement;
+            if (iframe) handleUndo(iframe);
+        }
+    });
+
+    redoBtn.addEventListener('click', () => {
+        if (currentlySelectedElementInIframe) {
+            const iframe = currentlySelectedElementInIframe.ownerDocument.defaultView.frameElement;
+            if (iframe) handleRedo(iframe);
+        }
+    });
+    deleteElementBtn.addEventListener('click', deleteSelectedElement);
+    // --- PUBLISH MODAL LOGIC ---
+
+    // Function to switch to the Netlify view
+    const showNetlifyView = () => {
+        if (publishChoiceView) publishChoiceView.style.display = 'none';
+        if (siteeDeployView) siteeDeployView.style.display = 'none';
+        if (netlifyDeployView) netlifyDeployView.style.display = 'block';
+        netlifyProjectNameInput.value = '';
+        netlifyPublishError.textContent = '';
+    };
+
+    // Function to switch back to the main choice view
+    const showChoiceView = () => {
+        if (publishChoiceView) publishChoiceView.style.display = 'block';
+        if (siteeDeployView) siteeDeployView.style.display = 'none';
+        if (netlifyDeployView) netlifyDeployView.style.display = 'none';
+    };
+
+    // Attach listeners to the buttons
+    selectNetlifyBtn.onclick = showNetlifyView;
+
+    document.querySelectorAll('.publish-back-btn').forEach(btn => {
+        btn.onclick = showChoiceView;
+    });
+
+    closePublishModalBtn.onclick = () => {
+        publishModal.style.display = 'none';
+    };
+
+    publishCancelBtn.onclick = () => {
+        publishModal.style.display = 'none';
+    };
+
+    // The missing submission handler for the Netlify form
+    netlifyPublishForm.onsubmit = async (event) => {
+        event.preventDefault();
+
+        // Use the stored timestamp to find the correct container and iframe
+        const timestamp = publishModal.dataset.currentTimestamp;
+        const container = document.querySelector(`.site-container[data-timestamp="${timestamp}"]`);
+        const iframe = container ? container.querySelector('iframe') : null;
+        const projectName = netlifyProjectNameInput.value.trim();
+
+        // This check will now pass
+        if (!projectName || !iframe || !container) {
+            netlifyPublishError.textContent = "Could not find the project to publish.";
+            return;
+        }
+
+        netlifyPublishConfirmBtn.textContent = 'Publishing...';
+        netlifyPublishConfirmBtn.disabled = true;
+        netlifyPublishError.textContent = '';
+
+        const htmlToPublish = getCleanIframeHtml(iframe);
+
+        try {
+            const response = await fetch(`${backendUrl}/users/${currentUser.id}/projects/${container.dataset.timestamp}/publish`, {
+                method: 'POST',
+                headers: await getAuthHeaders(),
+                body: JSON.stringify({
+                    html_content: htmlToPublish,
+                    project_name: projectName
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.detail || 'Failed to publish.');
+
+            const publishInfo = container.querySelector('.publish-info');
+            const publishBtnEl = container.querySelector('.publish-btn');
+            const updateBtnEl = container.querySelector('.update-btn');
+
+            container.dataset.projectName = projectName;
+            displayPublishInfo(publishInfo, result.url, publishBtnEl, updateBtnEl);
+
+            showNotification('Published to Netlify! Link copied.', 'success');
+            navigator.clipboard.writeText(result.url);
+            publishModal.style.display = 'none';
+
+        } catch (error) {
+            netlifyPublishError.textContent = error.message;
+        } finally {
+            netlifyPublishConfirmBtn.textContent = 'Publish';
+            netlifyPublishConfirmBtn.disabled = false;
+        }
+    };
     btnStyleFilled.addEventListener('click', () => {
         if (currentlySelectedElementInIframe && currentlySelectedElementInIframe.classList.contains('btn-sitee')) {
             prepareToModifyElement();
