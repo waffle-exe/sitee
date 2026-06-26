@@ -265,8 +265,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
         }
     except Exception as e:
         print(f"Fireworks Failed: {e}")
-
-    raise HTTPException(status_code=503, detail="Generation failed or timed out. Please try a more specific prompt.")
+        raise HTTPException(status_code=503, detail=f"Generation failed. Last error: {str(e)}")
 
 
 # ---------------- API ENDPOINTS ----------------
