@@ -234,7 +234,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
             model="gemini-3-flash-preview",
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.95,
+            temperature=0.2,
             timeout=140.0  # Fast fail
         )
         return {
