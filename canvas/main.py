@@ -206,62 +206,45 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     user_data["projects"] = combined_projects
     return user_data
 
-from typing import List, Optional
-from fastapi import HTTPException
 
 async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
     system_instruction = f"""
-You are an expert UX/UI Frontend Developer specializing in minimalist, brutalist, and modern academic design. Your ONLY task is to output a single, complete, production-ready {target_lang.upper()} file containing HTML, CSS, and JS.
+    You are an elite, top-tier web developer and UX/UI designer. 
+    Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code.
 
-CRITICAL DESIGN DIRECTIVES:
-1. PREMIUM AESTHETICS: Avoid "cheap" default looks and emojis. Use generous padding (p-8, p-12), high-contrast text (text-zinc-900 vs text-zinc-500), and sharp, intentional typography.
-2. MODERN TAILWIND: Rely on sleek Tailwind utility combinations. Use `tracking-tight`, `antialiased`, subtle borders (`border border-zinc-200`), and minimalist shadows (`shadow-sm` or hard shadows for a brutalist feel). Avoid heavy gradients or dated CSS styling.
-3. FULL PAGE STRUCTURE: You MUST generate a complete, multi-section website including a functional Navigation Bar, Hero Section, Main Content Area, and Footer. 
-4. NO LAZINESS: Do NOT output placeholder screens. Build the actual UI with realistic dummy text and placeholder images from Unsplash.
-5. ALL-IN-ONE-FILE: Output RAW, executable text from the first character to the last. No markdown blocks (e.g., no ```html). No <think> tags.
-"""
+    CRITICAL DIRECTIVES (YOU MUST FOLLOW THESE OR FAIL):
+    0. NO LAZINESS & NO PLACEHOLDERS: You MUST generate the ENTIRE website. Do NOT stop after the header. Do NOT use comments like "" or "/* Continue CSS */". Write every single line of code, including full body sections (Hero, Features, Testimonials, Footer, etc.) with dummy text/images if needed.
+    1. ZERO EXPLANATIONS: Absolutely NO markdown commentary, introductory/concluding remarks, or conversational text.
+    2. STRICTLY NO THINKING: Do NOT generate <think> tags, chain-of-thought, or internal reasoning. Begin the output directly with the code.
+    3. ALL-IN-ONE-FILE: You MUST combine all HTML, CSS, and JavaScript into ONE single file. Place CSS inside <style> tags and JavaScript inside <script> tags right before the closing </body> tag.
+    4. NO CODE BLOCKS: Do NOT wrap the code inside markdown code blocks (e.g., DO NOT write ```html). Output completely RAW, executable plain text.
+    5. PREMIUM DESIGN: Construct highly polished, elegant, and modern user interfaces using the Tailwind CSS CDN (<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>) or native advanced CSS. Ensure Z-index is correct, mobile responsiveness is perfect, and JS functions flawlessly without errors.
+    6. If you output a single word of text outside the executable codebase, or if you truncate the code, the parsing engine will crash. Output the full DOM.
+    """
 
     messages_ai = [{"role": "system", "content": system_instruction}]
-    
-    # 1. Dynamically select the model and format the payload based on image presence
     if images:
-        # NOTE: Double check your Bluesminds dashboard models tab for the exact string.
-        # If 'gemini-3.1-flash-lite-preview' throws an error, try 'gemini-1.5-flash' or 'gemini-2.5-flash'
-        target_model = "gemini-3.1-flash-lite-preview"
-        
         content = [{"type": "text", "text": prompt}]
         for b64_img in images:
-            if "," in b64_img: 
-                b64_img = b64_img.split(",")[1]
-            content.append({
-                "type": "image_url", 
-                "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}
-            })
+            if "," in b64_img: b64_img = b64_img.split(",")[1]
+            content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}})
         messages_ai.append({"role": "user", "content": content})
     else:
-        target_model = "deepseek-v4-flash"
         messages_ai.append({"role": "user", "content": prompt})
 
     bluesminds_error = None
+    fireworks_error = None
 
-    # 2. Primary Execution Block: Bluesminds
+    # 1. Primary: Bluesminds
     try:
-        print(f"Attempting generation with Bluesminds API using model: {target_model}...")
+        print("Attempting generation with Bluesminds API...")
         response = await client_bluesminds.chat.completions.create(
-            model=target_model,
+            model="deepseek-v4-flash",  # Matches the identifier in your screenshot
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.15,
+            temperature=0.2,
             timeout=180.0
         )
-        
-        # Explicit check for valid response structure
-        if response is None:
-            raise ValueError("Received None from Bluesminds API server.")
-            
-        if not hasattr(response, 'choices') or not response.choices:
-            raise ValueError(f"API response missing 'choices' attribute. Response object: {str(response)}")
-
         print("Bluesminds successful!")
         return {
             "html": clean_ai_html(response.choices[0].message.content),
@@ -269,11 +252,24 @@ CRITICAL DESIGN DIRECTIVES:
         }
     except Exception as e:
         bluesminds_error = str(e)
-        print(f"Bluesminds Failed using {target_model}: {bluesminds_error}")
+        print(f"Bluesminds Failed: {bluesminds_error}. Falling back to Fireworks...")
     
-    # 3. Clean Failure Handling
-    error_message = f"Bluesminds Generation Failed ({target_model}). Reason: {bluesminds_error}"
+    # 2. Secondary: Fireworks
+    # 2. Secondary: Fireworks (DISABLED)
+    # try:
+    #     print("Attempting generation with Fireworks API...")
+    #     response = await client_fireworks.chat.completions.create(...)
+    #     return {...}
+    # except Exception as e:
+    #     fireworks_error = str(e)
+    #     print(f"Fireworks Failed: {fireworks_error}")
+
+    # Just raise the Bluesminds error directly if it fails
+
+    # Pass the actual errors back to the frontend so you can see exactly why Bluesminds failed
+    error_message = f"Bluesminds Error: {bluesminds_error} | Fireworks Error: {fireworks_error}"
     raise HTTPException(status_code=503, detail=error_message)
+
 
 # ---------------- API ENDPOINTS ----------------
 
