@@ -240,7 +240,7 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
             model="gemini-3-flash-preview",
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.7,  # Increased slightly to allow for creative design choices
+            temperature=0.2,  # Increased slightly to allow for creative design choices
             timeout=140.0
         )
         return {
