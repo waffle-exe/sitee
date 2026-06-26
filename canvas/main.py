@@ -240,9 +240,9 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
         response = await client_bluesminds.chat.completions.create(
             model="deepseek-v4-flash",  # Matches the identifier in your screenshot
             messages=messages_ai,
-            max_tokens=8000,
+            max_tokens=4000,
             temperature=0.2,
-            timeout=140.0
+            timeout=180.0
         )
         print("Bluesminds successful!")
         return {
@@ -254,23 +254,16 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
         print(f"Bluesminds Failed: {bluesminds_error}. Falling back to Fireworks...")
     
     # 2. Secondary: Fireworks
-    try:
-        print("Attempting generation with Fireworks API...")
-        response = await client_fireworks.chat.completions.create(
-            model="accounts/fireworks/models/kimi-k2p7-code", 
-            messages=messages_ai, 
-            max_tokens=8000,
-            temperature=0.2,
-            timeout=120.0
-        )
-        print("Fireworks successful!")
-        return {
-            "html": clean_ai_html(response.choices[0].message.content),
-            "tokens": response.usage.total_tokens if response.usage else 0
-        }
-    except Exception as e:
-        fireworks_error = str(e)
-        print(f"Fireworks Failed: {fireworks_error}")
+    # 2. Secondary: Fireworks (DISABLED)
+    # try:
+    #     print("Attempting generation with Fireworks API...")
+    #     response = await client_fireworks.chat.completions.create(...)
+    #     return {...}
+    # except Exception as e:
+    #     fireworks_error = str(e)
+    #     print(f"Fireworks Failed: {fireworks_error}")
+
+    # Just raise the Bluesminds error directly if it fails
 
     # Pass the actual errors back to the frontend so you can see exactly why Bluesminds failed
     error_message = f"Bluesminds Error: {bluesminds_error} | Fireworks Error: {fireworks_error}"
