@@ -239,10 +239,10 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     try:
         print("Attempting generation with Bluesminds API...")
         response = await client_bluesminds.chat.completions.create(
-            model="deepseek-v4-flash",  # Matches the identifier in your screenshot
+            model="gemini-3.1-pro-preview",  # Matches the identifier in your screenshot
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.2,
+            temperature=0.65,
             timeout=180.0
         )
         print("Bluesminds successful!")
