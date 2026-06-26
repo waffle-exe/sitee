@@ -206,7 +206,6 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     user_data["projects"] = combined_projects
     return user_data
 
-
 async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
     system_instruction = f"""
 You are an expert UX/UI Frontend Developer specializing in minimalist, brutalist, and modern academic design. Your ONLY task is to output a single, complete, production-ready {target_lang.upper()} file containing HTML, CSS, and JS.
@@ -246,9 +245,14 @@ CRITICAL DESIGN DIRECTIVES:
             model=target_model,
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.15,  # Low temperature keeps generation crisp, precise, and structurally sound
+            temperature=0.15,
             timeout=180.0
         )
+        
+        # SAFETY CHECK: If the server returned None or empty choices, force it to the except block
+        if not response or not hasattr(response, 'choices') or not response.choices:
+            raise ValueError("The API returned an empty or invalid response object (None).")
+
         print("Bluesminds successful!")
         return {
             "html": clean_ai_html(response.choices[0].message.content),
@@ -258,8 +262,8 @@ CRITICAL DESIGN DIRECTIVES:
         bluesminds_error = str(e)
         print(f"Bluesminds Failed using {target_model}: {bluesminds_error}")
     
-    # 3. Clean Failure Handling (Fireworks Fallback Disabled)
-    error_message = f"Bluesminds Generation Failed ({target_model}). Error: {bluesminds_error}"
+    # 3. Clean Failure Handling
+    error_message = f"Bluesminds Generation Failed ({target_model}). Reason: {bluesminds_error}"
     raise HTTPException(status_code=503, detail=error_message)
 
 # ---------------- API ENDPOINTS ----------------
