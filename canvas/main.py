@@ -76,14 +76,18 @@ except Exception as e:
     import sys
     sys.exit(1)
 
-# Initialize AI Client (Bluesminds ONLY)
+# Initialize AI Clients
 client_bluesminds = openai.AsyncOpenAI(
     api_key=os.getenv("BLUESMINDS_API_KEY") or "MISSING_KEY",
     base_url="https://api.bluesminds.com/v1",
     max_retries=0
 )
 
-# Fireworks AI has been removed entirely as requested.
+client_fireworks = openai.AsyncOpenAI(
+    api_key=os.getenv("FIREWORKS_API_KEY") or "MISSING_KEY",
+    base_url="https://api.fireworks.ai/inference/v1",
+    max_retries=0
+)
 
 # Vercel Config
 VERCEL_TOKEN = os.getenv("VERCEL_ACCESS_TOKEN")
@@ -137,10 +141,6 @@ async def get_current_user(
         )
     
 def clean_ai_html(raw_html: str) -> str:
-    # BUG FIX: Handle cases where the AI returns None
-    if not raw_html:
-        return ""
-        
     clean = raw_html.strip()
     clean = re.sub(r"^```[a-zA-Z]*\s*\n", "", clean, flags=re.IGNORECASE)
     clean = re.sub(r"\n?\s*```$", "", clean)
@@ -206,7 +206,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
     user_data["projects"] = combined_projects
     return user_data
 
-async def generate_with_bluesminds(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
+async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
     system_instruction = f"""
     You are an elite UX/UI Frontend Developer. Your ONLY task is to output a single, complete, production-ready {target_lang.upper()} file containing HTML, CSS, and JS.
 
@@ -231,30 +231,51 @@ async def generate_with_bluesminds(prompt: str, images: Optional[List[str]] = No
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
+    bluesminds_error = None
+    fireworks_error = None
+
+    # 1. Primary: Bluesminds
     try:
         print("Attempting generation with Bluesminds API...")
         response = await client_bluesminds.chat.completions.create(
-            model="gemini-3-flash-preview", 
+            model="kimi-k2.5",
             messages=messages_ai,
             max_tokens=8000,
             temperature=0.2,
             timeout=140.0
         )
-        print("Bluesminds generation finished.")
-        
-        # Guard against NoneType returns from the API proxy
-        raw_content = response.choices[0].message.content
-        if not raw_content:
-            raise ValueError("Bluesminds returned an empty object. The proxy may have blocked the request.")
-
+        print("Bluesminds successful!")
         return {
-            "html": clean_ai_html(raw_content),
-            "tokens": response.usage.total_tokens if hasattr(response, 'usage') and response.usage else 0
+            "html": clean_ai_html(response.choices[0].message.content),
+            "tokens": response.usage.total_tokens if response.usage else 0
         }
     except Exception as e:
-        error_msg = f"Bluesminds Error: {str(e)}"
-        print(error_msg)
-        raise HTTPException(status_code=503, detail=error_msg)
+        bluesminds_error = str(e)
+        print(f"Bluesminds Failed: {bluesminds_error}. Falling back to Fireworks...")
+    
+    # 2. Secondary: Fireworks
+    try:
+        print("Attempting generation with Fireworks API...")
+        response = await client_fireworks.chat.completions.create(
+            model="accounts/fireworks/models/kimi-k2p7-code", 
+            messages=messages_ai, 
+            max_tokens=8000,
+            temperature=0.2,
+            timeout=120.0
+        )
+        print("Fireworks successful!")
+        return {
+            "html": clean_ai_html(response.choices[0].message.content),
+            "tokens": response.usage.total_tokens if response.usage else 0
+        }
+    except Exception as e:
+        fireworks_error = str(e)
+        print(f"Fireworks Failed: {fireworks_error}")
+
+    # Pass the actual errors back to the frontend so you can see exactly why Bluesminds failed
+    error_message = f"Bluesminds Error: {bluesminds_error} | Fireworks Error: {fireworks_error}"
+    raise HTTPException(status_code=503, detail=error_message)
+
 
 # ---------------- API ENDPOINTS ----------------
 
@@ -316,7 +337,7 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     TOKEN_COST_RATE = 0.00106
     
     try:
-        result = await generate_with_bluesminds(
+        result = await generate_with_fallback(
             prompt=req.prompt, 
             images=req.image_data, 
             target_lang=req.target_language
@@ -343,7 +364,7 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
             "user_profile": get_user_profile(uid) 
         }
     except Exception as e:
-        # Re-raise the exact exception so the 503 from generate bubbles up
+        # Re-raise the exact exception so the 503 from generate_with_fallback bubbles up to the user
         raise e
     
 # --- Projects Management ---
