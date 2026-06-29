@@ -505,7 +505,6 @@ function openDashboardModal() {
     setTimeout(() => dashboardModal.classList.add('active'), 10);
 }
 
-
 function populateDashboard() {
     if (!currentUser || !auth.currentUser) {
         dashboardContent.innerHTML = '<p>Could not load user data. Please log in again.</p>';
@@ -517,29 +516,24 @@ function populateDashboard() {
     const validity = currentUser.plan_validity ? new Date(currentUser.plan_validity).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A';
     const credits = currentUser.credits ?? 'N/A';
 
-    // --- START: MODIFIED LOGIC FOR DYNAMIC UNITS ---
+    // --- LOGIC FOR DYNAMIC STORAGE UNITS ---
     const storageUsedMB = currentUser.storage_used_mb || 0;
     let totalMB = 0;
     let usedText = '';
     let totalText = '';
 
-    // Set storage limits based on the new plans
     if (plan.includes('creator')) {
         totalMB = 500; // 500 MB
     } else if (plan.includes('pro')) {
         totalMB = 2 * 1024; // 2 GB
     }
 
-    // Conditionally display MB or GB based on usage
     if (storageUsedMB < 1024) {
-        // If less than 1 GB used, show in MB
         usedText = `${storageUsedMB.toFixed(2)} MB used`;
     } else {
-        // If 1 GB or more is used, show in GB
         usedText = `${(storageUsedMB / 1024).toFixed(2)} GB used`;
     }
 
-    // Format total text nicely
     if (totalMB < 1024) {
         totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
     } else {
@@ -560,9 +554,9 @@ function populateDashboard() {
         </div>
     ` : 'N/A';
 
+    // --- Conditional row item for Credits vs Generations ---
     let allowanceRow = '';
     if (plan === 'free') {
-        // Use the lifetime counter from the backend
         const generationsUsed = currentUser.free_generations_used || 0;
         const generationsLeft = Math.max(0, 2 - generationsUsed);
         allowanceRow = `
@@ -578,7 +572,41 @@ function populateDashboard() {
         </div>`;
     }
 
-    // Render the final HTML inside the modal
+    // --- NEW: PUBLISHED SITES LOGIC ---
+    let publishLimit = 1; // Default to free
+    if (plan.includes('creator')) {
+        publishLimit = 7;
+    } else if (plan.includes('pro')) {
+        publishLimit = 20;
+    } else if (plan.includes('custom')) {
+        publishLimit = 9999;
+    }
+
+    // Filter projects to only those with a live published_url
+    const publishedProjects = currentUser.projects ? currentUser.projects.filter(p => p.published_url) : [];
+    const publishedCount = publishedProjects.length;
+    const publishesLeft = Math.max(0, publishLimit - publishedCount);
+
+    let publishedSitesHTML = '';
+    if (publishedCount === 0) {
+        publishedSitesHTML = `<p style="color: var(--text-muted-color); font-size: 0.85rem; padding: 10px 0;">No sites published yet.</p>`;
+    } else {
+        publishedSitesHTML = `<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 200px; overflow-y: auto; padding-right: 5px;" class="hide-scrollbar">`;
+        publishedProjects.forEach(p => {
+            publishedSitesHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; flex-direction: column; gap: 4px; overflow: hidden;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name || 'Untitled Project'}</span>
+                        <a href="${p.published_url}" target="_blank" style="color: var(--accent-color); text-decoration: none; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.published_url.replace('https://', '')}</a>
+                    </div>
+                    <button class="dash-unpublish-btn" data-timestamp="${p.timestamp}" style="background: rgba(255,0,0,0.1); border: 1px solid var(--error-color); color: var(--error-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; flex-shrink: 0; margin-left: 10px;">Unpublish</button>
+                </div>
+            `;
+        });
+        publishedSitesHTML += `</div>`;
+    }
+
+    // --- RENDER HTML INSIDE MODAL ---
     dashboardContent.innerHTML = `
         <div class="detail-item">
             <span class="detail-label">Email:</span>
@@ -597,7 +625,26 @@ function populateDashboard() {
             <span class="detail-label">Plan Validity:</span>
             <span class="detail-value">${validity}</span>
         </div>
+
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: white;">Published Sites</h3>
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-color); background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 20px;">
+                    ${publishesLeft} / ${publishLimit === 9999 ? 'Unlimited' : publishLimit} Left
+                </span>
+            </div>
+            ${publishedSitesHTML}
+        </div>
     `;
+
+    // Attach listeners for the unpublish buttons
+    dashboardContent.querySelectorAll('.dash-unpublish-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const timestamp = e.target.dataset.timestamp;
+            closeAllModals(); // Close the dashboard to see the confirmation modal
+            setTimeout(() => handleUnpublishClick(timestamp), 300); // Give the modal transition a chance to hide
+        });
+    });
 
     // --- FIREBASE CONFIGURATION UI UPDATES ---
     const fbForm = document.getElementById('firebase-config-form');
@@ -606,7 +653,6 @@ function populateDashboard() {
     const disconnectFbBtn = document.getElementById('disconnect-firebase-btn');
 
     if (currentUser && currentUser.custom_firebase_config && currentUser.custom_firebase_config.apiKey) {
-        // Fill in the form fields with existing data
         document.getElementById('fb-apiKey').value = currentUser.custom_firebase_config.apiKey || '';
         document.getElementById('fb-authDomain').value = currentUser.custom_firebase_config.authDomain || '';
         document.getElementById('fb-databaseURL').value = currentUser.custom_firebase_config.databaseURL || '';
@@ -615,7 +661,6 @@ function populateDashboard() {
         document.getElementById('fb-messagingSenderId').value = currentUser.custom_firebase_config.messagingSenderId || '';
         document.getElementById('fb-appId').value = currentUser.custom_firebase_config.appId || '';
 
-        // Update the UI states
         if (fbStatusBadge) {
             fbStatusBadge.innerHTML = 'Status: Connected';
             fbStatusBadge.style.color = '#4ADE80';
@@ -623,7 +668,6 @@ function populateDashboard() {
         if (saveFbBtn) saveFbBtn.style.display = 'none';
         if (disconnectFbBtn) disconnectFbBtn.style.display = 'block';
     } else {
-        // Ensure clear state if not connected
         if (fbForm) fbForm.reset();
         if (fbStatusBadge) {
             fbStatusBadge.innerHTML = 'Status: Not Connected';
@@ -1755,7 +1799,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
         // ENFORCE: Block publishing if they hit their tier's limit
         if (publishedCount >= publishLimit) {
             showConfirmationModal(
-                'Publish Limit Reached 🚀',
+                'Publish Limit Reached',
                 `Your current plan is limited to ${publishLimit} live published website(s). Unpublish an existing site or upgrade your plan to launch more!`,
                 () => {
                     window.location.href = 'https://www.sitee.in/#plans';
