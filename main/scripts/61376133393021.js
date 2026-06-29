@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <p class="description">For non-coders and business owners who need a live website.</p>
         <ul class="plan-features">
             ${creatorSavingsLine}
-            <li>${checkIcon} 300 AI Credits per month</li>
+            <li>${checkIcon} 250 AI Credits per month</li>
             <li>${checkIcon} Visual Editor</li>
             <li>${checkIcon} Live Code Editor</li>
             <li>${checkIcon} Get Full Source Code</li>
