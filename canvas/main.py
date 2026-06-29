@@ -153,7 +153,8 @@ def get_user_profile(uid: str, email: str = "") -> dict:
             "subscriptionTier": "free",
             "plan_validity": None,  
             "storage_used_mb": 0.0,
-            "projects": []
+            "projects": [],
+            "free_generations_used": 0 # NEW: Lifetime counter
         }
         user_ref.set(user_data)
     else:
@@ -198,6 +199,13 @@ def get_user_profile(uid: str, email: str = "") -> dict:
             
     combined_projects.sort(key=lambda x: int(x.get("timestamp", 0)), reverse=True)
     user_data["projects"] = combined_projects
+    
+    # NEW: Safety check for old accounts. If they don't have the counter, set it based on current projects
+    if "free_generations_used" not in user_data:
+        active_projects = [p for p in combined_projects if p.get('name') != CHAT_HISTORY_PROJECT_NAME]
+        user_data["free_generations_used"] = len(active_projects)
+        user_ref.update({"free_generations_used": len(active_projects)})
+        
     return user_data
 
 
@@ -299,9 +307,10 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     user_data = get_user_profile(uid) 
     plan = user_data.get('subscriptionTier', 'free').lower()
     
+    # NEW: Check against the lifetime counter instead of the project array
     if plan == 'free':
-        active_projects = [p for p in user_data.get('projects', []) if p.get('name') != CHAT_HISTORY_PROJECT_NAME]
-        if len(active_projects) >= 2:
+        free_used = user_data.get('free_generations_used', 0)
+        if free_used >= 2:
             raise HTTPException(status_code=402, detail="Maximum limit of 2 generations reached for Free Plan.")
     
     TOKEN_COST_RATE = 0.00106
@@ -325,16 +334,19 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
         else:
             credits_to_deduct = 0
             credits_remaining = user_data.get('credits', 0)
+            # NEW: Permanently increment the free tier counter so it can't be bypassed by deleting
+            user_ref.update({"free_generations_used": firestore.Increment(1)})
             
         return {
             "html": result.get("html"),
             "tokens_used": total_tokens,
             "credits_deducted": credits_to_deduct,
             "credits_remaining": credits_remaining,
-            "user_profile": get_user_profile(uid) 
+            "user_profile": get_user_profile(uid) # Fetches updated data including the counter
         }
     except Exception as e:
         raise e
+    
     
 # --- Projects Management ---
 @app.post("/users/{user_id}/projects")
