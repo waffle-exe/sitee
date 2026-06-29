@@ -3,9 +3,8 @@ import re
 import asyncio
 import base64
 from typing import List, Optional
-from datetime import datetime, timezone, timedelta
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Body, Request
-from fastapi.responses import HTMLResponse
+
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -26,12 +25,13 @@ else:
 
 # AI SDKs
 import openai
+import google.generativeai as genai
 
 # Firebase Admin
 import firebase_admin
 from firebase_admin import credentials, auth, firestore, storage
 
-app = FastAPI(title="Sitee AI Backend", version="6.1.0")
+app = FastAPI(title="Sitee AI Backend", version="6.0.8")
 
 app.add_middleware(
     CORSMiddleware,
@@ -53,7 +53,7 @@ try:
     cred_path = os.path.join(BASE_DIR, "firebase-service-account.json")
 
     if os.path.exists(cred_path):
-        print("Successfully loaded Firebase Service Account key.")
+        print("✅ Successfully loaded Firebase Service Account key.")
         cred = credentials.Certificate(cred_path)
     else:
         raise FileNotFoundError(f"Could not find the file at: {cred_path}")
@@ -68,7 +68,7 @@ try:
     
 except Exception as e:
     print("\n" + "!"*75)
-    print("CRITICAL ERROR: Firebase Admin initialization failed!")
+    print("🔥 CRITICAL ERROR: Firebase Admin initialization failed! 🔥")
     print("!"*75)
     print(f"Error Details: {str(e)}")
     print("\nPlease make sure 'firebase-service-account.json' is inside the 'canvas' folder.")
@@ -77,16 +77,16 @@ except Exception as e:
     sys.exit(1)
 
 # Initialize AI Clients
-client_bluesminds = openai.AsyncOpenAI(
-    api_key=os.getenv("BLUESMINDS_API_KEY") or "MISSING_KEY",
-    base_url="https://api.bluesminds.com/v1",
-    max_retries=0
-)
-
 client_fireworks = openai.AsyncOpenAI(
     api_key=os.getenv("FIREWORKS_API_KEY") or "MISSING_KEY",
-    base_url="https://api.fireworks.ai/inference/v1",
-    max_retries=0
+    base_url="https://api.fireworks.ai/inference/v1"
+)
+
+genai.configure(api_key=os.getenv("GEMINI_API_KEY") or "MISSING_KEY")
+
+client_groq = openai.AsyncOpenAI(
+    api_key=os.getenv("GROQ_API_KEY") or "MISSING_KEY",
+    base_url="https://api.groq.com/openai/v1"
 )
 
 # Vercel Config
@@ -95,6 +95,7 @@ VERCEL_TEAM_ID = os.getenv("VERCEL_TEAM_ID")
 
 CHAT_HISTORY_PROJECT_NAME = "__chat_history__"
 security = HTTPBearer()
+
 
 # ---------------- PYDANTIC MODELS ----------------
 
@@ -107,20 +108,7 @@ class GenerateRequest(BaseModel):
     image_size_bytes: Optional[int] = None
     target_language: Optional[str] = "html"
     existing_html: Optional[str] = None
-    
-class UpgradeRequest(BaseModel):
-    plan_tier: str  # "creator" or "pro"
-    billing_cycle: str  # "monthly" or "yearly"
 
-class FirebaseConfigRequest(BaseModel):
-    apiKey: str
-    authDomain: str
-    databaseURL: Optional[str] = None  
-    projectId: str
-    storageBucket: str
-    messagingSenderId: str
-    appId: str
-    measurementId: Optional[str] = None  
 
 # ---------------- HELPER FUNCTIONS ----------------
 
@@ -128,22 +116,41 @@ async def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
     try:
+        print("AUTH STEP 1: Request received")
+
         token = creds.credentials
-        decoded_token = auth.verify_id_token(token, check_revoked=False)
+
+        print("AUTH STEP 2: Token extracted")
+        print(f"Token length: {len(token)}")
+
+        print("AUTH STEP 3: Starting Firebase verification")
+
+        decoded_token = auth.verify_id_token(
+            token,
+            check_revoked=False
+        )
+
+        print("AUTH STEP 4: Verification successful")
+        print(f"UID: {decoded_token.get('uid')}")
+
         return {
             "uid": decoded_token["uid"],
             "email": decoded_token.get("email", "")
         }
+
     except Exception as e:
+        print(f"AUTH ERROR: {repr(e)}")
         raise HTTPException(
             status_code=401,
             detail=f"Invalid or expired token: {str(e)}"
         )
     
+    
 def clean_ai_html(raw_html: str) -> str:
     clean = raw_html.strip()
     clean = re.sub(r"^```[a-zA-Z]*\s*\n", "", clean, flags=re.IGNORECASE)
     clean = re.sub(r"\n?\s*```$", "", clean)
+    # Strip stray thinking blocks just in case the AI ignored the system prompt
     clean = re.sub(r"<think>.*?</think>", "", clean, flags=re.DOTALL)
     return clean.strip()
 
@@ -157,7 +164,6 @@ def get_user_profile(uid: str, email: str = "") -> dict:
             "email": email,
             "credits": 10, 
             "subscriptionTier": "free",
-            "plan_validity": None,  
             "storage_used_mb": 0.0,
             "projects": []
         }
@@ -166,22 +172,6 @@ def get_user_profile(uid: str, email: str = "") -> dict:
         user_data = doc.to_dict()
         if "id" not in user_data:
             user_data["id"] = uid
-            
-        plan_validity_str = user_data.get("plan_validity")
-        if plan_validity_str:
-            try:
-                expiry_date = datetime.fromisoformat(plan_validity_str)
-                if datetime.now(timezone.utc) > expiry_date:
-                    user_data["subscriptionTier"] = "free"
-                    user_data["credits"] = 10  
-                    user_data["plan_validity"] = None
-                    user_ref.update({
-                        "subscriptionTier": "free",
-                        "credits": 10,
-                        "plan_validity": None
-                    })
-            except Exception as e:
-                pass
             
     existing_projects_array = user_data.get("projects", [])
     if not isinstance(existing_projects_array, list):
@@ -193,7 +183,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
         for proj_doc in projects_ref.stream():
             projects_subcol.append(proj_doc.to_dict())
     except Exception as e:
-        pass
+        print(f"Warning fetching projects subcollection: {e}")
         
     subcol_timestamps = {str(p.get("timestamp")) for p in projects_subcol}
     combined_projects = list(projects_subcol)
@@ -203,11 +193,13 @@ def get_user_profile(uid: str, email: str = "") -> dict:
             combined_projects.append(p)
             
     combined_projects.sort(key=lambda x: int(x.get("timestamp", 0)), reverse=True)
+    
     user_data["projects"] = combined_projects
     return user_data
 
 
-async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
+async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> tuple[str, str]:
+    # 🔥 UPGRADED PROMPT: Anti-laziness, strict completeness, and high-end design directives
     system_instruction = f"""
     You are an elite, top-tier web developer and UX/UI designer. 
     Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code.
@@ -222,7 +214,9 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     6. If you output a single word of text outside the executable codebase, or if you truncate the code, the parsing engine will crash. Output the full DOM.
     """
 
+    # 1. Build the unified payload
     messages_ai = [{"role": "system", "content": system_instruction}]
+    
     if images:
         content = [{"type": "text", "text": prompt}]
         for b64_img in images:
@@ -232,139 +226,143 @@ async def generate_with_fallback(prompt: str, images: Optional[List[str]] = None
     else:
         messages_ai.append({"role": "user", "content": prompt})
 
-    bluesminds_error = None
-    fireworks_error = None
-
-    # 1. Primary: Bluesminds
+    # ✨ 2. PRIMARY: GLM 5.2 ✨ 
     try:
-        print("Attempting generation with Bluesminds API...")
-        response = await client_bluesminds.chat.completions.create(
-            model="gemini-3.1-pro-preview",  # Matches the identifier in your screenshot
-            messages=messages_ai,
-            max_tokens=8000,
-            temperature=0.65,
-            timeout=180.0
+        glm_model = "accounts/fireworks/models/kimi-k2p7-code"
+        response = await client_fireworks.chat.completions.create(
+            model=glm_model, 
+            messages=messages_ai, 
+            max_tokens=15000,   # INCREASED: Give it a massive buffer for full websites
+            temperature=0.2,    # Slightly bumped to allow for more creative design variations
+            presence_penalty=0.1, # Encourages the model to write new content rather than repeating
+            timeout=180.0       # INCREASED: Give it plenty of time to write the whole DOM
         )
-        print("Bluesminds successful!")
-        return {
-            "html": clean_ai_html(response.choices[0].message.content),
-            "tokens": response.usage.total_tokens if response.usage else 0
-        }
-    except Exception as e:
-        bluesminds_error = str(e)
-        print(f"Bluesminds Failed: {bluesminds_error}. Falling back to Fireworks...")
+        return clean_ai_html(response.choices[0].message.content), "glm-5p2"
     
-    # 2. Secondary: Fireworks
-    # 2. Secondary: Fireworks (DISABLED)
-    # try:
-    #     print("Attempting generation with Fireworks API...")
-    #     response = await client_fireworks.chat.completions.create(...)
-    #     return {...}
-    # except Exception as e:
-    #     fireworks_error = str(e)
-    #     print(f"Fireworks Failed: {fireworks_error}")
+    except Exception as e:
+        print(f"GLM 5.2 Failed/Timed Out: {e}")
+        
+        # ✨ 3. MICRO-FALLBACK: High-Quality Llama on Fireworks ✨
+        try:
+            if images:
+                raise ValueError("Skipping Fireworks Vision (On-Demand Only) -> Routing to Gemini")
+                
+            backup_model = "accounts/fireworks/models/llama-v3p1-70b-instruct" 
+            
+            response = await client_fireworks.chat.completions.create(
+                model=backup_model, 
+                messages=messages_ai, 
+                max_tokens=8000,    # INCREASED: Llama 3.1 70B can handle 8k outputs
+                temperature=0.2,
+                timeout=90.0 
+            )
+            return clean_ai_html(response.choices[0].message.content), backup_model.split("/")[-1]
+        except Exception as backup_e:
+            print(f"Fireworks Backup Failed: {backup_e}")
 
-    # Just raise the Bluesminds error directly if it fails
+    # 4. SECONDARY: Groq Fallback
+    try:
+        if images:
+            raise ValueError("Groq does not support image generation via this endpoint structure.")
+            
+        response = await client_groq.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": prompt}],
+            max_tokens=8000,        # INCREASED from 4000
+            temperature=0.2,
+            timeout=45.0 
+        )
+        return clean_ai_html(response.choices[0].message.content), "llama3.3-70b"
+    except Exception as e:
+        print(f"Groq Failed: {e}")
 
-    # Pass the actual errors back to the frontend so you can see exactly why Bluesminds failed
-    error_message = f"Bluesminds Error: {bluesminds_error} | Fireworks Error: {fireworks_error}"
-    raise HTTPException(status_code=503, detail=error_message)
+    # 5. TERTIARY: Gemini Fallback (Final Safety Net & Vision Handler)
+    try:
+        gemini_model = genai.GenerativeModel(model_name='gemini-1.5-pro-latest', system_instruction=system_instruction)
+        gemini_content = [prompt]
+        if images:
+             for b64_img in images:
+                 if "," in b64_img: b64_img = b64_img.split(",")[1]
+                 gemini_content.append({"mime_type": "image/jpeg", "data": base64.b64decode(b64_img)})
+                 
+        # Increased max_output_tokens for Gemini to ensure it doesn't stop halfway
+        generation_config = genai.types.GenerationConfig(
+            temperature=0.2,
+            max_output_tokens=8192 
+        )
+        response = await gemini_model.generate_content_async(gemini_content, generation_config=generation_config)
+        return clean_ai_html(response.text), "gemini-1.5-pro"
+    except Exception as e:
+        print(f"Gemini Failed: {e}")
+
+    raise HTTPException(status_code=503, detail="All AI models timed out or are unavailable. Please try a shorter prompt or smaller image.")
 
 
 # ---------------- API ENDPOINTS ----------------
 
-@app.post("/upgrade-user-plan/")
-async def upgrade_user_plan(req: UpgradeRequest, current_user: dict = Depends(get_current_user)):
-    uid = current_user['uid']
-    user_ref = db.collection("users").document(uid)
-    
-    plan_credits = {"creator": 300, "pro": 1200}
-    tier = req.plan_tier.lower()
-    cycle = req.billing_cycle.lower()
-    
-    if tier not in plan_credits:
-        raise HTTPException(status_code=400, detail="Invalid plan tier.")
-    if cycle not in ["monthly", "yearly"]:
-        raise HTTPException(status_code=400, detail="Invalid billing cycle.")
-        
-    now = datetime.now(timezone.utc)
-    expiry_date = now + timedelta(days=30) if cycle == "monthly" else now + timedelta(days=365)
-    allocated_credits = plan_credits[tier] if cycle == "monthly" else plan_credits[tier] * 12 
-
-    user_ref.update({
-        "subscriptionTier": f"{tier}_{cycle}", 
-        "credits": firestore.Increment(allocated_credits),
-        "plan_validity": expiry_date.isoformat()
-    })
-    
-    return {
-        "status": "success",
-        "tier": f"{tier}_{cycle}",
-        "credits_added": allocated_credits,
-        "expires_at": expiry_date.isoformat()
-    }
-
 @app.post("/create-user")
 async def create_user(current_user: dict = Depends(get_current_user)):
-    get_user_profile(current_user.get("uid"), current_user.get("email", ""))
+    uid = current_user.get("uid")
+    email = current_user.get("email", "")
+    get_user_profile(uid, email)
     return {"status": "success"}
 
 @app.get("/users/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
-    return get_user_profile(current_user.get("uid"), current_user.get("email", ""))
+    uid = current_user.get("uid")
+    email = current_user.get("email", "")
+    return get_user_profile(uid, email)
 
 @app.post("/generate/")
 async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
-    if req.image_data and len(req.image_data) > 3:
-        raise HTTPException(status_code=400, detail="Maximum of 3 reference images allowed.")
-    
     user_ref = db.collection("users").document(uid)
-    user_data = get_user_profile(uid) 
-    plan = user_data.get('subscriptionTier', 'free').lower()
+    user_doc = user_ref.get()
     
-    if plan == 'free':
-        active_projects = [p for p in user_data.get('projects', []) if p.get('name') != CHAT_HISTORY_PROJECT_NAME]
-        if len(active_projects) >= 2:
-            raise HTTPException(status_code=402, detail="Maximum limit of 2 generations reached for Free Plan.")
+    user_data = user_doc.to_dict() if user_doc.exists else {}
     
-    TOKEN_COST_RATE = 0.00106
-    
+    credit_cost = 20 if req.image_data else 1
+    if req.target_language == 'react': credit_cost = 0 
+    if req.existing_html: credit_cost = 1 
+        
+    if user_data.get('credits', 0) < credit_cost:
+        raise HTTPException(status_code=402, detail="Insufficient credits")
+        
+    if credit_cost > 0:
+        user_ref.update({"credits": firestore.Increment(-credit_cost)})
+        
     try:
-        result = await generate_with_fallback(
-            prompt=req.prompt, 
+        final_prompt = req.prompt
+        if req.existing_html:
+            final_prompt = f"Modify the following HTML based on this request: '{req.prompt}'.\n\nExisting HTML:\n{req.existing_html}"
+        if req.is_punjabi_mode:
+            final_prompt = f"Understand this Punjabi context and build the site: {req.prompt}"
+
+        generated_code, model_used = await generate_with_fallback(
+            prompt=final_prompt, 
             images=req.image_data, 
-            target_lang=req.target_language
+            target_lang=req.target_language or "html"
         )
-        
-        total_tokens = result.get("tokens", 0)
-        vision_multiplier = 1.8 if bool(req.image_data) else 1.0
-        credits_to_deduct = max(2.0, round((total_tokens * TOKEN_COST_RATE) * vision_multiplier, 1))
-        
-        if plan != 'free':
-            if user_data.get('credits', 0) < credits_to_deduct:
-                raise HTTPException(status_code=402, detail=f"Requires {credits_to_deduct} credits.")
-            user_ref.update({"credits": firestore.Increment(-credits_to_deduct)})
-            credits_remaining = user_data.get('credits', 0) - credits_to_deduct
-        else:
-            credits_to_deduct = 0
-            credits_remaining = user_data.get('credits', 0)
-            
+
+        new_credits = user_ref.get().to_dict().get('credits', 0)
+
         return {
-            "html": result.get("html"),
-            "tokens_used": total_tokens,
-            "credits_deducted": credits_to_deduct,
-            "credits_remaining": credits_remaining,
-            "user_profile": get_user_profile(uid) 
+            "html": generated_code if req.target_language != "react" else None,
+            "code": generated_code if req.target_language == "react" else None,
+            "fallback_used": "glm" not in model_used.lower(),
+            "credits_remaining": new_credits,
+            "user_profile": get_user_profile(uid)
         }
     except Exception as e:
-        # Re-raise the exact exception so the 503 from generate_with_fallback bubbles up to the user
-        raise e
-    
+        if credit_cost > 0:
+            user_ref.update({"credits": firestore.Increment(credit_cost)})
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- Projects Management ---
 @app.post("/users/{user_id}/projects")
 async def save_project_endpoint(user_id: str, project: dict = Body(...), current_user: dict = Depends(get_current_user)):
     if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
+    
     timestamp = str(project.get("timestamp"))
     db.collection("users").document(user_id).collection("projects").document(timestamp).set(project)
     return project
@@ -372,6 +370,7 @@ async def save_project_endpoint(user_id: str, project: dict = Body(...), current
 @app.put("/users/{user_id}/projects/{timestamp}")
 async def update_project_endpoint(user_id: str, timestamp: str, project: dict = Body(...), current_user: dict = Depends(get_current_user)):
     if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
+        
     doc_ref = db.collection("users").document(user_id).collection("projects").document(timestamp)
     if not doc_ref.get().exists: doc_ref.set(project)
     else: doc_ref.update(project)
@@ -380,15 +379,30 @@ async def update_project_endpoint(user_id: str, timestamp: str, project: dict = 
 @app.delete("/users/{user_id}/projects/{timestamp}")
 async def delete_project_endpoint(user_id: str, timestamp: str, current_user: dict = Depends(get_current_user)):
     if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
+        
     db.collection("users").document(user_id).collection("projects").document(timestamp).delete()
+    
+    user_ref = db.collection("users").document(user_id)
+    user_data = user_ref.get().to_dict()
+    old_projects = user_data.get("projects", [])
+    new_projects = [p for p in old_projects if str(p.get("timestamp")) != timestamp]
+    if len(old_projects) != len(new_projects):
+        user_ref.update({"projects": new_projects})
     return {"status": "success"}
 
 @app.delete("/users/{user_id}/projects")
 async def delete_all_projects_endpoint(user_id: str, current_user: dict = Depends(get_current_user)):
     if current_user['uid'] != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
+        
     projects_ref = db.collection("users").document(user_id).collection("projects")
     for doc in projects_ref.stream():
         if doc.id != CHAT_HISTORY_PROJECT_NAME: doc.reference.delete()
+            
+    user_ref = db.collection("users").document(user_id)
+    user_data = user_ref.get().to_dict()
+    old_projects = user_data.get("projects", [])
+    new_projects = [p for p in old_projects if p.get("name") == CHAT_HISTORY_PROJECT_NAME]
+    user_ref.update({"projects": new_projects})
     return {"status": "success"}
 
 # --- File Upload ---
@@ -406,14 +420,18 @@ async def upload_image_endpoint(
         blob_obj.upload_from_file(file.file, content_type=file.content_type)
         blob_obj.make_public()
         public_url = blob_obj.public_url
-    except Exception:
-        public_url = f"[https://storage.sitee.in/uploads/](https://storage.sitee.in/uploads/){uid}/{file.filename}"
+    except Exception as e:
+        print(f"Warning: Firebase Storage upload failed: {e}")
+        public_url = f"https://storage.sitee.in/uploads/{uid}/{file.filename}"
     
     user_ref = db.collection("users").document(uid)
     user_doc = user_ref.get().to_dict() or {}
-    new_mb = user_doc.get("storage_used_mb", 0.0) + (file_size_bytes / (1024 * 1024))
+    current_mb = user_doc.get("storage_used_mb", 0.0)
+    new_mb = current_mb + (file_size_bytes / (1024 * 1024))
     user_ref.update({"storage_used_mb": new_mb})
+    
     return {"url": public_url, "user_profile": get_user_profile(uid)}
+
 
 # --- Deployment & Publishing ---
 @app.post("/users/{user_id}/projects/{timestamp}/publish")
@@ -421,25 +439,37 @@ async def publish_external_endpoint(user_id: str, timestamp: str, content: dict 
     uid = current_user['uid']
     if uid != user_id: raise HTTPException(status_code=403, detail="Unauthorized")
         
-    user_doc = db.collection('users').document(uid).get()
+    user_ref = db.collection('users').document(uid)
+    user_doc = user_ref.get()
+    
     if not user_doc.exists or user_doc.to_dict().get("subscriptionTier", "free") == "free":
         raise HTTPException(status_code=403, detail="Publishing is a premium feature.")
         
-    if not VERCEL_TOKEN: raise HTTPException(status_code=500, detail="Vercel missing.")
+    if not VERCEL_TOKEN:
+        raise HTTPException(status_code=500, detail="Server is not configured for Vercel publishing.")
 
     project_name = content.get("project_name", f"sitee-{uid.lower()[:8]}-{timestamp}")
-    payload = {"name": project_name, "files": [{"file": "index.html", "data": content.get("html_content", "")}]}
+    html_code = content.get("html_content", "")
+    
     headers = {"Authorization": f"Bearer {VERCEL_TOKEN}"}
     if VERCEL_TEAM_ID: headers["x-vercel-team-id"] = VERCEL_TEAM_ID
+    
+    api_url = "https://api.vercel.com/v13/deployments"
+    payload = {"name": project_name, "files": [{"file": "index.html", "data": html_code}]}
 
     try:
-        response = requests.post("[https://api.vercel.com/v13/deployments](https://api.vercel.com/v13/deployments)", headers=headers, json=payload, timeout=60)
+        response = requests.post(api_url, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
-        deployment_url = f"https://{response.json()['url']}"
-        db.collection("users").document(uid).collection("projects").document(timestamp).update({"published_url": deployment_url})
+        data = response.json()
+        deployment_url = f"https://{data['url']}"
+
+        doc_ref = db.collection("users").document(uid).collection("projects").document(timestamp)
+        if doc_ref.get().exists: doc_ref.update({"published_url": deployment_url})
+        
         return {"url": deployment_url}
     except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=502, detail="Publishing error.")
+        error_details = e.response.json() if e.response else {}
+        raise HTTPException(status_code=502, detail=f"Publishing service error: {error_details.get('error', {}).get('message')}")
 
 @app.put("/users/{user_id}/projects/{timestamp}/publish")
 async def update_external_publish_endpoint(user_id: str, timestamp: str, content: dict = Body(...), current_user: dict = Depends(get_current_user)):
@@ -454,22 +484,25 @@ async def check_subdomain_endpoint(name: str, current_user: dict = Depends(get_c
 @app.post("/publish-sitee")
 async def publish_sitee_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
+    subdomain = req.get("subdomain")
     timestamp = str(req.get("project_timestamp"))
-    published_url = f"https://{req.get('subdomain')}-app.sitee.in"
+    
+    published_url = f"https://{subdomain}-app.sitee.in"
     doc_ref = db.collection("users").document(uid).collection("projects").document(timestamp)
-    if doc_ref.get().exists: 
-        doc_ref.update({"published_url": published_url, "html": req.get("html_content")})
+    if doc_ref.get().exists: doc_ref.update({"published_url": published_url})
     return {"url": published_url, "status": "success"}
 
 @app.delete("/unpublish-sitee/{timestamp}")
 async def unpublish_sitee_endpoint(timestamp: str, current_user: dict = Depends(get_current_user)):
-    doc_ref = db.collection("users").document(current_user['uid']).collection("projects").document(timestamp)
+    uid = current_user['uid']
+    doc_ref = db.collection("users").document(uid).collection("projects").document(timestamp)
     if doc_ref.get().exists: doc_ref.update({"published_url": None})
     return {"status": "success"}
 
 @app.post("/users/me/github-token")
 async def save_github_token_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    db.collection("users").document(current_user['uid']).update({
+    uid = current_user['uid']
+    db.collection("users").document(uid).update({
         "github_token": req.get("github_token"),
         "github_token_expiry": str(firestore.SERVER_TIMESTAMP)
     })
@@ -477,61 +510,42 @@ async def save_github_token_endpoint(req: dict = Body(...), current_user: dict =
 
 @app.delete("/users/me/github-token")
 async def remove_github_token_endpoint(current_user: dict = Depends(get_current_user)):
-    db.collection("users").document(current_user['uid']).update({"github_token": None, "github_token_expiry": None})
+    uid = current_user['uid']
+    db.collection("users").document(uid).update({"github_token": None, "github_token_expiry": None})
     return {"status": "success"}
 
 @app.post("/deploy-github")
 async def deploy_github_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    user_doc = db.collection("users").document(current_user['uid']).get().to_dict()
-    if not user_doc.get("github_token"): raise HTTPException(status_code=401, detail="GitHub token missing.")
-    return {"url": f"[https://github.com/your-username/](https://github.com/your-username/){req.get('repo_name')}", "status": "success"}
+    uid = current_user['uid']
+    user_doc = db.collection("users").document(uid).get().to_dict()
+    token = user_doc.get("github_token")
+    if not token: raise HTTPException(status_code=401, detail="GitHub token missing or expired.")
+        
+    mock_url = f"https://github.com/your-username/{req.get('repo_name')}"
+    return {"url": mock_url, "status": "success"}
 
 @app.post("/suggest_improvements/")
 async def suggest_improvements_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
     user_ref = db.collection("users").document(uid)
-    if user_ref.get().to_dict().get("credits", 0) < 1: raise HTTPException(status_code=403, detail="Insufficient credits.")
+    user_doc = user_ref.get()
+    
+    current_credits = user_doc.to_dict().get("credits", 0)
+    if current_credits < 1: raise HTTPException(status_code=403, detail="Insufficient credits for suggestions.")
     user_ref.update({"credits": firestore.Increment(-1)})
-    return {"suggestions": [{"description": "Improve contrast.", "selector": "button", "new_outer_html": "<button>Improved</button>"}], "user_profile": get_user_profile(uid)}
+
+    mock_suggestions = [{
+        "description": "Improve button contrast for better accessibility.",
+        "selector": "button",
+        "new_outer_html": "<button style='background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 8px; border: none;'>Improved Button</button>"
+    }]
+    
+    return {"suggestions": mock_suggestions, "user_profile": get_user_profile(uid)}
 
 @app.post("/apply-suggestion-fix/")
 async def apply_suggestion_endpoint(req: dict = Body(...), current_user: dict = Depends(get_current_user)):
     return {"new_html": req.get("new_outer_html")}
 
-# --- Firebase Config Endpoints ---
-@app.post("/users/me/firebase-config")
-async def save_firebase_config(req: FirebaseConfigRequest, current_user: dict = Depends(get_current_user)):
-    try:
-        user_ref = db.collection("users").document(current_user['uid'])
-        try: user_ref.update({"projects": firestore.DELETE_FIELD})
-        except: pass 
-        user_ref.set({"custom_firebase_config": req.dict()}, merge=True)
-        return {"status": "success", "message": "Firebase config saved!"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-@app.delete("/users/me/firebase-config")
-async def delete_firebase_config(current_user: dict = Depends(get_current_user)):
-    try:
-        db.collection("users").document(current_user['uid']).update({"custom_firebase_config": firestore.DELETE_FIELD})
-        return {"status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-# ---------------- CATCH-ALL ROUTE FOR DYNAMIC SUBDOMAINS ----------------
-@app.get("/{path:path}")
-async def serve_dynamic_subdomain(request: Request, path: str):
-    host = request.headers.get("host", "")
-    if "sitee.in" in host and not host.startswith("www."):
-        protocol = request.headers.get("x-forwarded-proto", "https")
-        target_url = f"{protocol}://{host}"
-        
-        projects_ref = db.collection_group("projects").where("published_url", "==", target_url).limit(1).stream()
-        for doc in projects_ref:
-            return HTMLResponse(content=doc.to_dict().get("html", "<h1>No content</h1>"), status_code=200)
-        
-        return HTMLResponse(content="<h1>Site Not Found or Unpublished</h1>", status_code=404)
-    raise HTTPException(status_code=404, detail="Not Found")
 
 if __name__ == "__main__":
     import uvicorn
