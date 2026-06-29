@@ -1679,7 +1679,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
             const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
                 ? injectDynamicFirebaseForms(result.html, currentUser, timestamp)
                 : result.html;
-        
+
 
             iframe.srcdoc = finalHtmlCode;
             compareBtn.style.display = 'flex'; // Show compare button after refinement
@@ -1717,7 +1717,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     suggestionBtn.addEventListener('click', (e) => {
         e.stopPropagation();
 
-        
+
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
         if (plan !== 'pro') {
             showNotification("AI Suggestions are only available on the Pro plan.", "error");
@@ -1734,32 +1734,42 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     });
 
 
-    publishBtn.addEventListener('click', (e) => { 
-        e.stopPropagation(); 
+    publishBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
 
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
-        
-        // ENFORCE: Free plan can only have 1 Live Published website at a time
-        if (plan === 'free') {
-            const publishedCount = currentUser.projects ? currentUser.projects.filter(p => p.published_url).length : 0;
-            if (publishedCount >= 1) {
-                showConfirmationModal(
-                    'Upgrade Required',
-                    'Free plans are limited to 1 live published website. Unpublish your existing site or upgrade to the Creator or Pro plan to launch more!',
-                    () => {
-                        window.location.href = 'https://www.sitee.in/#plans';
-                    }
-                );
-                document.getElementById('modal-confirm-btn').textContent = 'View Plans';
-                return; // Stop the modal from opening
-            }
+
+        // Count how many websites the user currently has published
+        const publishedCount = currentUser.projects ? currentUser.projects.filter(p => p.published_url).length : 0;
+
+        // Determine the limit based on the user's plan
+        let publishLimit = 1; // Default to free limit
+        if (plan.includes('creator')) {
+            publishLimit = 7;
+        } else if (plan.includes('pro')) {
+            publishLimit = 20;
+        } else if (plan.includes('custom')) {
+            publishLimit = 9999; // Or whatever custom logic you have for add-ons
         }
 
-        publishModal.dataset.currentTimestamp = container.dataset.timestamp; 
-        publishChoiceView.style.display = 'block'; 
-        siteeDeployView.style.display = 'none'; 
-        netlifyDeployView.style.display = 'none'; 
-        publishModal.style.display = 'flex'; 
+        // ENFORCE: Block publishing if they hit their tier's limit
+        if (publishedCount >= publishLimit) {
+            showConfirmationModal(
+                'Publish Limit Reached 🚀',
+                `Your current plan is limited to ${publishLimit} live published website(s). Unpublish an existing site or upgrade your plan to launch more!`,
+                () => {
+                    window.location.href = 'https://www.sitee.in/#plans';
+                }
+            );
+            document.getElementById('modal-confirm-btn').textContent = 'View Plans';
+            return; // Stop the modal from opening
+        }
+
+        publishModal.dataset.currentTimestamp = container.dataset.timestamp;
+        publishChoiceView.style.display = 'block';
+        siteeDeployView.style.display = 'none';
+        netlifyDeployView.style.display = 'none';
+        publishModal.style.display = 'flex';
     });
 
     editBtn.addEventListener('click', (e) => {
