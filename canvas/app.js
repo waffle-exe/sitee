@@ -889,6 +889,7 @@ function updateCreditDisplay() {
         }
     }
 }
+
 function checkCreditStatus() {
     if (!currentUser) {
         promptInput.placeholder = "Sign in or Sign up to start generating...";
@@ -902,22 +903,20 @@ function checkCreditStatus() {
 
     if (plan === 'free') {
         const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
-        
-        // Free user needs BOTH less than 2 generations AND backend credits remaining
-        hasCredits = (generationsUsed < 2) && (currentUser.credits > 0);
+        hasCredits = generationsUsed < 2;
         
         promptInput.placeholder = hasCredits 
             ? "Describe your idea..." 
             : "Free limit reached. Click generate to upgrade.";
     } else {
-        hasCredits = currentUser.credits > 0;
+        const userCredits = currentUser.credits || 0;
+        hasCredits = userCredits > 0;
         
         promptInput.placeholder = hasCredits 
             ? "Describe your idea..." 
             : "No credits remaining. Add more to continue.";
     }
 
-    // Keep inputs enabled so the user can interact and trigger the upgrade modal
     promptInput.disabled = false;
     generateBtn.disabled = false;
 }
@@ -933,15 +932,14 @@ async function handleGenerateClick() {
 
     const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
 
-    // Enforce limits: Check BOTH generation count AND actual credits
+    // Check Plan Limits Safely
     if (plan === 'free') {
         const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
         
-        if (generationsUsed >= 2 || currentUser.credits <= 0) {
-            // Show the upgrade pop-up
+        if (generationsUsed >= 2) {
             showConfirmationModal(
                 'Upgrade Required 🚀',
-                'You have reached your free generation limit. Upgrade to the Creator or Pro plan to launch more projects!',
+                'You have reached your free limit of 2 websites. Upgrade to the Creator or Pro plan to launch more projects!',
                 () => {
                     window.location.hash = '#plans';
                 }
@@ -949,16 +947,19 @@ async function handleGenerateClick() {
             document.getElementById('modal-confirm-btn').textContent = 'View Plans';
             return;
         }
-    } else if (currentUser.credits <= 0) {
-        showConfirmationModal(
-            'Out of Credits 🔋',
-            'You have run out of AI credits. Purchase a custom add-on or upgrade your plan to continue.',
-            () => {
-                window.location.hash = '#plans';
-            }
-        );
-        document.getElementById('modal-confirm-btn').textContent = 'Get Credits';
-        return;
+    } else {
+        const userCredits = currentUser.credits || 0;
+        if (userCredits <= 0) {
+            showConfirmationModal(
+                'Out of Credits 🔋',
+                'You have run out of AI credits. Purchase a custom add-on or upgrade your plan to continue.',
+                () => {
+                    window.location.hash = '#plans';
+                }
+            );
+            document.getElementById('modal-confirm-btn').textContent = 'Get Credits';
+            return;
+        }
     }
 
     let userPrompt = promptInput.value.trim();
@@ -1020,7 +1021,6 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         loading.appendChild(stopBtn);
     }
 
-    // 1. IMPROVED TIMER: Assign to a variable and clear it precisely
     let timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         stats.innerHTML = `<span>Time: ${elapsed}s</span><span>Calculating Credits...</span>`;
@@ -1052,7 +1052,6 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
         const result = await response.json();
 
-        // 2. CLEAR TIMER IMMEDIATELY ONCE DATA ARRIVES
         clearInterval(timerInterval);
 
         if (result.user_profile) currentUser = result.user_profile;
@@ -1063,27 +1062,16 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
         stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
 
-
         const newProjectId = container.dataset.timestamp || Date.now().toString();
-        container.dataset.timestamp = newProjectId; // Ensure container has it
+        container.dataset.timestamp = newProjectId; 
 
-        const existingTimestamp = container.dataset.timestamp;
         const timestamp = parseInt(container.dataset.timestamp);
         const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
             ? injectDynamicFirebaseForms(result.html, currentUser, timestamp)
             : result.html;
-        // ---------------------------------------
 
-        const loadTimeout = setTimeout(() => {
-            if (loading && loading.style.display !== 'none') {
-                loading.style.display = 'none';
-                document.body.classList.remove('generating');
-                if (deleteBtn) deleteBtn.style.display = 'flex';
-            }
-        }, 10000);
-
+        // The spinner will now ONLY hide when the iframe has successfully loaded the code
         iframe.onload = () => {
-            clearTimeout(loadTimeout);
             if (loading) loading.style.display = 'none';
             if (deleteBtn) deleteBtn.style.display = 'flex';
             handleIframeLinks(iframe);
@@ -1093,16 +1081,16 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             pushStateForIframe(iframe);
         };
 
-        // Pass the injected HTML to the iframe and the database
+        // Pass the injected HTML to the iframe
         iframe.srcdoc = finalHtmlCode;
+        
         const savedProject = await saveProject(prompt, finalHtmlCode, false, timestamp);
         if (savedProject) container.dataset.timestamp = savedProject.timestamp;
 
         updateCreditDisplay();
         checkCreditStatus();
 
-    }
-    catch (error) {
+    } catch (error) {
         clearInterval(timerInterval);
         if (error.name === 'AbortError') {
             console.log('Generation stopped by user');
@@ -1110,15 +1098,14 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             container.remove();
         } else {
             console.error("Error generating website:", error);
-            preview.innerHTML = `<div style="color: var(--error-color); padding: 1rem;">Error: ${error.message}</div>`;
+            // Center the error message so it's clearly visible instead of a white screen
+            preview.innerHTML = `<div style="color: var(--error-color); padding: 1rem; height: 100%; display: flex; align-items: center; justify-content: center; text-align: center;">Error: ${error.message}</div>`;
             promptInput.value = prompt;
 
-            // 3. SHOW DELETE BUTTON ON ERROR (So user can delete the failed window)
             if (deleteBtn) deleteBtn.style.display = 'flex';
         }
-    }
-    finally {
-        clearInterval(timerInterval); // Final safety clear
+    } finally {
+        clearInterval(timerInterval); 
         if (document.querySelectorAll('.loading').length <= 1) {
             document.body.classList.remove('generating');
         }
