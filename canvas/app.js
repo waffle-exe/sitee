@@ -938,7 +938,7 @@ async function handleGenerateClick() {
         
         if (generationsUsed >= 2) {
             showConfirmationModal(
-                'Upgrade Required 🚀',
+                'Upgrade Required',
                 'You have reached your free limit of 2 websites. Upgrade to the Creator or Pro plan to launch more projects!',
                 () => {
                     window.location.hash = '#plans';
