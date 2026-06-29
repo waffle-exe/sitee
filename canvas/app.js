@@ -866,6 +866,8 @@ async function getAuthHeaders() {
     }
     return headers;
 }
+
+
 function updateCreditDisplay() {
     if (currentUser) {
         const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
@@ -873,7 +875,12 @@ function updateCreditDisplay() {
         if (plan === 'free') {
             // Calculate generations used, ignoring the hidden chat history
             const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
-            const generationsLeft = Math.max(0, 2 - generationsUsed);
+            let generationsLeft = Math.max(0, 2 - generationsUsed);
+            
+            // Force 0 if backend credits are exhausted
+            if (currentUser.credits <= 0) {
+                generationsLeft = 0;
+            }
 
             creditDisplay.textContent = `Generations: ${generationsLeft} / 2`;
         } else {
@@ -882,7 +889,6 @@ function updateCreditDisplay() {
         }
     }
 }
-
 function checkCreditStatus() {
     if (!currentUser) {
         promptInput.placeholder = "Sign in or Sign up to start generating...";
@@ -896,7 +902,9 @@ function checkCreditStatus() {
 
     if (plan === 'free') {
         const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
-        hasCredits = generationsUsed < 2;
+        
+        // Free user needs BOTH less than 2 generations AND backend credits remaining
+        hasCredits = (generationsUsed < 2) && (currentUser.credits > 0);
         
         promptInput.placeholder = hasCredits 
             ? "Describe your idea..." 
@@ -914,6 +922,7 @@ function checkCreditStatus() {
     generateBtn.disabled = false;
 }
 
+
 async function handleGenerateClick() {
     console.log("Generate button clicked!");
     if (!auth.currentUser || !auth.currentUser.emailVerified) {
@@ -924,26 +933,25 @@ async function handleGenerateClick() {
 
     const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
 
-    // Enforce limits based on actual logic
+    // Enforce limits: Check BOTH generation count AND actual credits
     if (plan === 'free') {
         const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
-        if (generationsUsed >= 2) {
+        
+        if (generationsUsed >= 2 || currentUser.credits <= 0) {
             // Show the upgrade pop-up
             showConfirmationModal(
-                'Upgrade Required!',
-                'You have reached the maximum of 2 free website generations. Upgrade to the Creator or Pro plan to launch more projects!',
+                'Upgrade Required 🚀',
+                'You have reached your free generation limit. Upgrade to the Creator or Pro plan to launch more projects!',
                 () => {
-                    // Redirect to plans section upon clicking confirm
                     window.location.hash = '#plans';
                 }
             );
-            // Change the modal button text dynamically for this context
             document.getElementById('modal-confirm-btn').textContent = 'View Plans';
             return;
         }
     } else if (currentUser.credits <= 0) {
         showConfirmationModal(
-            'Out of Credits!',
+            'Out of Credits 🔋',
             'You have run out of AI credits. Purchase a custom add-on or upgrade your plan to continue.',
             () => {
                 window.location.hash = '#plans';
