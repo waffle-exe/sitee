@@ -4874,3 +4874,50 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
 
     return htmlCode.replace(/<\/body>/i, `${injectionScript}\n</body>`);
 }
+
+// Attach listener to the static parent container
+document.getElementById('dashboard-content').addEventListener('click', async (e) => {
+    
+    // Check if the clicked element has the unpublish class
+    if (e.target.classList.contains('dashboard-unpublish-btn')) {
+        const btn = e.target;
+        const timestamp = btn.getAttribute('data-timestamp');
+        
+        // UI Feedback: Disable button and change text
+        const originalText = btn.textContent;
+        btn.textContent = "Unpublishing...";
+        btn.disabled = true;
+
+        try {
+            // Get your Firebase auth token
+            const token = await auth.currentUser.getIdToken(); 
+            
+            // Call your perfectly working backend endpoint
+            const response = await fetch(`/unpublish-sitee/${timestamp}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                // Remove the specific site wrapper from the dashboard UI instantly
+                btn.closest('.published-site-wrapper').remove(); 
+                
+                // Show your success toast
+                showNotification("Site unpublished successfully!", "success");
+                
+                // Optional: You can also update the "Published Sites X / 20 Left" counter here
+            } else {
+                throw new Error("Failed to unpublish from dashboard");
+            }
+        } catch (error) {
+            console.error("Dashboard Unpublish Error:", error);
+            showNotification("Error unpublishing site.", "error");
+            
+            // Revert button state if it fails
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    }
+});
