@@ -4432,20 +4432,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // --- END: SITE SUBDOMAIN PUBLISH LOGIC ---
-    // Modal Close/Cancel Buttons
-    // --- FIX: Modal Stuck Issue ---
     modalConfirmBtn.addEventListener('click', async () => {
+        if (!currentConfirmCallback) return;
+
+        // 1. Save the original text and show a loading spinner
+        const originalText = modalConfirmBtn.textContent;
+        modalConfirmBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>';
+        modalConfirmBtn.disabled = true;
+
         try {
-            // Execute the specific action (delete, publish, etc.)
-            if (currentConfirmCallback) {
-                await currentConfirmCallback(); // Await ensures we catch async errors too
-            }
+            // 2. Execute the specific action (delete, unpublish, etc.)
+            await currentConfirmCallback();
         } catch (error) {
             console.error("Error during confirmation action:", error);
             showNotification("An error occurred, but the action may have completed.", "error");
         } finally {
-            // This ALWAYS runs, ensuring the popup closes no matter what
+            // 3. ALWAYS restore the button state and close the modal
+            modalConfirmBtn.textContent = originalText;
+            modalConfirmBtn.disabled = false;
             hideConfirmationModal();
         }
     });
