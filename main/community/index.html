@@ -22,7 +22,7 @@
             background-color: #0a0a0a;
             color: #ffffff;
             margin: 0;
-            overflow-x: hidden;
+            overflow: hidden; /* Strictly prevent all scrolling */
         }
 
         /* Dark Moody Floral Background */
@@ -61,19 +61,11 @@
             border-radius: 2rem; /* High border radius scaling for mobile */
             position: relative;
             z-index: 10;
-            width: 100%;
-            max-width: 1200px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 85vh;
-            padding: 2rem;
         }
 
         @media (min-width: 768px) {
             .glass-container {
                 border-radius: 3.5rem; /* Ultra high border radius for desktop */
-                padding: 4rem;
             }
         }
 
@@ -152,51 +144,51 @@
     <div class="bg-floral"></div>
     <div class="bg-vignette"></div>
 
-    <!-- Centered Layout Wrapper -->
-    <div class="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8">
+    <!-- Centered Layout Wrapper (No Scroll Strict Height) -->
+    <div class="h-[100dvh] w-full flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 overflow-hidden">
         
         <!-- Liquid Glass Floating Container -->
-        <div class="glass-container">
+        <div class="glass-container w-full h-full max-w-6xl flex flex-col justify-between p-5 sm:p-8 md:p-12 lg:p-14">
             
             <!-- Header -->
-            <header class="flex justify-between items-center animate-fade-up">
-                <div class="text-3xl md:text-4xl font-bold tracking-tight flex items-baseline">
-                    sitee<span class="text-gradient text-4xl md:text-5xl leading-[0]">.</span>
+            <header class="flex justify-between items-center animate-fade-up shrink-0">
+                <div class="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight flex items-baseline">
+                    sitee<span class="text-gradient text-3xl md:text-4xl lg:text-5xl leading-[0]">.</span>
                 </div>
                 
-                <a href="https://www.sitee.in" target="_blank" class="hidden sm:flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium glass-pill px-5 py-2.5">
+                <a href="https://www.sitee.in" target="_blank" class="hidden sm:flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-xs md:text-sm font-medium glass-pill px-4 md:px-5 py-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
                     sitee.in
                 </a>
             </header>
 
             <!-- Main Content -->
-            <main class="flex-grow flex flex-col justify-center max-w-4xl py-12 md:py-16">
+            <main class="flex-grow flex flex-col justify-center max-w-4xl py-4 sm:py-6">
                 
                 <!-- Badge -->
-                <div class="animate-fade-up delay-100 mb-8 inline-flex items-center px-5 py-2 glass-pill text-sm font-medium w-max text-gray-200">
-                    <span class="mr-2 opacity-80">Powered by</span> 
-                    <span class="text-white">Sitee LLM</span>
+                <div class="animate-fade-up delay-100 mb-4 sm:mb-6 inline-flex items-center px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 glass-pill text-xs md:text-sm font-medium w-max text-gray-200">
+                    <span class="mr-1.5 opacity-80">Powered by</span> 
+                    <span class="text-white">Sitee Community</span>
                 </div>
 
                 <!-- Headlines -->
-                <h1 class="animate-fade-up delay-200 text-5xl sm:text-6xl md:text-7xl lg:text-[6.5rem] font-bold tracking-tight leading-[1.1] mb-6 md:mb-8">
-                    Generate.<br>
-                    Own.<br>
+                <h1 class="animate-fade-up delay-200 text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.05] mb-4 sm:mb-6">
+                    Connect.<br>
+                    Collaborate.<br>
                     <span class="text-gradient-orange">Launch.</span>
                 </h1>
 
                 <!-- Subtitle -->
-                <p class="animate-fade-up delay-300 text-base sm:text-lg md:text-xl text-gray-300 max-w-2xl mb-10 leading-relaxed">
+                <p class="animate-fade-up delay-300 text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 max-w-2xl mb-6 sm:mb-8 leading-relaxed">
                     Sitee community is the new hub for <span class="text-purple-400 font-medium">vibe coders</span>, entrepreneurs, and creators. Turn your ideas into full-stack websites in minutes. Be the first to join.
                 </p>
 
                 <!-- Newsletter Form -->
                 <div class="animate-fade-up delay-300 w-full max-w-xl relative">
-                    <form id="newsletterForm" class="flex flex-col sm:flex-row gap-3 relative z-20">
+                    <form id="newsletterForm" class="flex flex-col sm:flex-row gap-2 sm:gap-3 relative z-20">
                         <div class="relative flex-grow">
-                            <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div class="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                                 </svg>
                             </div>
@@ -205,34 +197,34 @@
                                 id="emailInput"
                                 required 
                                 placeholder="Enter your email address"
-                                class="w-full glass-pill pl-12 pr-6 py-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all bg-black/20"
+                                class="w-full glass-pill pl-10 sm:pl-12 pr-4 sm:pr-6 py-3 sm:py-4 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all bg-black/20"
                             >
                         </div>
-                        <button type="submit" class="btn-gradient px-8 py-4 font-semibold text-white whitespace-nowrap shadow-lg flex items-center justify-center gap-2 group">
+                        <button type="submit" class="btn-gradient px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-semibold text-white whitespace-nowrap shadow-lg flex items-center justify-center gap-2 group">
                             Notify Me
-                            <svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            <svg class="w-4 h-4 sm:w-5 sm:w-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </button>
                     </form>
 
                     <!-- Success Message (Hidden by default) -->
-                    <div id="successMessage" class="hidden absolute top-0 left-0 w-full h-full glass-pill bg-green-900/40 border-green-500/30 flex items-center px-6 text-green-300 font-medium z-30 animate-fade-up">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-green-400/20 p-2 rounded-full">
-                                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <div id="successMessage" class="hidden absolute top-0 left-0 w-full h-full glass-pill bg-green-900/40 border-green-500/30 flex items-center px-4 sm:px-6 text-green-300 text-sm sm:text-base font-medium z-30 animate-fade-up">
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <div class="bg-green-400/20 p-1.5 sm:p-2 rounded-full">
+                                <svg class="w-4 h-4 sm:w-5 sm:w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             </div>
                             You're on the waitlist! Keep an eye on your inbox.
                         </div>
                     </div>
                 </div>
                 
-                <p class="animate-fade-up delay-300 text-xs text-gray-400 mt-4 ml-4">
+                <p class="animate-fade-up delay-300 text-[10px] sm:text-xs text-gray-400 mt-2 sm:mt-3 ml-2 sm:ml-4">
                     No spam. Unsubscribe at any time.
                 </p>
 
             </main>
 
             <!-- Footer -->
-            <footer class="animate-fade-up delay-300 text-sm text-gray-400 flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-white/10 text-center sm:text-left">
+            <footer class="animate-fade-up delay-300 text-xs sm:text-sm text-gray-400 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 mt-2 pt-4 border-t border-white/10 text-center sm:text-left shrink-0">
                 <div>#siteeit &bull; © 2026 Sitee Community.</div>
                 <div class="flex gap-6">
                     <a href="https://instagram.com/sitee.in" target="_blank" class="hover:text-white transition-colors flex items-center gap-1.5">
