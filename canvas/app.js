@@ -1774,7 +1774,9 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     });
 
     fullBtn.addEventListener('click', (e) => { e.stopPropagation(); const isFullscreen = container.classList.toggle('fullscreen'); fullBtn.innerHTML = isFullscreen ? exitFullscreenIcon : fullscreenIcon; document.body.classList.toggle('site-fullscreen-active', isFullscreen); });
-    deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); const timestamp = parseInt(container.dataset.timestamp); if (!timestamp) { container.remove(); return; } showConfirmationModal('Delete Project', 'Are you sure you want to delete this project?', async () => { const success = await deleteProject(timestamp); if (success) { if (container.classList.contains('fullscreen')) { document.body.classList.remove('site-fullscreen-active'); } container.remove(); } }, 'danger'); });
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); const timestamp = parseInt(container.dataset.timestamp); if (!timestamp) { container.remove(); return; } showConfirmationModal('Delete Project', 'Are you sure you want to delete this project?', async () => { const success = await deleteProject(timestamp); if (success) { if (container.classList.contains('fullscreen')) { document.body.classList.remove('site-fullscreen-active'); } container.remove(); } }, 'danger'); });
+    }
     localUndoBtn.addEventListener('click', (e) => { e.stopPropagation(); handleUndo(iframe); });
     localRedoBtn.addEventListener('click', (e) => { e.stopPropagation(); handleRedo(iframe); });
 
