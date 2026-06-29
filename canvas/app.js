@@ -644,45 +644,45 @@ function populateDashboard() {
     // Attach listeners for the unpublish buttons inside the dashboard
     dashboardContent.querySelectorAll('.dash-unpublish-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const timestamp = e.currentTarget.dataset.timestamp;
-            // FIX: Pass the button itself so the spinner shows up on the dashboard button
+            const timestamp = parseInt(e.currentTarget.dataset.timestamp, 10);
             handleUnpublishClick(timestamp, e.currentTarget);
         });
     });
+
     // --- FIREBASE CONFIGURATION UI UPDATES ---
-const fbForm = document.getElementById('firebase-config-form');
-const fbStatusBadge = document.getElementById('firebase-status-badge');
-const saveFbBtn = document.getElementById('save-firebase-btn');
-const disconnectFbBtn = document.getElementById('disconnect-firebase-btn');
+    const fbForm = document.getElementById('firebase-config-form');
+    const fbStatusBadge = document.getElementById('firebase-status-badge');
+    const saveFbBtn = document.getElementById('save-firebase-btn');
+    const disconnectFbBtn = document.getElementById('disconnect-firebase-btn');
 
-if (currentUser && currentUser.custom_firebase_config && currentUser.custom_firebase_config.apiKey) {
-    // Add optional chaining (?.) or check if the element exists first
-    const apiKeyInput = document.getElementById('fb-apiKey');
-    if (apiKeyInput) {
-        apiKeyInput.value = currentUser.custom_firebase_config.apiKey || '';
-        document.getElementById('fb-authDomain').value = currentUser.custom_firebase_config.authDomain || '';
-        document.getElementById('fb-databaseURL').value = currentUser.custom_firebase_config.databaseURL || '';
-        document.getElementById('fb-projectId').value = currentUser.custom_firebase_config.projectId || '';
-        document.getElementById('fb-storageBucket').value = currentUser.custom_firebase_config.storageBucket || '';
-        document.getElementById('fb-messagingSenderId').value = currentUser.custom_firebase_config.messagingSenderId || '';
-        document.getElementById('fb-appId').value = currentUser.custom_firebase_config.appId || '';
-    }
+    if (currentUser && currentUser.custom_firebase_config && currentUser.custom_firebase_config.apiKey) {
+        // Add optional chaining (?.) or check if the element exists first
+        const apiKeyInput = document.getElementById('fb-apiKey');
+        if (apiKeyInput) {
+            apiKeyInput.value = currentUser.custom_firebase_config.apiKey || '';
+            document.getElementById('fb-authDomain').value = currentUser.custom_firebase_config.authDomain || '';
+            document.getElementById('fb-databaseURL').value = currentUser.custom_firebase_config.databaseURL || '';
+            document.getElementById('fb-projectId').value = currentUser.custom_firebase_config.projectId || '';
+            document.getElementById('fb-storageBucket').value = currentUser.custom_firebase_config.storageBucket || '';
+            document.getElementById('fb-messagingSenderId').value = currentUser.custom_firebase_config.messagingSenderId || '';
+            document.getElementById('fb-appId').value = currentUser.custom_firebase_config.appId || '';
+        }
 
-    if (fbStatusBadge) {
-        fbStatusBadge.innerHTML = 'Status: Connected';
-        fbStatusBadge.style.color = '#4ADE80';
+        if (fbStatusBadge) {
+            fbStatusBadge.innerHTML = 'Status: Connected';
+            fbStatusBadge.style.color = '#4ADE80';
+        }
+        if (saveFbBtn) saveFbBtn.style.display = 'none';
+        if (disconnectFbBtn) disconnectFbBtn.style.display = 'block';
+    } else {
+        if (fbForm) fbForm.reset();
+        if (fbStatusBadge) {
+            fbStatusBadge.innerHTML = 'Status: Not Connected';
+            fbStatusBadge.style.color = 'var(--text-muted-color)';
+        }
+        if (saveFbBtn) saveFbBtn.style.display = 'block';
+        if (disconnectFbBtn) disconnectFbBtn.style.display = 'none';
     }
-    if (saveFbBtn) saveFbBtn.style.display = 'none';
-    if (disconnectFbBtn) disconnectFbBtn.style.display = 'block';
-} else {
-    if (fbForm) fbForm.reset();
-    if (fbStatusBadge) {
-        fbStatusBadge.innerHTML = 'Status: Not Connected';
-        fbStatusBadge.style.color = 'var(--text-muted-color)';
-    }
-    if (saveFbBtn) saveFbBtn.style.display = 'block';
-    if (disconnectFbBtn) disconnectFbBtn.style.display = 'none';
-}
 }
 
 
@@ -2130,7 +2130,7 @@ function showConfirmationModal(title, message, onConfirm, type = 'normal') {
     modalMessage.textContent = message;
     currentConfirmCallback = onConfirm;
     modalConfirmBtn.classList.remove('danger');
-    
+
     if (type === 'danger') {
         modalConfirmBtn.classList.add('danger');
         modalConfirmBtn.textContent = 'Delete';
@@ -2139,10 +2139,10 @@ function showConfirmationModal(title, message, onConfirm, type = 'normal') {
     } else {
         modalConfirmBtn.textContent = 'Confirm';
     }
-    
+
     // ADD THIS LINE to ensure the modal always forces its way to the very front
-    confirmationModal.style.zIndex = "99999"; 
-    
+    confirmationModal.style.zIndex = "99999";
+
     confirmationModal.style.display = 'flex';
 }
 
@@ -2218,7 +2218,6 @@ function getMaxZIndex() {
     return Math.max(1, ...Array.from(document.querySelectorAll(".site-container"), el => parseInt(window.getComputedStyle(el).zIndex) || 1));
 }
 
-// REPLACE your old displayPublishInfo function with this new one
 
 function displayPublishInfo(element, url, publishBtn, updateBtn, container) {
     element.innerHTML = ''; // Clear previous content
@@ -2250,7 +2249,6 @@ function displayPublishInfo(element, url, publishBtn, updateBtn, container) {
         e.stopPropagation();
         const timestamp = parseInt(container.dataset.timestamp, 10);
         if (timestamp) {
-            // FIX: Pass the button itself so the spinner shows up here
             handleUnpublishClick(timestamp, unpublishBtn);
         }
     });
@@ -2686,29 +2684,31 @@ function addProjectToSidebar(project) {
  * Handles the logic for unpublishing a site deployed via Sitee subdomain.
  * @param {number} timestamp The timestamp ID of the project to unpublish.
  */
+async function handleUnpublishClick(rawTimestamp, sourceButton = null) {
+    const timestamp = parseInt(rawTimestamp, 10); // Ensure timestamp is an integer
 
-async function handleUnpublishClick(timestamp, sourceButton = null) {
     showConfirmationModal(
         'Unpublish Site',
         'Are you sure you want to unpublish this site? The domain will be released and the link will no longer work. This cannot be undone.',
         async () => {
             let originalSourceIcon = null;
 
-            // 1. Show spinner on the specific button that was clicked
+            // 1. Show spinner on the specific button that was clicked (Dashboard or Card)
             if (sourceButton) {
                 originalSourceIcon = sourceButton.innerHTML;
                 sourceButton.innerHTML = `<div class="spinner" style="width:14px; height:14px; border-width:2px; margin: 0 auto;"></div>`;
                 sourceButton.disabled = true;
             }
 
-            // 2. Try to find the site container on the canvas if it's open
+            // 2. Try to sync the UI of the site card if it's currently open on the canvas
             const container = document.querySelector(`.site-container[data-timestamp="${timestamp}"]`);
             let cardUnpublishBtn = null;
             let originalCardIcon = null;
 
-            if (container && (!sourceButton || !sourceButton.classList.contains('share-btn'))) {
-                cardUnpublishBtn = container.querySelector('.publish-info .share-btn[title="Unpublish and remove domain"]');
-                if (cardUnpublishBtn) {
+            if (container) {
+                cardUnpublishBtn = container.querySelector('.share-btn[title="Unpublish and remove domain"]');
+                // Only update the card button if it wasn't the button that was originally clicked
+                if (cardUnpublishBtn && cardUnpublishBtn !== sourceButton) {
                     originalCardIcon = cardUnpublishBtn.innerHTML;
                     cardUnpublishBtn.innerHTML = `<div class="spinner" style="width:14px; height:14px; border-width:2px; margin: 0 auto;"></div>`;
                     cardUnpublishBtn.disabled = true;
@@ -2716,8 +2716,8 @@ async function handleUnpublishClick(timestamp, sourceButton = null) {
             }
 
             try {
-                // Send the delete request to the backend with clean string parsing
-                const response = await fetch(`${backendUrl}/unpublish-sitee/${String(timestamp).trim()}`, {
+                // Send the delete request to the backend
+                const response = await fetch(`${backendUrl}/unpublish-sitee/${timestamp}`, {
                     method: 'DELETE',
                     headers: await getAuthHeaders(),
                 });
@@ -2729,15 +2729,15 @@ async function handleUnpublishClick(timestamp, sourceButton = null) {
 
                 showNotification('Site unpublished successfully!', 'success');
 
-                // VITAL FIX: Update the local memory array matching strings securely
+                // 3. Update the local user data memory
                 if (currentUser && currentUser.projects) {
-                    const project = currentUser.projects.find(p => String(p.timestamp) === String(timestamp));
-                    if (project) {
-                        project.published_url = null;
+                    const projectIndex = currentUser.projects.findIndex(p => Number(p.timestamp) === timestamp);
+                    if (projectIndex !== -1) {
+                        currentUser.projects[projectIndex].published_url = null;
                     }
                 }
 
-                // If the window is currently open on the canvas workspace layout, toggle its buttons back
+                // 4. If the window is open on the canvas, update its UI
                 if (container) {
                     const publishInfo = container.querySelector('.publish-info');
                     const publishBtn = container.querySelector('.publish-btn');
@@ -2751,10 +2751,9 @@ async function handleUnpublishClick(timestamp, sourceButton = null) {
                     if (updateBtn) updateBtn.style.display = 'none';
                 }
 
-                // VITAL FIX FOR DASHBOARD LAYOUT:
-                // Re-populate the dashboard items immediately so it reflects the change live in the interface!
-                const dashModal = document.getElementById('dashboard-modal');
-                if (dashModal && (dashModal.classList.contains('active') || dashModal.style.display === 'flex')) {
+                // 5. Automatically refresh the dashboard so the user sees the site vanish from the list
+                const dashboardModal = document.getElementById('dashboard-modal');
+                if (dashboardModal && (dashboardModal.classList.contains('active') || dashboardModal.style.display === 'flex')) {
                     populateDashboard();
                 }
 
@@ -2762,7 +2761,7 @@ async function handleUnpublishClick(timestamp, sourceButton = null) {
                 console.error("Unpublish error:", error);
                 showNotification(error.message, 'error');
 
-                // Restore button visual icons if things fail
+                // Restore icons on error
                 if (sourceButton && originalSourceIcon) {
                     sourceButton.innerHTML = originalSourceIcon;
                     sourceButton.disabled = false;
