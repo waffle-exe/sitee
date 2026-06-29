@@ -946,10 +946,10 @@ async function handleGenerateClick() {
         const userCredits = currentUser.credits || 0;
         if (userCredits <= 0) {
             showConfirmationModal(
-                'Out of Credits 🔋',
+                'Out of Credits',
                 'You have run out of AI credits. Purchase a custom add-on or upgrade your plan to continue.',
                 () => {
-                    window.location.hash = '#plans';
+                    window.location.hash = 'https://www.sitee.in/#plans';
                 }
             );
             document.getElementById('modal-confirm-btn').textContent = 'Get Credits';
