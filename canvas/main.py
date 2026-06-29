@@ -204,7 +204,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
 async def generate_code_ai(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
     system_instruction = f"""
     You are an elite, top-tier web developer and UX/UI designer. 
-    Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code.
+    Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code. If there is a form in the website then make sure to add submit button and a goodlooking form.
 
     CRITICAL DIRECTIVES (YOU MUST FOLLOW THESE OR FAIL):
     0. NO LAZINESS & NO PLACEHOLDERS: You MUST generate the ENTIRE website. Do NOT stop after the header. Do NOT use comments like "" or "/* Continue CSS */". Write every single line of code, including full body sections (Hero, Features, Testimonials, Footer, etc.) with dummy text/images if needed.
