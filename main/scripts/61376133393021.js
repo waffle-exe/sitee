@@ -434,7 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <li>${checkIcon} Live Code Editor</li>
             <li>${checkIcon} Get Full Source Code</li>
             <li>${checkIcon} Backend Integration</li>
-            <li>${checkIcon} Sitee Branding</li>
+            <li>${checkIcon} No Sitee Branding</li>
+            
+            
         </ul>
         <button class="choose-plan-btn" disabled>Your Current Plan</button>
     </article>
@@ -453,7 +455,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <li>${checkIcon} Publish up to 7 Websites</li>
             <li>${checkIcon} 500 MB Storage</li>
             <li>${checkIcon} Backend Integration</li>
+            <li>${checkIcon} AI Refine</li>
             <li>${checkIcon} No Sitee Branding</li>
+            
         </ul>
         <button class="choose-plan-btn" data-plan="creator">Choose Creator</button>
     </article>
@@ -471,8 +475,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <li>${checkIcon} Live Code Editor</li>
             <li>${checkIcon} Get Full Source Code</li>
             <li>${checkIcon} Github Deployment</li>
-            <li>${checkIcon} Publish Unlimited Websites</li> <li>${checkIcon} 2 GB Storage</li>
+            <li>${checkIcon} Publish Unlimited Websites</li> 
+            <li>${checkIcon} 1 GB Storage</li>
             <li>${checkIcon} Backend Integration</li>
+            <li>${checkIcon} AI Refine</li>
             <li>${checkIcon} No Sitee Branding</li>
         </ul>
         <button class="choose-plan-btn" data-plan="pro">Choose Pro</button>
