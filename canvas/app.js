@@ -890,20 +890,29 @@ function checkCreditStatus() {
         generateBtn.disabled = false;
         return;
     }
-    const hasCredits = currentUser.credits > 0;
-    promptInput.disabled = !hasCredits;
-    generateBtn.disabled = !hasCredits;
-    const isChat = currentMode === 'chat';
-    if (isChat) {
-        promptInput.placeholder = hasCredits ? "Message Sitee..." : "No credits remaining.";
+
+    const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
+    let hasCredits = false;
+
+    if (plan === 'free') {
+        const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
+        hasCredits = generationsUsed < 2;
+        
+        promptInput.placeholder = hasCredits 
+            ? "Describe your idea..." 
+            : "Free limit reached. Click generate to upgrade.";
     } else {
-        promptInput.placeholder = hasCredits ? "Describe your idea..." : "No credits remaining.";
+        hasCredits = currentUser.credits > 0;
+        
+        promptInput.placeholder = hasCredits 
+            ? "Describe your idea..." 
+            : "No credits remaining. Add more to continue.";
     }
-    if (!hasCredits) {
-        showNotification("You have run out of credits.", "error");
-    }
+
+    // Keep inputs enabled so the user can interact and trigger the upgrade modal
+    promptInput.disabled = false;
+    generateBtn.disabled = false;
 }
-// REPLACE your old handleGenerateClick function with this new one
 
 async function handleGenerateClick() {
     console.log("Generate button clicked!");
@@ -912,8 +921,35 @@ async function handleGenerateClick() {
         showNotification('Please sign up or log in to generate.', 'error');
         return;
     }
-    if (!currentUser || currentUser.credits <= 0) {
-        checkCreditStatus();
+
+    const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
+
+    // Enforce limits based on actual logic
+    if (plan === 'free') {
+        const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
+        if (generationsUsed >= 2) {
+            // Show the upgrade pop-up
+            showConfirmationModal(
+                'Upgrade Required!',
+                'You have reached the maximum of 2 free website generations. Upgrade to the Creator or Pro plan to launch more projects!',
+                () => {
+                    // Redirect to plans section upon clicking confirm
+                    window.location.hash = '#plans';
+                }
+            );
+            // Change the modal button text dynamically for this context
+            document.getElementById('modal-confirm-btn').textContent = 'View Plans';
+            return;
+        }
+    } else if (currentUser.credits <= 0) {
+        showConfirmationModal(
+            'Out of Credits!',
+            'You have run out of AI credits. Purchase a custom add-on or upgrade your plan to continue.',
+            () => {
+                window.location.hash = '#plans';
+            }
+        );
+        document.getElementById('modal-confirm-btn').textContent = 'Get Credits';
         return;
     }
 
@@ -932,7 +968,7 @@ async function handleGenerateClick() {
             createSiteContainer(userPrompt, null, { data: allBase64Data, size: totalSize });
 
             promptSuggestions.classList.add('hidden');
-            uploadedImageFiles = []; // Clear files after use
+            uploadedImageFiles = []; 
             renderImagePreviews();
 
         } catch (error) {
@@ -941,7 +977,6 @@ async function handleGenerateClick() {
         }
 
     } else {
-        // This is the existing logic for text-only generation.
         if (!userPrompt) return;
 
         let finalPrompt = userPrompt;
