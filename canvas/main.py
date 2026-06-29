@@ -508,17 +508,6 @@ async def delete_firebase_config(current_user: dict = Depends(get_current_user))
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
-@app.delete("/unpublish-sitee/{timestamp}")
-async def unpublish_sitee_endpoint(timestamp: str, current_user: dict = Depends(get_current_user)):
-    doc_ref = db.collection("users").document(current_user['uid']).collection("projects").document(timestamp)
-    
-    # Use DELETE_FIELD instead of None
-    if doc_ref.get().exists: 
-        doc_ref.update({"published_url": firestore.DELETE_FIELD})
-        
-    return {"status": "success"}
-
-
 @app.get("/{path:path}")
 async def serve_dynamic_subdomain(request: Request, path: str):
     host = request.headers.get("host", "")
