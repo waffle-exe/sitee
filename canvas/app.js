@@ -649,39 +649,41 @@ function populateDashboard() {
             handleUnpublishClick(timestamp, e.currentTarget);
         });
     });
-
     // --- FIREBASE CONFIGURATION UI UPDATES ---
-    const fbForm = document.getElementById('firebase-config-form');
-    const fbStatusBadge = document.getElementById('firebase-status-badge');
-    const saveFbBtn = document.getElementById('save-firebase-btn');
-    const disconnectFbBtn = document.getElementById('disconnect-firebase-btn');
+const fbForm = document.getElementById('firebase-config-form');
+const fbStatusBadge = document.getElementById('firebase-status-badge');
+const saveFbBtn = document.getElementById('save-firebase-btn');
+const disconnectFbBtn = document.getElementById('disconnect-firebase-btn');
 
-    if (currentUser && currentUser.custom_firebase_config && currentUser.custom_firebase_config.apiKey) {
-        document.getElementById('fb-apiKey').value = currentUser.custom_firebase_config.apiKey || '';
+if (currentUser && currentUser.custom_firebase_config && currentUser.custom_firebase_config.apiKey) {
+    // Add optional chaining (?.) or check if the element exists first
+    const apiKeyInput = document.getElementById('fb-apiKey');
+    if (apiKeyInput) {
+        apiKeyInput.value = currentUser.custom_firebase_config.apiKey || '';
         document.getElementById('fb-authDomain').value = currentUser.custom_firebase_config.authDomain || '';
         document.getElementById('fb-databaseURL').value = currentUser.custom_firebase_config.databaseURL || '';
         document.getElementById('fb-projectId').value = currentUser.custom_firebase_config.projectId || '';
         document.getElementById('fb-storageBucket').value = currentUser.custom_firebase_config.storageBucket || '';
         document.getElementById('fb-messagingSenderId').value = currentUser.custom_firebase_config.messagingSenderId || '';
         document.getElementById('fb-appId').value = currentUser.custom_firebase_config.appId || '';
-
-        if (fbStatusBadge) {
-            fbStatusBadge.innerHTML = 'Status: Connected';
-            fbStatusBadge.style.color = '#4ADE80';
-        }
-        if (saveFbBtn) saveFbBtn.style.display = 'none';
-        if (disconnectFbBtn) disconnectFbBtn.style.display = 'block';
-    } else {
-        if (fbForm) fbForm.reset();
-        if (fbStatusBadge) {
-            fbStatusBadge.innerHTML = 'Status: Not Connected';
-            fbStatusBadge.style.color = 'var(--text-muted-color)';
-        }
-        if (saveFbBtn) saveFbBtn.style.display = 'block';
-        if (disconnectFbBtn) disconnectFbBtn.style.display = 'none';
     }
-}
 
+    if (fbStatusBadge) {
+        fbStatusBadge.innerHTML = 'Status: Connected';
+        fbStatusBadge.style.color = '#4ADE80';
+    }
+    if (saveFbBtn) saveFbBtn.style.display = 'none';
+    if (disconnectFbBtn) disconnectFbBtn.style.display = 'block';
+} else {
+    if (fbForm) fbForm.reset();
+    if (fbStatusBadge) {
+        fbStatusBadge.innerHTML = 'Status: Not Connected';
+        fbStatusBadge.style.color = 'var(--text-muted-color)';
+    }
+    if (saveFbBtn) saveFbBtn.style.display = 'block';
+    if (disconnectFbBtn) disconnectFbBtn.style.display = 'none';
+}
+}
 
 
 // =======================================================
