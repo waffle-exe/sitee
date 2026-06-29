@@ -11,6 +11,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import requests
+from firebase_admin import firestore
+
 
 # Set BASE_DIR first so we can securely locate files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -347,7 +349,7 @@ async def generate_code_endpoint(req: GenerateRequest, current_user: dict = Depe
     except Exception as e:
         raise e
     
-    
+
 # --- Projects Management ---
 @app.post("/users/{user_id}/projects")
 async def save_project_endpoint(user_id: str, project: dict = Body(...), current_user: dict = Depends(get_current_user)):
@@ -505,7 +507,18 @@ async def delete_firebase_config(current_user: dict = Depends(get_current_user))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-# ---------------- CATCH-ALL ROUTE FOR DYNAMIC SUBDOMAINS ----------------
+
+@app.delete("/unpublish-sitee/{timestamp}")
+async def unpublish_sitee_endpoint(timestamp: str, current_user: dict = Depends(get_current_user)):
+    doc_ref = db.collection("users").document(current_user['uid']).collection("projects").document(timestamp)
+    
+    # Use DELETE_FIELD instead of None
+    if doc_ref.get().exists: 
+        doc_ref.update({"published_url": firestore.DELETE_FIELD})
+        
+    return {"status": "success"}
+
+
 @app.get("/{path:path}")
 async def serve_dynamic_subdomain(request: Request, path: str):
     host = request.headers.get("host", "")
