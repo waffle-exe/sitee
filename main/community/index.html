@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sitee. Community | Coming Soon</title>
-    
     <!-- Tailwind CSS for rapid structural styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Outfit for a modern, tech-forward look -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -27,7 +25,7 @@
             overflow-x: hidden;
         }
 
-        /* Dark Moody Floral Background - using newly provided image */
+        /* Dark Moody Floral Background */
         .bg-floral {
             position: fixed;
             top: 0;
@@ -49,30 +47,37 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: radial-gradient(circle at 50% 50%, transparent 0%, #030303 95%);
+            background: radial-gradient(circle at 50% 50%, transparent 20%, rgba(0, 0, 0, 0.6) 100%);
             z-index: -1;
         }
 
-        /* Liquid Glass Tinted Container */
-        .liquid-glass {
-            background: linear-gradient(135deg, rgba(15, 15, 20, 0.45) 0%, rgba(5, 5, 5, 0.75) 100%);
-            backdrop-filter: blur(28px);
-            -webkit-backdrop-filter: blur(28px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.18);
-            border-left: 1px solid rgba(255, 255, 255, 0.18);
-            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.02);
-            /* Responsive border radius: softer on mobile, ultra-high on desktop */
-            border-radius: 2rem; 
+        /* Liquid Glass Main Container */
+        .glass-container {
+            background: rgba(15, 15, 15, 0.15); /* Transparent liquid effect */
+            backdrop-filter: blur(12px); /* Lower blur to let the flowers shine through */
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 2rem; /* High border radius scaling for mobile */
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 85vh;
+            padding: 2rem;
         }
-        
+
         @media (min-width: 768px) {
-            .liquid-glass {
-                border-radius: 3.5rem; 
+            .glass-container {
+                border-radius: 3.5rem; /* Ultra high border radius for desktop */
+                padding: 4rem;
             }
         }
 
-        /* Custom text gradient matching the brand */
+        /* Custom text gradient matching the image */
         .text-gradient {
             background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
             -webkit-background-clip: text;
@@ -87,22 +92,23 @@
             background-clip: text;
         }
 
-        /* Standard Glass Panel for smaller elements */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        /* Pill shaped glass inputs and badges */
+        .glass-pill {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 9999px; /* Pill shape */
         }
 
-        /* Gradient Button with Hover Effect */
+        /* Gradient Pill Button */
         .btn-gradient {
             background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
             z-index: 1;
+            border-radius: 9999px;
         }
 
         .btn-gradient::before {
@@ -124,7 +130,7 @@
             box-shadow: 0 10px 25px -5px rgba(255, 114, 69, 0.4);
         }
 
-        /* Fade Up Animations */
+        /* Animations */
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -146,11 +152,11 @@
     <div class="bg-floral"></div>
     <div class="bg-vignette"></div>
 
-    <!-- Outer Container for Liquid Glass Float Effect -->
-    <div class="min-h-screen p-3 sm:p-6 md:p-10 lg:p-12 flex items-center justify-center relative z-10">
+    <!-- Centered Layout Wrapper -->
+    <div class="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8">
         
-        <!-- Liquid Glass Layout Container -->
-        <div class="liquid-glass w-full max-w-7xl min-h-[90vh] md:min-h-[85vh] flex flex-col justify-between relative p-6 md:p-12 lg:p-16">
+        <!-- Liquid Glass Floating Container -->
+        <div class="glass-container">
             
             <!-- Header -->
             <header class="flex justify-between items-center animate-fade-up">
@@ -158,39 +164,38 @@
                     sitee<span class="text-gradient text-4xl md:text-5xl leading-[0]">.</span>
                 </div>
                 
-                <a href="https://www.sitee.in" target="_blank" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-xs md:text-sm font-medium glass-panel px-4 py-2 md:px-6 md:py-3 rounded-full">
+                <a href="https://www.sitee.in" target="_blank" class="hidden sm:flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium glass-pill px-5 py-2.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-                    <span class="hidden sm:inline">sitee.in</span>
-                    <span class="sm:hidden">Web</span>
+                    sitee.in
                 </a>
             </header>
 
             <!-- Main Content -->
-            <main class="flex-grow flex flex-col justify-center max-w-4xl mt-12 md:mt-0 py-8">
+            <main class="flex-grow flex flex-col justify-center max-w-4xl py-12 md:py-16">
                 
                 <!-- Badge -->
-                <div class="animate-fade-up delay-100 mb-6 md:mb-8 inline-flex items-center px-4 md:px-5 py-2 rounded-full glass-panel text-xs md:text-sm font-medium w-max text-gray-300 border border-gray-500/30">
+                <div class="animate-fade-up delay-100 mb-8 inline-flex items-center px-5 py-2 glass-pill text-sm font-medium w-max text-gray-200">
                     <span class="mr-2 opacity-80">Powered by</span> 
-                    <span class="text-white">Sitee Community</span>
+                    <span class="text-white">Sitee LLM</span>
                 </div>
 
                 <!-- Headlines -->
-                <h1 class="animate-fade-up delay-200 text-5xl sm:text-6xl md:text-8xl lg:text-[7rem] font-bold tracking-tight leading-[1.1] mb-6 md:mb-8">
-                    Connect.<br>
-                    Collaborate.<br>
+                <h1 class="animate-fade-up delay-200 text-5xl sm:text-6xl md:text-7xl lg:text-[6.5rem] font-bold tracking-tight leading-[1.1] mb-6 md:mb-8">
+                    Generate.<br>
+                    Own.<br>
                     <span class="text-gradient-orange">Launch.</span>
                 </h1>
 
                 <!-- Subtitle -->
-                <p class="animate-fade-up delay-300 text-base md:text-xl text-gray-400 max-w-2xl mb-10 md:mb-12 leading-relaxed">
-                    Sitee community is the new hub for <span class="text-purple-400 font-medium">vibe coders</span>, entrepreneurs, and creators. Get ready to turn your ideas into reality. Be the first to know when we open our doors.
+                <p class="animate-fade-up delay-300 text-base sm:text-lg md:text-xl text-gray-300 max-w-2xl mb-10 leading-relaxed">
+                    Sitee community is the new hub for <span class="text-purple-400 font-medium">vibe coders</span>, entrepreneurs, and creators. Turn your ideas into full-stack websites in minutes. Be the first to join.
                 </p>
 
                 <!-- Newsletter Form -->
                 <div class="animate-fade-up delay-300 w-full max-w-xl relative">
-                    <form id="newsletterForm" class="flex flex-col sm:flex-row gap-3 md:gap-4 relative z-20">
+                    <form id="newsletterForm" class="flex flex-col sm:flex-row gap-3 relative z-20">
                         <div class="relative flex-grow">
-                            <div class="absolute inset-y-0 left-0 pl-5 md:pl-6 flex items-center pointer-events-none">
+                            <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                                 <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                                 </svg>
@@ -200,19 +205,19 @@
                                 id="emailInput"
                                 required 
                                 placeholder="Enter your email address"
-                                class="w-full glass-panel pl-12 md:pl-14 pr-6 py-4 rounded-full md:rounded-[2rem] text-sm md:text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all bg-black/20"
+                                class="w-full glass-pill pl-12 pr-6 py-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all bg-black/20"
                             >
                         </div>
-                        <button type="submit" class="btn-gradient px-8 py-4 rounded-full md:rounded-[2rem] font-semibold text-sm md:text-base text-white whitespace-nowrap shadow-lg flex items-center justify-center gap-2">
+                        <button type="submit" class="btn-gradient px-8 py-4 font-semibold text-white whitespace-nowrap shadow-lg flex items-center justify-center gap-2 group">
                             Notify Me
                             <svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </button>
                     </form>
 
-                    <!-- Success Message (Hidden by default, shown via JS) -->
-                    <div id="successMessage" class="hidden absolute top-0 left-0 w-full h-full glass-panel rounded-full md:rounded-[2rem] flex items-center justify-center sm:justify-start px-6 md:px-8 text-green-400 text-sm md:text-base font-medium z-30 animate-fade-up bg-black/60 backdrop-blur-md">
+                    <!-- Success Message (Hidden by default) -->
+                    <div id="successMessage" class="hidden absolute top-0 left-0 w-full h-full glass-pill bg-green-900/40 border-green-500/30 flex items-center px-6 text-green-300 font-medium z-30 animate-fade-up">
                         <div class="flex items-center gap-3">
-                            <div class="bg-green-400/20 p-2 rounded-full hidden sm:block">
+                            <div class="bg-green-400/20 p-2 rounded-full">
                                 <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             </div>
                             You're on the waitlist! Keep an eye on your inbox.
@@ -220,19 +225,22 @@
                     </div>
                 </div>
                 
-                <p class="animate-fade-up delay-300 text-xs text-gray-500 mt-4 pl-2 sm:pl-4 text-center sm:text-left">
+                <p class="animate-fade-up delay-300 text-xs text-gray-400 mt-4 ml-4">
                     No spam. Unsubscribe at any time.
                 </p>
 
             </main>
 
             <!-- Footer -->
-            <footer class="animate-fade-up delay-300 text-xs md:text-sm text-gray-400 flex flex-col sm:flex-row justify-between items-center gap-4 mt-12 md:mt-0 pt-6 border-t border-gray-700/50">
+            <footer class="animate-fade-up delay-300 text-sm text-gray-400 flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-white/10 text-center sm:text-left">
                 <div>#siteeit &bull; © 2026 Sitee Community.</div>
-                <div class="flex gap-4 md:gap-6">
-                    <a href="#" class="hover:text-white transition-colors">Twitter</a>
-                    <a href="#" class="hover:text-white transition-colors">Discord</a>
-                    <a href="#" class="hover:text-white transition-colors">Terms</a>
+                <div class="flex gap-6">
+                    <a href="https://instagram.com/sitee.in" target="_blank" class="hover:text-white transition-colors flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd" />
+                        </svg>
+                        @sitee.in
+                    </a>
                 </div>
             </footer>
         </div>
@@ -246,18 +254,16 @@
             const emailInput = document.getElementById('emailInput');
 
             form.addEventListener('submit', (e) => {
-                e.preventDefault(); // Prevent actual page reload
+                e.preventDefault(); // Prevent actual form submission
                 
                 const email = emailInput.value;
                 
-                // Check if email is valid and show success UI
+                // Simulate an API call to save the email
                 if(email) {
-                    // Hide form gently
+                    // Hide form gently, show success
                     form.style.opacity = '0';
                     form.style.pointerEvents = 'none';
-                    form.style.transition = 'opacity 0.3s ease';
                     
-                    // Show success message over the form area
                     setTimeout(() => {
                         successMessage.classList.remove('hidden');
                         successMessage.classList.add('flex');
