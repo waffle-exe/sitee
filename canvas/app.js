@@ -969,6 +969,7 @@ function checkCreditStatus() {
     generateBtn.disabled = false;
 }
 
+
 async function handleGenerateClick() {
     console.log("Generate button clicked!");
     if (!auth.currentUser || !auth.currentUser.emailVerified) {
@@ -978,6 +979,27 @@ async function handleGenerateClick() {
     }
 
     const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
+    let userPrompt = promptInput.value.trim();
+
+    // --- NEW: Enforce Word Limit for Free Plan ---
+    if (plan === 'free') {
+        // Count words by splitting on spaces and filtering empty strings
+        const wordCount = userPrompt.split(/\s+/).filter(word => word.length > 0).length;
+        const WORD_LIMIT = 400; // Safe limit that ensures good results without API bloat
+
+        if (wordCount > WORD_LIMIT) {
+            showConfirmationModal(
+                'Word Limit Reached',
+                `The free plan allows up to ${WORD_LIMIT} words per prompt, but you entered ${wordCount}. Please shorten your description or upgrade your plan.`,
+                () => {
+                    window.location.hash = 'https://www.sitee.in/#plans';
+                }
+            );
+            document.getElementById('modal-confirm-btn').textContent = 'View Plans';
+            return; // Stop execution to save API costs
+        }
+    }
+    // ----------------------------------------------
 
     // Check Plan Limits Safely
     if (plan === 'free') {
@@ -1009,8 +1031,6 @@ async function handleGenerateClick() {
             return;
         }
     }
-
-    let userPrompt = promptInput.value.trim();
 
     if (uploadedImageFiles.length > 0) {
         if (!userPrompt) {
@@ -1393,6 +1413,16 @@ function appendTurn(turn, isLoading = false) {
 }
 
 async function sendChatMessage(prompt, turnToUpdate = null) {
+    const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
+    if (plan === 'free') {
+        const wordCount = prompt.split(/\s+/).filter(word => word.length > 0).length;
+        const WORD_LIMIT = 400;
+
+        if (wordCount > WORD_LIMIT) {
+            showNotification(`Free plan is limited to ${WORD_LIMIT} words. Your message has ${wordCount} words. Please shorten it.`, 'error');
+            return; // Stop execution
+        }
+    }
     if (!document.body.classList.contains('chat-started')) {
         document.body.classList.add('chat-started');
     }
