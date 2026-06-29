@@ -4883,10 +4883,14 @@ document.getElementById('dashboard-content').addEventListener('click', async (e)
         const btn = e.target;
         const timestamp = btn.getAttribute('data-timestamp');
         
-        // UI Feedback: Disable button and change text
-        const originalText = btn.textContent;
-        btn.textContent = "Unpublishing...";
+        // UI Feedback: Disable button, save original state, and inject loader
+        const originalHTML = btn.innerHTML;
         btn.disabled = true;
+        
+        btn.innerHTML = `
+            <span class="spinner" style="width: 14px; height: 14px; border-width: 2px; display: inline-block; border-top-color: #fff;"></span> 
+            Unpublishing...
+        `;
 
         try {
             // Get your Firebase auth token
@@ -4915,8 +4919,8 @@ document.getElementById('dashboard-content').addEventListener('click', async (e)
             console.error("Dashboard Unpublish Error:", error);
             showNotification("Error unpublishing site.", "error");
             
-            // Revert button state if it fails
-            btn.textContent = originalText;
+            // Revert button state if it fails using the saved HTML
+            btn.innerHTML = originalHTML;
             btn.disabled = false;
         }
     }
