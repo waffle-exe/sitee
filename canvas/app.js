@@ -539,9 +539,9 @@ function populateDashboard() {
 
     // Format total text nicely
     if (totalMB < 1024) {
-         totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
+        totalText = totalMB > 0 ? `${totalMB} MB total` : 'N/A';
     } else {
-         totalText = totalMB > 0 ? `${(totalMB / 1024).toFixed(0)} GB total` : 'N/A';
+        totalText = totalMB > 0 ? `${(totalMB / 1024).toFixed(0)} GB total` : 'N/A';
     }
 
     const usagePercentage = totalMB > 0 ? (storageUsedMB / totalMB) * 100 : 0;
@@ -849,14 +849,14 @@ async function getAuthHeaders() {
     const headers = {
         'Content-Type': 'application/json'
     };
-    
+
     // Wait for Firebase to finish initializing before checking for a user
     await auth.authStateReady();
 
     if (auth.currentUser) {
         try {
             // Remove 'true'. Empty () uses the cached token and only refreshes when expired.
-            const token = await auth.currentUser.getIdToken(); 
+            const token = await auth.currentUser.getIdToken();
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
             }
@@ -869,12 +869,12 @@ async function getAuthHeaders() {
 function updateCreditDisplay() {
     if (currentUser) {
         const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
-        
+
         if (plan === 'free') {
             // Calculate generations used, ignoring the hidden chat history
             const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
             const generationsLeft = Math.max(0, 2 - generationsUsed);
-            
+
             creditDisplay.textContent = `Generations: ${generationsLeft} / 2`;
         } else {
             // Show standard credits for paid/custom plans
@@ -1489,7 +1489,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     // --- NEW: Only create and show the Delete button if NOT on Free plan ---
     let deleteBtn = null;
     const currentPlan = (currentUser?.subscriptionTier || 'free').toLowerCase();
-    
+
     if (currentPlan !== 'free') {
         deleteBtn = document.createElement('button');
         deleteBtn.className = 'control-btn delete-btn';
@@ -1497,22 +1497,22 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
         deleteBtn.title = 'Delete';
         windowControls.appendChild(deleteBtn);
 
-        deleteBtn.addEventListener('click', (e) => { 
-            e.stopPropagation(); 
-            const timestamp = parseInt(container.dataset.timestamp); 
-            if (!timestamp) { 
-                container.remove(); 
-                return; 
-            } 
-            showConfirmationModal('Delete Project', 'Are you sure you want to delete this project?', async () => { 
-                const success = await deleteProject(timestamp); 
-                if (success) { 
-                    if (container.classList.contains('fullscreen')) { 
-                        document.body.classList.remove('site-fullscreen-active'); 
-                    } 
-                    container.remove(); 
-                } 
-            }, 'danger'); 
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const timestamp = parseInt(container.dataset.timestamp);
+            if (!timestamp) {
+                container.remove();
+                return;
+            }
+            showConfirmationModal('Delete Project', 'Are you sure you want to delete this project?', async () => {
+                const success = await deleteProject(timestamp);
+                if (success) {
+                    if (container.classList.contains('fullscreen')) {
+                        document.body.classList.remove('site-fullscreen-active');
+                    }
+                    container.remove();
+                }
+            }, 'danger');
         });
     }
 
@@ -1605,7 +1605,6 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     const refineBtn = refineControls.querySelector('.refine-btn');
 
     // ALL EVENT LISTENERS ARE ATTACHED HERE
-
     refineBtn.addEventListener('click', async () => {
         pushStateForIframe(iframe); // Save state before refining
         const refinePrompt = refineInput.value.trim();
@@ -1635,17 +1634,17 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
 
             if (result.user_profile) currentUser = result.user_profile;
 
-            // --- NEW: DYNAMIC FIREBASE INJECTION ---
+            // --- FIXED: DYNAMIC FIREBASE INJECTION WITH TIMESTAMP ---
             // Re-inject the script in case the AI accidentally removed or broke it during refinement
+            const timestamp = parseInt(container.dataset.timestamp);
             const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
-                ? injectDynamicFirebaseForms(result.html, currentUser)
+                ? injectDynamicFirebaseForms(result.html, currentUser, timestamp)
                 : result.html;
             // ---------------------------------------
 
             iframe.srcdoc = finalHtmlCode;
             compareBtn.style.display = 'flex'; // Show compare button after refinement
 
-            const timestamp = parseInt(container.dataset.timestamp);
             if (timestamp) await updateProjectCode(timestamp, finalHtmlCode);
 
             if (result.credits_remaining !== undefined) {
@@ -4565,7 +4564,6 @@ Promise.all([minDelayPromise, pageLoadPromise]).then(() => {
 });
 
 
-
 // --- DYNAMIC FIREBASE FORM INJECTOR ---
 function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
     if (htmlCode.includes('id="sitee-firebase-injector"')) return htmlCode;
@@ -4577,8 +4575,9 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
         const warningScript = `
 <script id="sitee-firebase-injector">
     document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button');
-        if (btn && ['submit', 'send', 'join', 'subscribe', 'contact'].some(k => btn.innerText.toLowerCase().includes(k))) {
+        // Now catches links <a> acting as buttons too
+        const btn = e.target.closest('button, a, input[type="submit"]');
+        if (btn && ['submit', 'send', 'join', 'subscribe', 'contact'].some(k => (btn.innerText || btn.value || '').toLowerCase().includes(k))) {
             e.preventDefault();
             alert("Forms are disabled. The website owner has not connected their Firebase database yet.");
         }
@@ -4589,7 +4588,6 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
 
     const safeProjectId = projectId || 'uncategorized_project';
 
-    // Use standard compat libraries to completely bypass iframe module CORS blocks
     const injectionScript = `
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -4605,21 +4603,22 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
         if (container.dataset.submitting === 'true') return;
         container.dataset.submitting = 'true';
 
-        // 1. UI Loading State
+        // 1. UI Loading State (Improved visibility)
         const originalText = btn ? (btn.innerText || btn.value) : '';
         if (btn) {
             if (btn.innerText) btn.innerText = 'Submitting...';
             if (btn.value) btn.value = 'Submitting...';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none'; // Prevent double clicking
         }
 
-        // 2. Smart Scrape (Find inputs even if there are no 'name' attributes or <form> tags)
+        // 2. Smart Scrape
         let data = {};
         let hasData = false;
         container.querySelectorAll('input, select, textarea').forEach((el, index) => {
             const rawName = el.name || el.id || el.getAttribute('placeholder') || 'field_' + index;
             const cleanName = rawName.toLowerCase().replace(/[^a-z0-9]/g, '_');
             
-            // Ignore hidden/system fields
             if (el.type !== 'submit' && el.type !== 'button') {
                 data[cleanName] = el.value || '';
                 if(el.value) hasData = true;
@@ -4633,9 +4632,9 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
         try {
             await db.ref('website_form_submissions/${safeProjectId}').push(data);
             
-            // Inject a visible green success message so you KNOW it worked
+            // Inject a visible green success message
             const successMsg = document.createElement('div');
-            successMsg.style.cssText = 'color: #10B981; margin-top: 15px; font-weight: bold; text-align: center; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border: 1px solid #10B981; transition: opacity 0.5s;';
+            successMsg.style.cssText = 'color: #10B981; margin-top: 15px; font-weight: bold; text-align: center; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border: 1px solid #10B981; transition: opacity 0.5s;';
             successMsg.innerText = '✅ Form Submitted Successfully!';
             
             if (btn && btn.parentNode) {
@@ -4659,6 +4658,8 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
             if (btn) {
                 if (btn.innerText) btn.innerText = originalText;
                 if (btn.value) btn.value = originalText;
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
             }
             container.dataset.submitting = 'false';
         }
@@ -4668,22 +4669,21 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
     document.addEventListener('submit', (e) => {
         if (e.target.tagName === 'FORM') {
             e.preventDefault(); 
-            const btn = e.target.querySelector('button[type="submit"], input[type="submit"]');
+            // Fallback to catching any button inside the form if no explicit submit exists
+            const btn = e.target.querySelector('button[type="submit"], input[type="submit"], button');
             scrapeAndSubmit(e.target, btn);
         }
     }, true);
 
     // Capture "fake" forms (Divs with buttons) generated by AI
     document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button, input[type="submit"], input[type="button"]');
+        // NEW: Now catches anchor tags <a> acting as buttons
+        const btn = e.target.closest('button, input[type="submit"], input[type="button"], a');
         if (btn) {
             const btnText = (btn.innerText || btn.value || '').toLowerCase();
-            const isSubmitBtn = btn.type === 'submit' || ['submit', 'send', 'join', 'subscribe', 'contact', 'sign up', 'register'].some(k => btnText.includes(k));
+            const isSubmitBtn = btn.type === 'submit' || ['submit', 'send', 'join', 'subscribe', 'contact', 'sign up', 'register', 'get started'].some(k => btnText.includes(k));
             
             if (isSubmitBtn) {
-                e.preventDefault();
-                
-                // Find nearest wrapper containing inputs
                 let container = btn.closest('form');
                 if (!container) {
                     let parent = btn.parentElement;
@@ -4697,6 +4697,7 @@ function injectDynamicFirebaseForms(htmlCode, currentUser, projectId) {
                 }
                 
                 if (container) {
+                    e.preventDefault();
                     scrapeAndSubmit(container, btn);
                 }
             }
