@@ -2130,6 +2130,7 @@ function showConfirmationModal(title, message, onConfirm, type = 'normal') {
     modalMessage.textContent = message;
     currentConfirmCallback = onConfirm;
     modalConfirmBtn.classList.remove('danger');
+    
     if (type === 'danger') {
         modalConfirmBtn.classList.add('danger');
         modalConfirmBtn.textContent = 'Delete';
@@ -2138,9 +2139,12 @@ function showConfirmationModal(title, message, onConfirm, type = 'normal') {
     } else {
         modalConfirmBtn.textContent = 'Confirm';
     }
+    
+    // ADD THIS LINE to ensure the modal always forces its way to the very front
+    confirmationModal.style.zIndex = "99999"; 
+    
     confirmationModal.style.display = 'flex';
 }
-// Make sure this function is present and correct in your app.js
 
 function hideConfirmationModal() {
     const confirmationModal = document.getElementById('confirmation-modal');
