@@ -504,6 +504,8 @@ function openDashboardModal() {
     dashboardModal.style.display = 'flex';
     setTimeout(() => dashboardModal.classList.add('active'), 10);
 }
+
+
 function populateDashboard() {
     if (!currentUser || !auth.currentUser) {
         dashboardContent.innerHTML = '<p>Could not load user data. Please log in again.</p>';
@@ -557,13 +559,11 @@ function populateDashboard() {
             </div>
         </div>
     ` : 'N/A';
-    // --- END: MODIFIED LOGIC ---
 
-    // --- NEW: Conditional row item for Credits vs Generations ---
     let allowanceRow = '';
     if (plan === 'free') {
-        // Count actual projects (filter out the hidden chat history document)
-        const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
+        // Use the lifetime counter from the backend
+        const generationsUsed = currentUser.free_generations_used || 0;
         const generationsLeft = Math.max(0, 2 - generationsUsed);
         allowanceRow = `
         <div class="detail-item">
@@ -867,20 +867,14 @@ async function getAuthHeaders() {
     return headers;
 }
 
-
 function updateCreditDisplay() {
     if (currentUser) {
         const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
 
         if (plan === 'free') {
-            // Calculate generations used, ignoring the hidden chat history
-            const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
+            // Use the lifetime counter from the backend
+            const generationsUsed = currentUser.free_generations_used || 0;
             let generationsLeft = Math.max(0, 2 - generationsUsed);
-            
-            // Force 0 if backend credits are exhausted
-            if (currentUser.credits <= 0) {
-                generationsLeft = 0;
-            }
 
             creditDisplay.textContent = `Generations: ${generationsLeft} / 2`;
         } else {
@@ -902,25 +896,25 @@ function checkCreditStatus() {
     let hasCredits = false;
 
     if (plan === 'free') {
-        const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
+        // Use the lifetime counter from the backend
+        const generationsUsed = currentUser.free_generations_used || 0;
         hasCredits = generationsUsed < 2;
-        
-        promptInput.placeholder = hasCredits 
-            ? "Describe your idea..." 
+
+        promptInput.placeholder = hasCredits
+            ? "Describe your idea..."
             : "Free limit reached. Click generate to upgrade.";
     } else {
         const userCredits = currentUser.credits || 0;
         hasCredits = userCredits > 0;
-        
-        promptInput.placeholder = hasCredits 
-            ? "Describe your idea..." 
+
+        promptInput.placeholder = hasCredits
+            ? "Describe your idea..."
             : "No credits remaining. Add more to continue.";
     }
 
     promptInput.disabled = false;
     generateBtn.disabled = false;
 }
-
 
 async function handleGenerateClick() {
     console.log("Generate button clicked!");
@@ -934,11 +928,12 @@ async function handleGenerateClick() {
 
     // Check Plan Limits Safely
     if (plan === 'free') {
-        const generationsUsed = currentUser.projects ? currentUser.projects.filter(p => p.name !== CHAT_HISTORY_PROJECT_NAME).length : 0;
-        
+        // Use the lifetime counter from the backend
+        const generationsUsed = currentUser.free_generations_used || 0;
+
         if (generationsUsed >= 2) {
             showConfirmationModal(
-                'Upgrade Required',
+                'Upgrade Required 🚀',
                 'You have reached your free limit of 2 websites. Upgrade to the Creator or Pro plan to launch more projects!',
                 () => {
                     window.location.hash = '#plans';
@@ -977,7 +972,7 @@ async function handleGenerateClick() {
             createSiteContainer(userPrompt, null, { data: allBase64Data, size: totalSize });
 
             promptSuggestions.classList.add('hidden');
-            uploadedImageFiles = []; 
+            uploadedImageFiles = [];
             renderImagePreviews();
 
         } catch (error) {
@@ -1063,7 +1058,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
         stats.innerHTML = `<span>Generation Time: ${Math.floor((Date.now() - startTime) / 1000)}s</span> | <span>Cost: ${creditsDeducted} Credits</span>`;
 
         const newProjectId = container.dataset.timestamp || Date.now().toString();
-        container.dataset.timestamp = newProjectId; 
+        container.dataset.timestamp = newProjectId;
 
         const timestamp = parseInt(container.dataset.timestamp);
         const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
@@ -1083,7 +1078,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
 
         // Pass the injected HTML to the iframe
         iframe.srcdoc = finalHtmlCode;
-        
+
         const savedProject = await saveProject(prompt, finalHtmlCode, false, timestamp);
         if (savedProject) container.dataset.timestamp = savedProject.timestamp;
 
@@ -1105,7 +1100,7 @@ async function generateWebsite(prompt, container, iframe, imageData = null) {
             if (deleteBtn) deleteBtn.style.display = 'flex';
         }
     } finally {
-        clearInterval(timerInterval); 
+        clearInterval(timerInterval);
         if (document.querySelectorAll('.loading').length <= 1) {
             document.body.classList.remove('generating');
         }
