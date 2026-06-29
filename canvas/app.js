@@ -4891,7 +4891,6 @@ document.getElementById('dashboard-content').addEventListener('click', async (e)
         btn.innerHTML = `
     <div style="display: flex; align-items: center; justify-content: center; gap: 8px; color: #ffffff !important; width: 100%;">
         <span class="spinner" style="width: 14px; height: 14px; border-width: 2px; display: inline-block; border-top-color: #fff;"></span> 
-        <span>Unpublishing...</span>
     </div>
 `;
 
