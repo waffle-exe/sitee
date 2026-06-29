@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const proPriceDisplay = billingCycle === 'yearly' ? planData.symbol + planData.proYearly : planData.symbol + planData.pro;
         const proSavings = (planData.pro * 12) - planData.proYearly;
         const proSavingsLine = billingCycle === 'yearly' ? `<li style="color: #fff; background: rgba(144, 202, 249, 0.2); padding: 5px 10px; border-radius: 5px; margin-bottom: 10px;"><b>Save ${planData.symbol}${proSavings} (2 months free)</b></li>` : '';
-
+        // ... existing variables setup ...
         container.innerHTML = `
     <article class="plan-card free">
         <h2 class="plan-title">Free</h2>
@@ -471,8 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <li>${checkIcon} Live Code Editor</li>
             <li>${checkIcon} Get Full Source Code</li>
             <li>${checkIcon} Github Deployment</li>
-            <li>${checkIcon} Publish up to 5 Websites</li>
-            <li>${checkIcon} 2 GB Storage</li>
+            <li>${checkIcon} Publish Unlimited Websites</li> <li>${checkIcon} 2 GB Storage</li>
             <li>${checkIcon} Backend Integration</li>
             <li>${checkIcon} No Sitee Branding</li>
         </ul>
@@ -551,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function initializePricing() {
         let storedRegion = localStorage.getItem(REGION_STORAGE_KEY);
-        
+
         // FIX 1: Validate that the stored region actually exists in our plans object!
         // This prevents old/invalid cache data (like "IN" or "undefined") from breaking the UI.
         if (storedRegion && plans[storedRegion]) {
@@ -559,29 +558,29 @@ document.addEventListener('DOMContentLoaded', () => {
             buildPricingUI(plans[currentRegion], currentBillingCycle);
             return;
         }
-        
+
         try {
             // Failsafe: if IPAPI is blocked by an adblocker, this will throw an error and jump to catch
             const response = await fetch('https://ipapi.co/json/', { cache: 'no-cache' });
             if (!response.ok) throw new Error('Could not fetch region');
             const data = await response.json();
-            
+
             // Ensure we strictly assign the lowercase 'in' or 'us'
             currentRegion = (data.country_code === 'IN') ? 'in' : 'us';
             localStorage.setItem(REGION_STORAGE_KEY, currentRegion);
-            
+
         } catch (error) {
             console.warn("IP detection failed (Network/Adblocker). Defaulting to USD.", error);
             currentRegion = 'us';
         } finally {
             // FIX 2: Ultimate fallback just in case currentRegion somehow got mangled
-            if (!plans[currentRegion]) currentRegion = 'us'; 
-            
+            if (!plans[currentRegion]) currentRegion = 'us';
+
             // Build the UI and clear the loader
             buildPricingUI(plans[currentRegion], currentBillingCycle);
         }
     }
-    
+
     initializePricing();
 
     const billingToggle = document.getElementById('billing-cycle-checkbox');
