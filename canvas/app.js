@@ -2685,7 +2685,9 @@ function addProjectToSidebar(project) {
 /**
  * Handles the logic for unpublishing a site deployed via Sitee subdomain.
  * @param {number} timestamp The timestamp ID of the project to unpublish.
- */async function handleUnpublishClick(timestamp, sourceButton = null) {
+ */
+
+async function handleUnpublishClick(timestamp, sourceButton = null) {
     showConfirmationModal(
         'Unpublish Site',
         'Are you sure you want to unpublish this site? The domain will be released and the link will no longer work. This cannot be undone.',
@@ -2699,7 +2701,7 @@ function addProjectToSidebar(project) {
                 sourceButton.disabled = true;
             }
 
-            // 2. Also try to find the site container on the canvas to update it simultaneously
+            // 2. Try to find the site container on the canvas if it's open
             const container = document.querySelector(`.site-container[data-timestamp="${timestamp}"]`);
             let cardUnpublishBtn = null;
             let originalCardIcon = null;
@@ -2714,8 +2716,8 @@ function addProjectToSidebar(project) {
             }
 
             try {
-                // Send the delete request to the backend
-                const response = await fetch(`${backendUrl}/unpublish-sitee/${timestamp}`, {
+                // Send the delete request to the backend with clean string parsing
+                const response = await fetch(`${backendUrl}/unpublish-sitee/${String(timestamp).trim()}`, {
                     method: 'DELETE',
                     headers: await getAuthHeaders(),
                 });
@@ -2727,13 +2729,15 @@ function addProjectToSidebar(project) {
 
                 showNotification('Site unpublished successfully!', 'success');
 
-                // Update the local user data memory
-                const project = currentUser.projects.find(p => String(p.timestamp) === String(timestamp));
-                if (project) {
-                    project.published_url = null;
+                // VITAL FIX: Update the local memory array matching strings securely
+                if (currentUser && currentUser.projects) {
+                    const project = currentUser.projects.find(p => String(p.timestamp) === String(timestamp));
+                    if (project) {
+                        project.published_url = null;
+                    }
                 }
 
-                // If the window is open on the canvas, update its UI
+                // If the window is currently open on the canvas workspace layout, toggle its buttons back
                 if (container) {
                     const publishInfo = container.querySelector('.publish-info');
                     const publishBtn = container.querySelector('.publish-btn');
@@ -2747,8 +2751,10 @@ function addProjectToSidebar(project) {
                     if (updateBtn) updateBtn.style.display = 'none';
                 }
 
-                // Automatically refresh the dashboard so the user sees the site vanish from the list
-                if (document.getElementById('dashboard-modal').classList.contains('active')) {
+                // VITAL FIX FOR DASHBOARD LAYOUT:
+                // Re-populate the dashboard items immediately so it reflects the change live in the interface!
+                const dashModal = document.getElementById('dashboard-modal');
+                if (dashModal && (dashModal.classList.contains('active') || dashModal.style.display === 'flex')) {
                     populateDashboard();
                 }
 
@@ -2756,7 +2762,7 @@ function addProjectToSidebar(project) {
                 console.error("Unpublish error:", error);
                 showNotification(error.message, 'error');
 
-                // Restore icons on error
+                // Restore button visual icons if things fail
                 if (sourceButton && originalSourceIcon) {
                     sourceButton.innerHTML = originalSourceIcon;
                     sourceButton.disabled = false;
