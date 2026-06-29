@@ -645,8 +645,8 @@ function populateDashboard() {
     dashboardContent.querySelectorAll('.dash-unpublish-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const timestamp = e.currentTarget.dataset.timestamp;
-            closeAllModals(); // Close the dashboard to see the confirmation modal
-            setTimeout(() => handleUnpublishClick(timestamp), 300); // Give the modal transition a chance to hide
+            // Trigger the unpublish directly. The confirmation modal will stack cleanly on top!
+            handleUnpublishClick(timestamp);
         });
     });
 
@@ -2684,15 +2684,23 @@ async function handleUnpublishClick(timestamp) {
         'Unpublish Site',
         'Are you sure you want to unpublish this site? The domain will be released and the link will no longer work. This cannot be undone.',
         async () => {
+            // Find the container IF it happens to be open on the canvas
             const container = document.querySelector(`.site-container[data-timestamp="${timestamp}"]`);
-            if (!container) return;
+            let unpublishBtn = null;
+            let originalIcon = null;
 
-            const unpublishBtn = container.querySelector('.publish-info .share-btn[title="Unpublish and remove domain"]');
-            const originalIcon = unpublishBtn.innerHTML;
-            unpublishBtn.innerHTML = `<div class="spinner" style="width:14px; height:14px; border-width:2px;"></div>`;
-            unpublishBtn.disabled = true;
+            // If it is open, show the loading spinner on its button
+            if (container) {
+                unpublishBtn = container.querySelector('.publish-info .share-btn[title="Unpublish and remove domain"]');
+                if (unpublishBtn) {
+                    originalIcon = unpublishBtn.innerHTML;
+                    unpublishBtn.innerHTML = `<div class="spinner" style="width:14px; height:14px; border-width:2px;"></div>`;
+                    unpublishBtn.disabled = true;
+                }
+            }
 
             try {
+                // Send the delete request to the backend regardless of UI state
                 const response = await fetch(`${backendUrl}/unpublish-sitee/${timestamp}`, {
                     method: 'DELETE',
                     headers: await getAuthHeaders(),
@@ -2705,26 +2713,39 @@ async function handleUnpublishClick(timestamp) {
 
                 showNotification('Site unpublished successfully!', 'success');
 
-                // Update UI
-                const project = currentUser.projects.find(p => p.timestamp === timestamp);
+                // Update the local user data memory
+                const project = currentUser.projects.find(p => String(p.timestamp) === String(timestamp));
                 if (project) {
                     project.published_url = null;
                 }
 
-                const publishInfo = container.querySelector('.publish-info');
-                const publishBtn = container.querySelector('.publish-btn');
-                const updateBtn = container.querySelector('.update-btn');
+                // If the window is open on the canvas, update its UI
+                if (container) {
+                    const publishInfo = container.querySelector('.publish-info');
+                    const publishBtn = container.querySelector('.publish-btn');
+                    const updateBtn = container.querySelector('.update-btn');
 
-                publishInfo.innerHTML = '';
-                publishInfo.style.display = 'none';
-                publishBtn.style.display = 'flex';
-                updateBtn.style.display = 'none';
+                    if (publishInfo) {
+                        publishInfo.innerHTML = '';
+                        publishInfo.style.display = 'none';
+                    }
+                    if (publishBtn) publishBtn.style.display = 'flex';
+                    if (updateBtn) updateBtn.style.display = 'none';
+                }
+
+                // Automatically refresh the dashboard so the user sees the site vanish from the list!
+                if (document.getElementById('dashboard-modal').classList.contains('active')) {
+                    populateDashboard();
+                }
 
             } catch (error) {
                 console.error("Unpublish error:", error);
                 showNotification(error.message, 'error');
-                unpublishBtn.innerHTML = originalIcon; // Restore icon on error
-                unpublishBtn.disabled = false;
+                // Restore icon on error if the button was found
+                if (unpublishBtn && originalIcon) {
+                    unpublishBtn.innerHTML = originalIcon;
+                    unpublishBtn.disabled = false;
+                }
             }
         },
         'danger'
