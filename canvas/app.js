@@ -641,12 +641,12 @@ function populateDashboard() {
         </div>
     `;
 
-    // Attach listeners for the unpublish buttons
+    // Attach listeners for the unpublish buttons inside the dashboard
     dashboardContent.querySelectorAll('.dash-unpublish-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const timestamp = e.currentTarget.dataset.timestamp;
-            // Trigger the unpublish directly. The confirmation modal will stack cleanly on top!
-            handleUnpublishClick(timestamp);
+            // FIX: Pass the button itself so the spinner shows up on the dashboard button
+            handleUnpublishClick(timestamp, e.currentTarget);
         });
     });
 
@@ -2244,7 +2244,8 @@ function displayPublishInfo(element, url, publishBtn, updateBtn, container) {
         e.stopPropagation();
         const timestamp = parseInt(container.dataset.timestamp, 10);
         if (timestamp) {
-            handleUnpublishClick(timestamp);
+            // FIX: Pass the button itself so the spinner shows up here
+            handleUnpublishClick(timestamp, unpublishBtn);
         }
     });
 
@@ -2678,29 +2679,36 @@ function addProjectToSidebar(project) {
 /**
  * Handles the logic for unpublishing a site deployed via Sitee subdomain.
  * @param {number} timestamp The timestamp ID of the project to unpublish.
- */
-async function handleUnpublishClick(timestamp) {
+ */async function handleUnpublishClick(timestamp, sourceButton = null) {
     showConfirmationModal(
         'Unpublish Site',
         'Are you sure you want to unpublish this site? The domain will be released and the link will no longer work. This cannot be undone.',
         async () => {
-            // Find the container IF it happens to be open on the canvas
-            const container = document.querySelector(`.site-container[data-timestamp="${timestamp}"]`);
-            let unpublishBtn = null;
-            let originalIcon = null;
+            let originalSourceIcon = null;
 
-            // If it is open, show the loading spinner on its button
-            if (container) {
-                unpublishBtn = container.querySelector('.publish-info .share-btn[title="Unpublish and remove domain"]');
-                if (unpublishBtn) {
-                    originalIcon = unpublishBtn.innerHTML;
-                    unpublishBtn.innerHTML = `<div class="spinner" style="width:14px; height:14px; border-width:2px;"></div>`;
-                    unpublishBtn.disabled = true;
+            // 1. Show spinner on the specific button that was clicked
+            if (sourceButton) {
+                originalSourceIcon = sourceButton.innerHTML;
+                sourceButton.innerHTML = `<div class="spinner" style="width:14px; height:14px; border-width:2px; margin: 0 auto;"></div>`;
+                sourceButton.disabled = true;
+            }
+
+            // 2. Also try to find the site container on the canvas to update it simultaneously
+            const container = document.querySelector(`.site-container[data-timestamp="${timestamp}"]`);
+            let cardUnpublishBtn = null;
+            let originalCardIcon = null;
+
+            if (container && (!sourceButton || !sourceButton.classList.contains('share-btn'))) {
+                cardUnpublishBtn = container.querySelector('.publish-info .share-btn[title="Unpublish and remove domain"]');
+                if (cardUnpublishBtn) {
+                    originalCardIcon = cardUnpublishBtn.innerHTML;
+                    cardUnpublishBtn.innerHTML = `<div class="spinner" style="width:14px; height:14px; border-width:2px; margin: 0 auto;"></div>`;
+                    cardUnpublishBtn.disabled = true;
                 }
             }
 
             try {
-                // Send the delete request to the backend regardless of UI state
+                // Send the delete request to the backend
                 const response = await fetch(`${backendUrl}/unpublish-sitee/${timestamp}`, {
                     method: 'DELETE',
                     headers: await getAuthHeaders(),
@@ -2733,7 +2741,7 @@ async function handleUnpublishClick(timestamp) {
                     if (updateBtn) updateBtn.style.display = 'none';
                 }
 
-                // Automatically refresh the dashboard so the user sees the site vanish from the list!
+                // Automatically refresh the dashboard so the user sees the site vanish from the list
                 if (document.getElementById('dashboard-modal').classList.contains('active')) {
                     populateDashboard();
                 }
@@ -2741,16 +2749,23 @@ async function handleUnpublishClick(timestamp) {
             } catch (error) {
                 console.error("Unpublish error:", error);
                 showNotification(error.message, 'error');
-                // Restore icon on error if the button was found
-                if (unpublishBtn && originalIcon) {
-                    unpublishBtn.innerHTML = originalIcon;
-                    unpublishBtn.disabled = false;
+
+                // Restore icons on error
+                if (sourceButton && originalSourceIcon) {
+                    sourceButton.innerHTML = originalSourceIcon;
+                    sourceButton.disabled = false;
+                }
+                if (cardUnpublishBtn && originalCardIcon) {
+                    cardUnpublishBtn.innerHTML = originalCardIcon;
+                    cardUnpublishBtn.disabled = false;
                 }
             }
         },
         'danger'
     );
 }
+
+
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (SpeechRecognition) {
     const recognition = new SpeechRecognition();
