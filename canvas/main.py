@@ -204,7 +204,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
 async def generate_code_ai(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
     system_instruction = f"""
     You are an elite, top-tier web developer and UX/UI designer. 
-    Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code. If there is a form in the website then make sure to add submit button and a goodlooking form.
+    Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code.
 
     CRITICAL DIRECTIVES (YOU MUST FOLLOW THESE OR FAIL):
     0. NO LAZINESS & NO PLACEHOLDERS: You MUST generate the ENTIRE website. Do NOT stop after the header. Do NOT use comments like "" or "/* Continue CSS */". Write every single line of code, including full body sections (Hero, Features, Testimonials, Footer, etc.) with dummy text/images if needed.
@@ -214,6 +214,7 @@ async def generate_code_ai(prompt: str, images: Optional[List[str]] = None, targ
     4. NO CODE BLOCKS: Do NOT wrap the code inside markdown code blocks (e.g., DO NOT write ```html). Output completely RAW, executable plain text.
     5. PREMIUM DESIGN: Construct highly polished, elegant, and modern user interfaces using the Tailwind CSS CDN (<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>) or native advanced CSS. Ensure Z-index is correct, mobile responsiveness is perfect, and JS functions flawlessly without errors.
     6. If you output a single word of text outside the executable codebase, or if you truncate the code, the parsing engine will crash. Output the full DOM.
+    7. STRICT FORM STANDARDS: Whenever you create a contact form, email capture, or ANY user input area, you MUST wrap the inputs in a standard <form> tag. You MUST include a highly visible <button type="submit"> button inside the form. NEVER use <a> tags or <div> tags as form submission buttons. Every <input> must have a valid 'name' attribute.
     """
 
     messages_ai = [{"role": "system", "content": system_instruction}]
