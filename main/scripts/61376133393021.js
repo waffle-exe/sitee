@@ -475,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <li>${checkIcon} Live Code Editor</li>
             <li>${checkIcon} Get Full Source Code</li>
             <li>${checkIcon} Github Deployment</li>
-            <li>${checkIcon} Publish Unlimited Websites</li> 
+            <li>${checkIcon} Publish up to 20 Websites</li> 
             <li>${checkIcon} 1 GB Storage</li>
             <li>${checkIcon} Backend Integration</li>
             <li>${checkIcon} AI Refine</li>
