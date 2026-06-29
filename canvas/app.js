@@ -505,6 +505,8 @@ function openDashboardModal() {
     setTimeout(() => dashboardModal.classList.add('active'), 10);
 }
 
+
+
 function populateDashboard() {
     if (!currentUser || !auth.currentUser) {
         dashboardContent.innerHTML = '<p>Could not load user data. Please log in again.</p>';
@@ -568,7 +570,7 @@ function populateDashboard() {
         allowanceRow = `
         <div class="detail-item">
             <span class="detail-label">Remaining Credits:</span> 
-            <span class="detail-value">${credits}</span>
+            <span class="detail-value">${Number(credits).toFixed(0)}</span>
         </div>`;
     }
 
@@ -591,15 +593,16 @@ function populateDashboard() {
     if (publishedCount === 0) {
         publishedSitesHTML = `<p style="color: var(--text-muted-color); font-size: 0.85rem; padding: 10px 0;">No sites published yet.</p>`;
     } else {
-        publishedSitesHTML = `<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 200px; overflow-y: auto; padding-right: 5px;" class="hide-scrollbar">`;
+        publishedSitesHTML = `<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 200px; overflow-y: auto; padding-right: 5px;">`;
         publishedProjects.forEach(p => {
+            const cleanUrl = p.published_url.replace('https://', '');
             publishedSitesHTML += `
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; flex-direction: column; gap: 4px; overflow: hidden;">
+                    <div style="display: flex; flex-direction: column; gap: 4px; overflow: hidden; width: 65%;">
                         <span style="font-size: 0.85rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name || 'Untitled Project'}</span>
-                        <a href="${p.published_url}" target="_blank" style="color: var(--accent-color); text-decoration: none; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.published_url.replace('https://', '')}</a>
+                        <a href="${p.published_url}" target="_blank" style="color: var(--accent-color); text-decoration: none; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cleanUrl}</a>
                     </div>
-                    <button class="dash-unpublish-btn" data-timestamp="${p.timestamp}" style="background: rgba(255,0,0,0.1); border: 1px solid var(--error-color); color: var(--error-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; flex-shrink: 0; margin-left: 10px;">Unpublish</button>
+                    <button class="dash-unpublish-btn" data-timestamp="${p.timestamp}" style="background: rgba(255,0,0,0.1); border: 1px solid var(--error-color); color: var(--error-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; flex-shrink: 0;">Unpublish</button>
                 </div>
             `;
         });
@@ -626,10 +629,11 @@ function populateDashboard() {
             <span class="detail-value">${validity}</span>
         </div>
 
-        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: left;">
+        <!-- NEW: PUBLISHED SITES LIST -->
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: left;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <h3 style="font-size: 1.1rem; font-weight: 700; color: white;">Published Sites</h3>
-                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-color); background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 20px;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: white; margin: 0;">Published Sites</h3>
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-color); background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 20px;">
                     ${publishesLeft} / ${publishLimit === 9999 ? 'Unlimited' : publishLimit} Left
                 </span>
             </div>
@@ -640,7 +644,7 @@ function populateDashboard() {
     // Attach listeners for the unpublish buttons
     dashboardContent.querySelectorAll('.dash-unpublish-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const timestamp = e.target.dataset.timestamp;
+            const timestamp = e.currentTarget.dataset.timestamp;
             closeAllModals(); // Close the dashboard to see the confirmation modal
             setTimeout(() => handleUnpublishClick(timestamp), 300); // Give the modal transition a chance to hide
         });
@@ -677,6 +681,9 @@ function populateDashboard() {
         if (disconnectFbBtn) disconnectFbBtn.style.display = 'none';
     }
 }
+
+
+
 // =======================================================
 // --- PROJECT ADMIN PANEL & SUBMISSIONS LOGIC ---
 // =======================================================
