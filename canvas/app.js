@@ -936,7 +936,7 @@ async function handleGenerateClick() {
                 'Upgrade Required',
                 'You have reached your free limit of 2 websites. Upgrade to the Creator or Pro plan to launch more projects!',
                 () => {
-                    window.location.hash = '#plans';
+                    window.location.hash = 'www.sitee.in/#plans';
                 }
             );
             document.getElementById('modal-confirm-btn').textContent = 'View Plans';
