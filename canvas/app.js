@@ -1630,7 +1630,24 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     const refineBtn = refineControls.querySelector('.refine-btn');
 
     // ALL EVENT LISTENERS ARE ATTACHED HERE
-    refineBtn.addEventListener('click', async () => {
+    refineBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+
+        const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
+
+        // ENFORCE: Free plan cannot use the Refine feature
+        if (plan === 'free') {
+            showConfirmationModal(
+                'Upgrade Required',
+                'The AI Refine feature is exclusively available on the Creator and Pro plans.',
+                () => {
+                    window.location.href = 'https://www.sitee.in/#plans';
+                }
+            );
+            document.getElementById('modal-confirm-btn').textContent = 'View Plans';
+            return; // Stop the refinement process
+        }
+
         pushStateForIframe(iframe); // Save state before refining
         const refinePrompt = refineInput.value.trim();
         if (!refinePrompt) return showNotification('Please enter what you want to refine.', 'error');
@@ -1658,14 +1675,11 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
             const result = await response.json();
 
             if (result.user_profile) currentUser = result.user_profile;
-
-            // --- FIXED: DYNAMIC FIREBASE INJECTION WITH TIMESTAMP ---
-            // Re-inject the script in case the AI accidentally removed or broke it during refinement
             const timestamp = parseInt(container.dataset.timestamp);
             const finalHtmlCode = typeof injectDynamicFirebaseForms === 'function'
                 ? injectDynamicFirebaseForms(result.html, currentUser, timestamp)
                 : result.html;
-            // ---------------------------------------
+        
 
             iframe.srcdoc = finalHtmlCode;
             compareBtn.style.display = 'flex'; // Show compare button after refinement
@@ -1703,7 +1717,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
     suggestionBtn.addEventListener('click', (e) => {
         e.stopPropagation();
 
-        // --- ✅ NEW: Check for Pro Plan ---
+        
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
         if (plan !== 'pro') {
             showNotification("AI Suggestions are only available on the Pro plan.", "error");
@@ -1730,7 +1744,7 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
             const publishedCount = currentUser.projects ? currentUser.projects.filter(p => p.published_url).length : 0;
             if (publishedCount >= 1) {
                 showConfirmationModal(
-                    'Upgrade Required 🚀',
+                    'Upgrade Required',
                     'Free plans are limited to 1 live published website. Unpublish your existing site or upgrade to the Creator or Pro plan to launch more!',
                     () => {
                         window.location.href = 'https://www.sitee.in/#plans';
