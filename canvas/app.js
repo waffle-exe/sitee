@@ -1719,52 +1719,66 @@ function createSiteContainer(prompt, projectData = null, imageData = null) {
         handleSuggestionRequest(timestamp, iframe.srcdoc, false);
     });
 
-    publishBtn.addEventListener('click', (e) => { e.stopPropagation(); publishModal.dataset.currentTimestamp = container.dataset.timestamp; publishChoiceView.style.display = 'block'; siteeDeployView.style.display = 'none'; netlifyDeployView.style.display = 'none'; publishModal.style.display = 'flex'; });
-    // In your <script type="module">, inside createSiteContainer(), REPLACE the editBtn listener
+
+    publishBtn.addEventListener('click', (e) => { 
+        e.stopPropagation(); 
+
+        const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
+        
+        // ENFORCE: Free plan can only have 1 Live Published website at a time
+        if (plan === 'free') {
+            const publishedCount = currentUser.projects ? currentUser.projects.filter(p => p.published_url).length : 0;
+            if (publishedCount >= 1) {
+                showConfirmationModal(
+                    'Upgrade Required 🚀',
+                    'Free plans are limited to 1 live published website. Unpublish your existing site or upgrade to the Creator or Pro plan to launch more!',
+                    () => {
+                        window.location.href = 'https://www.sitee.in/#plans';
+                    }
+                );
+                document.getElementById('modal-confirm-btn').textContent = 'View Plans';
+                return; // Stop the modal from opening
+            }
+        }
+
+        publishModal.dataset.currentTimestamp = container.dataset.timestamp; 
+        publishChoiceView.style.display = 'block'; 
+        siteeDeployView.style.display = 'none'; 
+        netlifyDeployView.style.display = 'none'; 
+        publishModal.style.display = 'flex'; 
+    });
 
     editBtn.addEventListener('click', (e) => {
         e.stopPropagation();
 
-        // --- ✅ NEW: Allow Pro AND Creator ---
-        const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
-        if (currentUser && (plan === 'pro' || plan === 'creator')) {
-            // -------------------------------------
-            let htmlContent = getCleanIframeHtml(iframe);
-            if (htmlContent) {
-                if (!htmlContent.trim().toLowerCase().startsWith('<!doctype html>')) {
-                    htmlContent = '<!DOCTYPE html>\n' + htmlContent;
-                }
-                currentCodeCache.html = htmlContent;
-                currentCodeCache.react = `// Click 'React' tab to generate JSX code...`;
-                openCodeEditor();
-                currentEditingIframe = iframe;
-                currentEditingProjectTimestamp = parseInt(container.dataset.timestamp);
-
-                // --- NEW: START LISTENING FOR LIVE CHANGES ---
-                codeEditorContent.addEventListener('input', debouncedCodeEditorUpdate);
-
-            } else {
-                showNotification('No code available to edit.', 'error');
+        let htmlContent = getCleanIframeHtml(iframe);
+        if (htmlContent) {
+            if (!htmlContent.trim().toLowerCase().startsWith('<!doctype html>')) {
+                htmlContent = '<!DOCTYPE html>\n' + htmlContent;
             }
+            currentCodeCache.html = htmlContent;
+            currentCodeCache.react = `// Click 'React' tab to generate JSX code...`;
+            openCodeEditor();
+            currentEditingIframe = iframe;
+            currentEditingProjectTimestamp = parseInt(container.dataset.timestamp);
+
+            // Start listening for live changes
+            codeEditorContent.addEventListener('input', debouncedCodeEditorUpdate);
+
         } else {
-            showNotification('Upgrade to Creator or Pro to edit and export code.', 'error');
+            showNotification('No code available to edit.', 'error');
         }
     });
+
+    // ALLOW "Get Full Source Code" for all plans (Including Free)
     copyBtn.addEventListener('click', (e) => {
         e.stopPropagation();
 
-        // --- ✅ NEW: Allow Pro AND Creator ---
-        const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
-        if (currentUser && (plan === 'pro' || plan === 'creator')) {
-            // -------------------------------------
-            const codeToCopy = getCleanIframeHtml(iframe);
-            if (codeToCopy) {
-                navigator.clipboard.writeText(codeToCopy)
-                    .then(() => { showNotification('Code copied to clipboard!', 'success'); })
-                    .catch(err => { showNotification('Failed to copy code.', 'error'); });
-            }
-        } else {
-            showNotification('Upgrade to Creator or Pro to copy code.', 'error');
+        const codeToCopy = getCleanIframeHtml(iframe);
+        if (codeToCopy) {
+            navigator.clipboard.writeText(codeToCopy)
+                .then(() => { showNotification('Code copied to clipboard!', 'success'); })
+                .catch(err => { showNotification('Failed to copy code.', 'error'); });
         }
     });
 
