@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import requests
 from firebase_admin import firestore
 
+
 # Set BASE_DIR first so we can securely locate files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -104,8 +105,10 @@ class GenerateRequest(BaseModel):
     existing_html: Optional[str] = None
     
 class UpgradeRequest(BaseModel):
-    plan_tier: str  # "creator" or "pro"
-    billing_cycle: str  # "monthly" or "yearly"
+    plan_tier: str 
+    billing_cycle: str  
+    custom_ai_credits: Optional[int] = 0
+    custom_publish_credits: Optional[int] = 0
 
 class FirebaseConfigRequest(BaseModel):
     apiKey: str
@@ -116,6 +119,8 @@ class FirebaseConfigRequest(BaseModel):
     messagingSenderId: str
     appId: str
     measurementId: Optional[str] = None  
+
+    
 
 # ---------------- HELPER FUNCTIONS ----------------
 
@@ -257,16 +262,35 @@ async def generate_code_ai(prompt: str, images: Optional[List[str]] = None, targ
 
 
 # ---------------- API ENDPOINTS ----------------
-
-@app.post("/upgrade-user-plan/")
+@app.post("/upgrade-user-plan/") # Or /payments/verify-and-upgrade
 async def upgrade_user_plan(req: UpgradeRequest, current_user: dict = Depends(get_current_user)):
     uid = current_user['uid']
     user_ref = db.collection("users").document(uid)
     
-    plan_credits = {"creator": 300, "pro": 1200}
+    # Updated to reflect 250 for Creator and 1200 for Pro
+    plan_credits = {"creator": 250, "pro": 1200}
     tier = req.plan_tier.lower()
     cycle = req.billing_cycle.lower()
     
+    # --- NEW: Handle Custom Add-on Purchases ---
+    if tier == "custom":
+        added_ai = req.custom_ai_credits or 0
+        added_publish = req.custom_publish_credits or 0
+        
+        # Increment credits and custom publishes without altering the base plan
+        user_ref.update({
+            "credits": firestore.Increment(added_ai),
+            "custom_publish_limit": firestore.Increment(added_publish)
+        })
+        
+        return {
+            "status": "success",
+            "tier": "custom_addon",
+            "credits_added": added_ai,
+            "publishes_added": added_publish
+        }
+
+    # --- Standard Plan Logic (Creator / Pro) ---
     if tier not in plan_credits:
         raise HTTPException(status_code=400, detail="Invalid plan tier.")
     if cycle not in ["monthly", "yearly"]:
