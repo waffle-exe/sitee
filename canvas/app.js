@@ -343,7 +343,6 @@ window.openAuthModal = () => {
         setTimeout(() => authModal.classList.add('active'), 10);
     }
 };
-
 onAuthStateChanged(auth, async (user) => {
     if (user && user.emailVerified) {
         try {
@@ -355,6 +354,21 @@ onAuthStateChanged(auth, async (user) => {
 
             currentUser = await response.json();
             console.log('DATABASE DATA:', currentUser);
+
+
+            if (currentUser.is_frozen) {
+                showConfirmationModal(
+                    'Account Frozen',
+                    'Your account has been suspended by an administrator. You will now be logged out.',
+                    () => {
+                        signOut(auth).then(() => location.reload());
+                    },
+                    'danger'
+                );
+                document.getElementById('modal-confirm-btn').textContent = 'Logout';
+                return;
+            }
+
             initializeAppUI();
 
         } catch (error) {
@@ -948,11 +962,17 @@ function checkCreditStatus() {
         return;
     }
 
+    if (currentUser.is_frozen) {
+        promptInput.placeholder = "Account frozen by administrator.";
+        promptInput.disabled = true;
+        generateBtn.disabled = true;
+        return;
+    }
+
     const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
     let hasCredits = false;
 
     if (plan === 'free') {
-        // Use the lifetime counter from the backend
         const generationsUsed = currentUser.free_generations_used || 0;
         hasCredits = generationsUsed < 2;
 
@@ -972,12 +992,23 @@ function checkCreditStatus() {
     generateBtn.disabled = false;
 }
 
-
 async function handleGenerateClick() {
     console.log("Generate button clicked!");
     if (!auth.currentUser || !auth.currentUser.emailVerified) {
         window.openAuthModal();
         showNotification('Please sign up or log in to generate.', 'error');
+        return;
+    }
+    if (currentUser && currentUser.is_frozen) {
+        showConfirmationModal(
+            'Account Frozen',
+            'Your account has been suspended by an administrator. You will now be logged out.',
+            () => {
+                signOut(auth).then(() => location.reload());
+            },
+            'danger'
+        );
+        document.getElementById('modal-confirm-btn').textContent = 'Logout';
         return;
     }
     const dateToCheck = currentUser?.expiry_date || currentUser?.plan_validity;
@@ -1434,6 +1465,18 @@ function appendTurn(turn, isLoading = false) {
 }
 
 async function sendChatMessage(prompt, turnToUpdate = null) {
+    if (currentUser && currentUser.is_frozen) {
+        showConfirmationModal(
+            'Account Frozen',
+            'Your account has been suspended by an administrator. You will now be logged out.',
+            () => {
+                signOut(auth).then(() => location.reload());
+            },
+            'danger'
+        );
+        document.getElementById('modal-confirm-btn').textContent = 'Logout';
+        return;
+    }
     const chatDateToCheck = currentUser?.expiry_date || currentUser?.plan_validity;
     if (currentUser && chatDateToCheck && !currentUser.lifetime_access) {
         const expiryDate = new Date(chatDateToCheck).getTime();
