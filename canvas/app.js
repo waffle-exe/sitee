@@ -580,7 +580,7 @@ function populateDashboard() {
     } else if (plan.includes('pro')) {
         publishLimit = 20;
     }
-    
+
     publishLimit += (currentUser.custom_publish_limit || 0);
     const publishedProjects = currentUser.projects ? currentUser.projects.filter(p => p.published_url) : [];
     const publishedCount = publishedProjects.length;
@@ -973,6 +973,26 @@ async function handleGenerateClick() {
         window.openAuthModal();
         showNotification('Please sign up or log in to generate.', 'error');
         return;
+    }
+    if (currentUser && currentUser.plan_validity) {
+        const expiryDate = new Date(currentUser.plan_validity).getTime();
+        if (Date.now() > expiryDate) {
+            // Update local state instantly
+            currentUser.subscriptionTier = 'free';
+            currentUser.credits = 0;
+            currentUser.plan_validity = null;
+            updateCreditDisplay();
+
+            showConfirmationModal(
+                'Plan Expired',
+                'Your subscription has expired and your credits have been reset. Please upgrade to continue.',
+                () => {
+                    window.location.href = 'https://www.sitee.in/#plans';
+                }
+            );
+            document.getElementById('modal-confirm-btn').textContent = 'View Plans';
+            return; // Stops generation here
+        }
     }
 
     const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
@@ -1407,6 +1427,17 @@ function appendTurn(turn, isLoading = false) {
 }
 
 async function sendChatMessage(prompt, turnToUpdate = null) {
+    if (currentUser && currentUser.plan_validity) {
+        const expiryDate = new Date(currentUser.plan_validity).getTime();
+        if (Date.now() > expiryDate) {
+            currentUser.subscriptionTier = 'free';
+            currentUser.credits = 0;
+            currentUser.plan_validity = null;
+            updateCreditDisplay();
+            showNotification('Your plan has expired. Please upgrade to continue chatting.', 'error');
+            return; // Stops generation here
+        }
+    }
     const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
     if (plan === 'free') {
         const wordCount = prompt.split(/\s+/).filter(word => word.length > 0).length;
