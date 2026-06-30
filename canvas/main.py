@@ -44,6 +44,7 @@ app.add_middleware(
         "https://canvas.sitee.in",
         "http://localhost:3000",
         "http://localhost:5173",
+        "null"
     ],
     allow_credentials=True,
     allow_methods=["*"],
