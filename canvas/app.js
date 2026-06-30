@@ -2180,14 +2180,29 @@ async function handleSuggestionRequest(timestamp, htmlContent, forceRegenerate =
 function updateThemeSelectorPosition() {
     const controls = document.getElementById('controls');
     const themeSelector = document.getElementById('theme-selector-container');
+    const promptSuggestions = document.getElementById('prompt-suggestions');
+
     if (!controls || !themeSelector) return;
+
     const controlsHeight = controls.offsetHeight;
+
+    // THE FIX: Dynamically read the actual bottom position from CSS (works for both mobile and desktop)
+    const computedControlsStyle = window.getComputedStyle(controls);
+    const controlsBottom = parseFloat(computedControlsStyle.bottom) || 0;
+
     const baseRem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    const controlsBottomMargin = 1.5 * baseRem;
-    const desiredGap = 0.5 * baseRem;
-    const newThemeSelectorBottom = controlsBottomMargin + controlsHeight + desiredGap;
+    const desiredGap = 0.5 * baseRem; // 0.5rem gap between input and theme selector
+
+    // Calculate the new dynamic position
+    const newThemeSelectorBottom = controlsBottom + controlsHeight + desiredGap;
     themeSelector.style.bottom = `${newThemeSelectorBottom}px`;
+
+    // Optional but recommended: Also push the suggestion cards up if they are visible
+    if (promptSuggestions) {
+        promptSuggestions.style.bottom = `${newThemeSelectorBottom + themeSelector.offsetHeight + desiredGap}px`;
+    }
 }
+
 
 function showConfirmationModal(title, message, onConfirm, type = 'normal') {
     modalTitle.textContent = title;
