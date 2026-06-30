@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sitee | Admin Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Toast Animation */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-enter { animation: slideIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen overflow-hidden flex">
+
+    <!-- LOGIN OVERLAY -->
+    <div id="auth-overlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-transform duration-300 scale-100">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+                    <i class="fas fa-shield-alt text-2xl text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Admin Portal</h2>
+                <p class="text-sm text-gray-500 mt-1">Sign in to manage Sitee users</p>
+            </div>
+            
+            <form id="admin-login-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Admin Email</label>
+                    <div class="relative">
+                        <i class="fas fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="email" id="login-email" required class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" placeholder="admin@sitee.com">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="password" id="login-password" required class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" placeholder="••••••••">
+                    </div>
+                </div>
+                <div id="login-error" class="text-red-500 text-sm hidden"></div>
+                <button type="submit" id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-md shadow-blue-200 flex justify-center items-center">
+                    <span>Sign In</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN LAYOUT (Hidden until logged in) -->
+    <div id="main-layout" class="flex w-full h-full hidden">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 shrink-0 hidden md:flex">
+            <div class="h-16 flex items-center px-6 border-b border-slate-700/50 bg-slate-900/50">
+                <i class="fas fa-layer-group text-blue-500 text-xl mr-3"></i>
+                <span class="text-lg font-bold text-white tracking-wide">Sitee Admin</span>
+            </div>
+            
+            <nav class="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+                <a href="#" class="flex items-center px-3 py-2.5 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group">
+                    <i class="fas fa-chart-pie w-6"></i>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2.5 bg-blue-600/10 text-blue-400 rounded-lg group">
+                    <i class="fas fa-users w-6"></i>
+                    <span class="font-medium">Users Management</span>
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-slate-700/50">
+                <div class="flex items-center space-x-3 mb-4 px-2">
+                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold" id="admin-avatar">A</div>
+                    <div class="overflow-hidden">
+                        <p class="text-sm font-medium text-white truncate" id="admin-email-display">admin@sitee.com</p>
+                        <p class="text-xs text-slate-400">Super Admin</p>
+                    </div>
+                </div>
+                <button id="logout-btn" class="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Log Out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden relative">
+            
+            <!-- HEADER -->
+            <header class="h-16 glass-panel border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-10">
+                <div class="flex items-center">
+                    <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-700 mr-4">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h1 class="text-xl font-semibold text-gray-800">Users Overview</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-400 hover:text-blue-600 transition-colors" title="Refresh Data" id="refresh-btn">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <div class="relative">
+                        <i class="fas fa-bell text-gray-400 hover:text-gray-600 cursor-pointer"></i>
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- DASHBOARD SCROLLABLE AREA -->
+            <div class="flex-1 overflow-y-auto p-6">
+                
+                <!-- STATS CARDS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Total Users -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center">
+                        <div class="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xl mr-4">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Synced Users</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="stat-total">0</h3>
+                        </div>
+                    </div>
+                    <!-- Pro Plan -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center">
+                        <div class="w-12 h-12 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center text-xl mr-4">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Pro Accounts</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="stat-pro">0</h3>
+                        </div>
+                    </div>
+                    <!-- Creator Plan -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center">
+                        <div class="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl mr-4">
+                            <i class="fas fa-paint-brush"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Creator Accounts</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="stat-creator">0</h3>
+                        </div>
+                    </div>
+                    <!-- Total Chats -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center">
+                        <div class="w-12 h-12 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center text-xl mr-4">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Total Canvas Chats</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="stat-chats">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TABLE SECTION -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                    <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <h2 class="text-lg font-bold text-gray-800">User Directory</h2>
+                        <div class="flex items-center space-x-2">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                                <input type="text" id="search-input" placeholder="Search by email..." class="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-64">
+                            </div>
+                            <select id="plan-filter" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="all">All Plans</option>
+                                <option value="pro">Pro</option>
+                                <option value="creator">Creator</option>
+                                <option value="free">Free</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                    <th class="px-6 py-4 font-semibold">User Email</th>
+                                    <th class="px-6 py-4 font-semibold">Plan</th>
+                                    <th class="px-6 py-4 font-semibold">Credits</th>
+                                    <th class="px-6 py-4 font-semibold">Publishes Left</th>
+                                    <th class="px-6 py-4 font-semibold">Canvas Chats</th>
+                                    <th class="px-6 py-4 font-semibold">Last Active</th>
+                                    <th class="px-6 py-4 font-semibold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-gray-100 text-sm">
+                                <!-- Table rows generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div id="table-loading" class="hidden p-10 flex flex-col items-center justify-center text-gray-400">
+                        <i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i>
+                        <p>Fetching synced users from Database...</p>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="table-empty" class="hidden p-10 flex flex-col items-center justify-center text-gray-400 text-center">
+                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-2xl mb-3 mx-auto">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <p id="empty-state-msg" class="font-medium text-gray-600">No users found.</p>
+                        <p class="text-sm mt-1 max-w-md">Ensure your main website's login logic is updating the Realtime Database with user stats.</p>
+                    </div>
+                    
+                    <div class="p-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-gray-50">
+                        <span id="showing-text">Showing 0 users</span>
+                        <div class="flex space-x-1">
+                            <button class="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50">Prev</button>
+                            <button class="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 bg-white shadow-sm">1</button>
+                            <button class="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-3 pointer-events-none"></div>
+
+    <!-- FIREBASE & LOGIC SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            signInWithEmailAndPassword, 
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getDatabase, 
+            ref, 
+            get, 
+            child 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCut-Qi7scoHnjHyE8UBuN53PHWnMMKqSE",
+            authDomain: "sitee-f6a0c.firebaseapp.com",
+            databaseURL: "https://sitee-f6a0c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "sitee-f6a0c",
+            storageBucket: "sitee-f6a0c.appspot.com",
+            messagingSenderId: "284183052545",
+            appId: "1:284183052545:web:ef85ecc7be844cede8db00",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        
+        let allUsersData = []; // Store raw data for filtering
+        
+        // --- DOM Elements ---
+        const overlay = document.getElementById('auth-overlay');
+        const mainLayout = document.getElementById('main-layout');
+        const loginForm = document.getElementById('admin-login-form');
+        const loginBtn = document.getElementById('login-btn');
+        const loginError = document.getElementById('login-error');
+        const logoutBtn = document.getElementById('logout-btn');
+        const adminEmailDisplay = document.getElementById('admin-email-display');
+        const adminAvatar = document.getElementById('admin-avatar');
+        
+        const tableBody = document.getElementById('users-table-body');
+        const loadingState = document.getElementById('table-loading');
+        const emptyState = document.getElementById('table-empty');
+        const searchInput = document.getElementById('search-input');
+        const planFilter = document.getElementById('plan-filter');
+        const refreshBtn = document.getElementById('refresh-btn');
+
+        // --- STREAMING_CHUNK:Setting up UI Helpers (Toast notifications)... ---
+        // --- Toast Notification System ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+                error: 'bg-red-50 text-red-600 border-red-200',
+                info: 'bg-blue-50 text-blue-600 border-blue-200'
+            };
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                info: 'fa-info-circle'
+            };
+            
+            toast.className = `flex items-center p-4 border rounded-lg shadow-lg toast-enter pointer-events-auto ${colors[type]}`;
+            toast.innerHTML = `
+                <i class="fas ${icons[type]} text-lg mr-3"></i>
+                <span class="font-medium text-sm">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Remove toast after duration
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- STREAMING_CHUNK:Handling Admin Login & Auth State... ---
+        // --- Authentication Logic ---
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Signing In...';
+            loginError.classList.add('hidden');
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showToast('Logged in successfully', 'success');
+            } catch (error) {
+                loginError.textContent = "Access Denied. Check credentials or ensure 127.0.0.1 is authorized in Firebase.";
+                loginError.classList.remove('hidden');
+                showToast('Authentication failed', 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<span>Sign In</span>';
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                showToast('Logged out successfully', 'info');
+            } catch (error) {
+                showToast('Error logging out', 'error');
+            }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in, show dashboard
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+                mainLayout.classList.remove('hidden');
+                
+                adminEmailDisplay.textContent = user.email;
+                adminAvatar.textContent = user.email.charAt(0).toUpperCase();
+                
+                // Fetch users immediately on login
+                loadDashboardData();
+            } else {
+                // No user signed in, show login overlay
+                overlay.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+                mainLayout.classList.add('hidden');
+                tableBody.innerHTML = '';
+            }
+        });
+
+        // --- STREAMING_CHUNK:Fetching User Data from RTDB... ---
+        // --- Data Fetching directly from Firebase RTDB ---
+        async function loadDashboardData() {
+            tableBody.innerHTML = '';
+            loadingState.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            
+            try {
+                const dbRef = ref(db);
+                console.log("Admin Portal: Requesting data from Realtime Database path '/users'...");
+                const snapshot = await get(child(dbRef, 'users'));
+                
+                if (snapshot.exists()) {
+                    const usersObj = snapshot.val();
+                    console.log("Admin Portal: Received users data:", usersObj);
+                    
+                    // Convert object of users into an array for filtering/rendering
+                    allUsersData = Object.entries(usersObj).map(([uid, userData]) => {
+                        // Normalize subscription tier
+                        let tier = (userData.subscriptionTier || userData.plan || 'free').toLowerCase();
+                        
+                        return {
+                            uid: uid,
+                            email: userData.email || 'No email provided',
+                            subscriptionTier: tier,
+                            totalChats: parseInt(userData.totalChats) || 0,
+                            credits: parseFloat(userData.credits) || 0,
+                            publishesLeft: parseInt(userData.publishesLeft) || 0,
+                            lastLogin: userData.lastLogin || null,
+                            createdAt: userData.createdAt || null
+                        };
+                    });
+                    
+                    // Sort by newest active first
+                    allUsersData.sort((a, b) => {
+                        let dateA = new Date(a.lastLogin || a.createdAt || 0);
+                        let dateB = new Date(b.lastLogin || b.createdAt || 0);
+                        return dateB - dateA;
+                    });
+                    
+                } else {
+                    console.warn("Admin Portal: Snapshot is empty! Users have not been synced to RTDB.");
+                    allUsersData = [];
+                }
+                
+                updateStats();
+                renderTable();
+                
+            } catch (error) {
+                console.error("Admin Portal: Failed to fetch data from Firebase.", error);
+                showToast('Error loading user data from Database', 'error');
+                allUsersData = [];
+                updateStats();
+                renderTable();
+            } finally {
+                loadingState.classList.add('hidden');
+            }
+        }
+
+        // --- STREAMING_CHUNK:Rendering Dashboard Stats & Table... ---
+        function updateStats() {
+            const total = allUsersData.length;
+            const pro = allUsersData.filter(u => u.subscriptionTier.includes('pro')).length;
+            const creator = allUsersData.filter(u => u.subscriptionTier.includes('creator')).length;
+            const chats = allUsersData.reduce((sum, u) => sum + (u.totalChats || 0), 0);
+            
+            document.getElementById('stat-total').textContent = total.toLocaleString();
+            document.getElementById('stat-pro').textContent = pro.toLocaleString();
+            document.getElementById('stat-creator').textContent = creator.toLocaleString();
+            document.getElementById('stat-chats').textContent = chats.toLocaleString();
+        }
+
+        function renderTable() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const plan = planFilter.value;
+            
+            // Filter logic
+            const filteredUsers = allUsersData.filter(user => {
+                const matchesSearch = user.email.toLowerCase().includes(searchTerm);
+                const matchesPlan = plan === 'all' || user.subscriptionTier.includes(plan);
+                return matchesSearch && matchesPlan;
+            });
+            
+            document.getElementById('showing-text').textContent = `Showing ${filteredUsers.length} users`;
+            
+            if (filteredUsers.length === 0) {
+                tableBody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            const tierColors = {
+                pro: 'bg-amber-100 text-amber-700 border-amber-200',
+                creator: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                free: 'bg-slate-100 text-slate-700 border-slate-200',
+                custom: 'bg-indigo-100 text-indigo-700 border-indigo-200'
+            };
+            
+            tableBody.innerHTML = filteredUsers.map(user => {
+                // Determine Plan display color
+                let planColor = tierColors.free;
+                if(user.subscriptionTier.includes('pro')) planColor = tierColors.pro;
+                else if(user.subscriptionTier.includes('creator')) planColor = tierColors.creator;
+                else if(user.subscriptionTier.includes('custom')) planColor = tierColors.custom;
+
+                // Format Date
+                let displayDate = 'Never';
+                if(user.lastLogin) {
+                    displayDate = new Date(user.lastLogin).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'});
+                } else if (user.createdAt) {
+                    displayDate = new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric'});
+                }
+
+                return `
+                    <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs mr-3">
+                                    ${user.email.charAt(0).toUpperCase()}
+                                </div>
+                                <span class="font-medium text-gray-800" title="UID: ${user.uid}">${user.email}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${planColor}">
+                                ${user.subscriptionTier}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-medium text-gray-700">
+                            ${Number.isInteger(user.credits) ? user.credits : user.credits.toFixed(2)}
+                        </td>
+                        <td class="px-6 py-4 font-medium text-gray-700">
+                            ${user.publishesLeft}
+                        </td>
+                        <td class="px-6 py-4 font-medium text-gray-600">
+                            ${user.totalChats}
+                        </td>
+                        <td class="px-6 py-4 text-gray-500 text-sm whitespace-nowrap">
+                            ${displayDate}
+                        </td>
+                        <td class="px-6 py-4 text-right whitespace-nowrap">
+                            <button class="text-blue-500 hover:text-blue-700 text-sm font-medium mr-3" onclick="alert('Viewing User: ${user.email}')">View</button>
+                            <button class="text-red-500 hover:text-red-700 text-sm font-medium" onclick="alert('Manage Access feature pending')">Manage</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // --- Event Listeners for Interaction ---
+        searchInput.addEventListener('input', renderTable);
+        planFilter.addEventListener('change', renderTable);
+        
+        refreshBtn.addEventListener('click', () => {
+            refreshBtn.classList.add('animate-spin');
+            if (auth.currentUser) {
+                loadDashboardData().then(() => {
+                    setTimeout(() => refreshBtn.classList.remove('animate-spin'), 500);
+                    showToast('Data synced & refreshed successfully', 'success');
+                });
+            } else {
+                refreshBtn.classList.remove('animate-spin');
+            }
+        });
+    </script>
+</body>
+</html>
