@@ -4285,31 +4285,23 @@ document.addEventListener("DOMContentLoaded", () => {
     promptInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerateClick(); } });
     sidebarToggle.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); setTimeout(updateThemeSelectorPosition, 300); });
     promptInput.addEventListener('input', function () {
-        // 1. LIVE WORD LIMIT FOR FREE PLAN
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase().trim();
         if (plan === 'free') {
-            // Split by spaces to count words accurately
             const words = this.value.split(/\s+/).filter(word => word.length > 0);
-            const WORD_LIMIT = 400;
+            const WORD_LIMIT = 350;
 
             if (words.length > WORD_LIMIT) {
-                // Instantly slice the text to exactly 400 words if they paste too much
                 this.value = words.slice(0, WORD_LIMIT).join(" ");
-
-                // Show a visual warning so they know why their text was cut off
                 showNotification(`Free plan limit reached (${WORD_LIMIT} words max). Upgrade to type more!`, 'error');
             }
         }
 
-        // 2. Hide/Show Suggestions
         const isChat = currentMode === 'chat';
         if (this.value.trim() !== '' || isChat) {
             promptSuggestions.classList.add('hidden');
         } else {
             promptSuggestions.classList.remove('hidden');
         }
-
-        // 3. Prompt Login for guests trying to type
         if (!auth.currentUser && !hasLoginModalBeenShown) {
             window.openAuthModal();
             hasLoginModalBeenShown = true;
