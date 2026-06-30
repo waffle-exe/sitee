@@ -22,9 +22,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-
-// --- GLOBAL STATE ---
-
 let hasLoginModalBeenShown = false;
 let currentEditingImageElement = null;
 let currentUser = null;
