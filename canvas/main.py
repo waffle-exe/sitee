@@ -174,11 +174,11 @@ def get_user_profile(uid: str, email: str = "") -> dict:
                 expiry_date = datetime.fromisoformat(plan_validity_str)
                 if datetime.now(timezone.utc) > expiry_date:
                     user_data["subscriptionTier"] = "free"
-                    user_data["credits"] = 10  
+                    user_data["credits"] = 0  # RESET TO 0
                     user_data["plan_validity"] = None
                     user_ref.update({
                         "subscriptionTier": "free",
-                        "credits": 10,
+                        "credits": 0,         # RESET TO 0
                         "plan_validity": None
                     })
             except Exception as e:
