@@ -981,11 +981,10 @@ async function handleGenerateClick() {
     const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
     let userPrompt = promptInput.value.trim();
 
-    // --- NEW: Enforce Word Limit for Free Plan ---
+
     if (plan === 'free') {
-        // Count words by splitting on spaces and filtering empty strings
         const wordCount = userPrompt.split(/\s+/).filter(word => word.length > 0).length;
-        const WORD_LIMIT = 400; // Safe limit that ensures good results without API bloat
+        const WORD_LIMIT = 250;
 
         if (wordCount > WORD_LIMIT) {
             showConfirmationModal(
@@ -996,12 +995,9 @@ async function handleGenerateClick() {
                 }
             );
             document.getElementById('modal-confirm-btn').textContent = 'View Plans';
-            return; // Stop execution to save API costs
+            return;
         }
     }
-    // ----------------------------------------------
-
-    // Check Plan Limits Safely
     if (plan === 'free') {
         // Use the lifetime counter from the backend
         const generationsUsed = currentUser.free_generations_used || 0;
@@ -1416,7 +1412,7 @@ async function sendChatMessage(prompt, turnToUpdate = null) {
     const plan = (currentUser?.subscriptionTier || 'free').toLowerCase();
     if (plan === 'free') {
         const wordCount = prompt.split(/\s+/).filter(word => word.length > 0).length;
-        const WORD_LIMIT = 400;
+        const WORD_LIMIT = 250; // CHANGED TO 250
 
         if (wordCount > WORD_LIMIT) {
             showNotification(`Free plan is limited to ${WORD_LIMIT} words. Your message has ${wordCount} words. Please shorten it.`, 'error');
@@ -4306,31 +4302,50 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-
     promptInput.addEventListener('input', function () {
-
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase().trim();
-        if (plan === 'free') {
-            const words = this.value.split(/\s+/).filter(word => word.length > 0);
-            const WORD_LIMIT = 250;
 
-            if (words.length > WORD_LIMIT) {
-                this.value = words.slice(0, WORD_LIMIT).join(" ");
-                showNotification(`Text truncated. Free plan limit is ${WORD_LIMIT} words.`, 'error');
+        // 1. BULLETPROOF WORD LIMIT
+        if (plan === 'free') {
+            const WORD_LIMIT = 250;
+            const text = this.value;
+            let wordCount = 0;
+            let cutoffIndex = text.length;
+
+            // Highly accurate loop to instantly cut the string exactly when word 251 starts
+            for (let i = 0; i < text.length; i++) {
+                // If current char is a letter, and the previous char was a space (or start of string), it's a new word
+                if (text[i].trim() !== '' && (i === 0 || text[i - 1].trim() === '')) {
+                    wordCount++;
+                }
+                if (wordCount > WORD_LIMIT) {
+                    cutoffIndex = i; // Mark exactly where word 251 started
+                    break;
+                }
+            }
+
+            // If they went over, instantly revert the text and show the notification
+            if (wordCount > WORD_LIMIT) {
+                this.value = text.substring(0, cutoffIndex).trim();
+                showNotification(`Free plan limit reached (${WORD_LIMIT} words max). Upgrade to type more!`, 'error');
             }
         }
 
-
+        // 2. Hide/Show Suggestions
         const isChat = currentMode === 'chat';
         if (this.value.trim() !== '' || isChat) {
             promptSuggestions.classList.add('hidden');
         } else {
             promptSuggestions.classList.remove('hidden');
         }
+
+        // 3. Prompt login for guests
         if (!auth.currentUser && !hasLoginModalBeenShown) {
             window.openAuthModal();
             hasLoginModalBeenShown = true;
         }
+
+        // 4. Auto Resize the box
         autoResizePrompt.call(this);
     });
     document.querySelectorAll('.suggestion-card').forEach(card => card.addEventListener('click', () => { promptInput.value = card.dataset.prompt; handleGenerateClick(); }));
