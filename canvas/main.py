@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 import requests
 from firebase_admin import firestore
 
-
 # Set BASE_DIR first so we can securely locate files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
