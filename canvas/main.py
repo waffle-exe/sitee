@@ -599,6 +599,81 @@ async def serve_dynamic_subdomain(request: Request, path: str):
         return HTMLResponse(content="<h1>Site Not Found or Unpublished</h1>", status_code=404)
     raise HTTPException(status_code=404, detail="Not Found")
 
+# ---------------- ADMIN DASHBOARD ENDPOINT ----------------
+@app.get("/admin/all-data")
+async def get_admin_dashboard_data(current_user: dict = Depends(get_current_user)):
+    # IMPORTANT: Add your admin emails here so normal users can't fetch this data
+    admin_emails = ["admin@sitee.in", "your-email@gmail.com"] 
+    
+    # Optional Security: Uncomment to lock down the endpoint
+    # if current_user.get("email") not in admin_emails:
+    #     raise HTTPException(status_code=403, detail="Unauthorized admin access.")
+    
+    try:
+        all_data = []
+        users_ref = db.collection("users").stream()
+        
+        for doc in users_ref:
+            user_data = doc.to_dict()
+            uid = doc.id
+            
+            # Initialize counters
+            chats_count = 0
+            published_links = []
+            
+            # Fetch all projects (chats) for this user
+            try:
+                projects_ref = db.collection("users").document(uid).collection("projects").stream()
+                for proj_doc in projects_ref:
+                    # Ignore the system chat history document
+                    if proj_doc.id != CHAT_HISTORY_PROJECT_NAME:
+                        chats_count += 1
+                        proj_data = proj_doc.to_dict()
+                        
+                        # Extract published website links
+                        if proj_data.get("published_url"):
+                            published_links.append({
+                                "name": proj_data.get("name", "Untitled Project"),
+                                "url": proj_data.get("published_url"),
+                                "timestamp": proj_doc.id
+                            })
+            except Exception:
+                pass # Safe fallback if a user has no projects collection yet
+            
+            # Calculate "Publishes Left" based on Tier
+            tier = user_data.get("subscriptionTier", "free").lower()
+            custom_publishes = user_data.get("custom_publish_limit", 0)
+            
+            # Set base limits (Adjust these numbers based on your actual pricing model)
+            if "pro" in tier:
+                publishes_left = "Unlimited"
+            elif "creator" in tier:
+                publishes_left = (5 + custom_publishes) - len(published_links)
+            else:
+                publishes_left = custom_publishes - len(published_links)
+                
+            # Prevent negative numbers for free/creator users
+            if isinstance(publishes_left, int) and publishes_left < 0:
+                publishes_left = 0
+
+            # Compile the final data object for the frontend
+            all_data.append({
+                "uid": uid,
+                "email": user_data.get("email", "No Email"),
+                "subscriptionTier": tier,
+                "credits": round(user_data.get("credits", 0), 2),
+                "publishesLeft": publishes_left,
+                "totalChats": chats_count,
+                "publishedLinks": published_links,
+                "storage_used_mb": round(user_data.get("storage_used_mb", 0.0), 2),
+                "freeGenerationsUsed": user_data.get("free_generations_used", 0)
+            })
+            
+        return {"users": all_data}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to compile admin data: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
