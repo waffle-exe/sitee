@@ -4289,16 +4289,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (isTypingKey) {
             // Count current words
-            const words = this.value.split(/\s+/).filter(word => word.length > 0);
+            const words = this.value.trim().split(/\s+/).filter(word => word.length > 0);
             const WORD_LIMIT = 250;
 
-            // If they are AT the limit, only allow them to type if they are finishing the last word 
-            // (i.e., not pressing space or enter to start a new one).
             if (words.length >= WORD_LIMIT) {
-                // If they press space or enter while at the limit, block it
+                // Block space or enter to prevent starting a 251st word
                 if (/\s/.test(e.key) || e.key === 'Enter') {
                     e.preventDefault();
                     showNotification(`Free plan limit reached (${WORD_LIMIT} words max). Upgrade to type more!`, 'error');
+                    return;
+                }
+
+                // Optional fail-safe: Prevent the 250th word from becoming infinitely long
+                const lastWord = words[words.length - 1];
+                if (lastWord && lastWord.length >= 50 && !/\s/.test(e.key)) {
+                    e.preventDefault();
                 }
             }
         }
@@ -4307,27 +4312,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. PASTE HANDLING & UI UPDATES
     promptInput.addEventListener('input', function () {
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase().trim();
+        const WORD_LIMIT = 250;
 
         if (plan === 'free') {
-            const WORD_LIMIT = 250;
-            const text = this.value;
-            let wordCount = 0;
-            let cutoffIndex = text.length;
+            const words = this.value.split(/\s+/).filter(word => word.length > 0);
 
-            // Loop to find exactly where the 251st word starts
-            for (let i = 0; i < text.length; i++) {
-                if (text[i].trim() !== '' && (i === 0 || text[i - 1].trim() === '')) {
-                    wordCount++;
-                }
-                if (wordCount > WORD_LIMIT) {
-                    cutoffIndex = i;
-                    break;
-                }
-            }
-
-            // If over the limit (usually from pasting), slice it instantly
-            if (wordCount > WORD_LIMIT) {
-                this.value = text.substring(0, cutoffIndex).trim();
+            // If over the limit (usually from pasting), slice the array and reconstruct cleanly
+            if (words.length > WORD_LIMIT) {
+                this.value = words.slice(0, WORD_LIMIT).join(' ') + ' ';
                 showNotification(`Text truncated. Free plan limit is ${WORD_LIMIT} words.`, 'error');
             }
         }
