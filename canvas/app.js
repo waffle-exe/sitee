@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getDatabase, ref, push, get, child, serverTimestamp as dbServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 import { getFirestore, collection, addDoc, serverTimestamp as fsServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -8,6 +9,8 @@ import {
     sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
+
+// --- Firebase Configuration ---
 const firebaseConfig = {
     apiKey: "AIzaSyCut-Qi7scoHnjHyE8UBuN53PHWnMMKqSE",
     authDomain: "sitee-f6a0c.firebaseapp.com",
@@ -21,6 +24,9 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+
+
+// --- GLOBAL STATE ---
 
 let hasLoginModalBeenShown = false;
 let currentEditingImageElement = null;
