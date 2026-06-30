@@ -515,7 +515,13 @@ function populateDashboard() {
 
     const email = auth.currentUser.email;
     const plan = (currentUser.subscriptionTier || 'Free').toLowerCase();
-    const validity = currentUser.plan_validity ? new Date(currentUser.plan_validity).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A';
+    let validity = 'N/A';
+    if (currentUser.lifetime_access) {
+        validity = 'Lifetime Access ♾️';
+    } else if (currentUser.plan_validity || currentUser.expiry_date) {
+        const dateStr = currentUser.expiry_date || currentUser.plan_validity;
+        validity = new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
     const credits = currentUser.credits ?? 'N/A';
 
     // --- LOGIC FOR DYNAMIC STORAGE UNITS ---
@@ -974,13 +980,15 @@ async function handleGenerateClick() {
         showNotification('Please sign up or log in to generate.', 'error');
         return;
     }
-    if (currentUser && currentUser.plan_validity) {
-        const expiryDate = new Date(currentUser.plan_validity).getTime();
+    const dateToCheck = currentUser?.expiry_date || currentUser?.plan_validity;
+    if (currentUser && dateToCheck && !currentUser.lifetime_access) {
+        const expiryDate = new Date(dateToCheck).getTime();
         if (Date.now() > expiryDate) {
             // Update local state instantly
             currentUser.subscriptionTier = 'free';
             currentUser.credits = 0;
             currentUser.plan_validity = null;
+            currentUser.expiry_date = null;
             updateCreditDisplay();
 
             showConfirmationModal(
@@ -994,7 +1002,6 @@ async function handleGenerateClick() {
             return; // Stops generation here
         }
     }
-
     const plan = (currentUser.subscriptionTier || 'free').toLowerCase();
     let userPrompt = promptInput.value.trim();
 
@@ -1427,12 +1434,14 @@ function appendTurn(turn, isLoading = false) {
 }
 
 async function sendChatMessage(prompt, turnToUpdate = null) {
-    if (currentUser && currentUser.plan_validity) {
-        const expiryDate = new Date(currentUser.plan_validity).getTime();
+    const chatDateToCheck = currentUser?.expiry_date || currentUser?.plan_validity;
+    if (currentUser && chatDateToCheck && !currentUser.lifetime_access) {
+        const expiryDate = new Date(chatDateToCheck).getTime();
         if (Date.now() > expiryDate) {
             currentUser.subscriptionTier = 'free';
             currentUser.credits = 0;
             currentUser.plan_validity = null;
+            currentUser.expiry_date = null;
             updateCreditDisplay();
             showNotification('Your plan has expired. Please upgrade to continue chatting.', 'error');
             return; // Stops generation here
