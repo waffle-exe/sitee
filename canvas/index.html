@@ -3142,8 +3142,8 @@
 
             #prompt {
                 font-size: 0.9rem !important;
-                padding: 12px 14px !important; 
-                min-height: 48px; 
+                padding: 12px 14px !important;
+                min-height: 48px;
             }
 
             .action-btn {
@@ -3213,7 +3213,86 @@
                 transform: translateX(-100%);
             }
         }
+
+        /* NEW TERMS & CONDITIONS STYLES */
+        .terms-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            text-align: left;
+            font-size: 0.85rem;
+            color: var(--text-muted-color);
+        }
+
+        .terms-container input[type="checkbox"] {
+            accent-color: var(--accent-color);
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+        .terms-link {
+            color: #60A5FA;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .terms-link:hover {
+            color: #3B82F6;
+            text-decoration: underline;
+        }
+
+        #terms-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 11, 15, 0.7);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 25000;
+            padding: 1rem;
+        }
+
+        #terms-modal .modal-content {
+            max-width: 600px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terms-text-content {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: left;
+            overflow-y: auto;
+            flex: 1;
+            color: var(--text-color);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .terms-text-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .terms-text-content::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 3px;
+        }
     </style>
+</head>
+</style>
 </head>
 
 <body>
@@ -3300,6 +3379,11 @@
                     <input type="email" id="login-email" class="auth-input" placeholder="Email" required />
                     <input type="password" id="login-password" class="auth-input" placeholder="Password" required />
                     <p class="forgot-password-link"><a href="#" id="show-forgot-password">Forgot Password?</a></p>
+                    <div class="terms-container">
+                        <input type="checkbox" id="login-terms" required />
+                        <label for="login-terms">I agree to the <a href="#" class="terms-link open-terms-btn">Terms &
+                                Conditions</a></label>
+                    </div>
                     <button type="submit" class="auth-btn btn-primary">Sign In</button>
                 </form>
                 <p class="auth-switch">Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
@@ -3312,6 +3396,11 @@
                     <input type="email" id="signup-email" class="auth-input" placeholder="Email" required />
                     <input type="password" id="signup-password" class="auth-input"
                         placeholder="Password (min. 6 characters)" required />
+                    <div class="terms-container">
+                        <input type="checkbox" id="signup-terms" required />
+                        <label for="signup-terms">I agree to the <a href="#" class="terms-link open-terms-btn">Terms &
+                                Conditions</a></label>
+                    </div>
                     <button type="submit" class="auth-btn btn-primary">Sign Up</button>
                 </form>
                 <p class="auth-switch">Already have an account? <a href="#" id="show-login">Sign In</a></p>
@@ -3338,17 +3427,7 @@
         </div>
     </div>
 
-    <div id="mobile-warning-modal" style="display: none;">
-        <div class="modal-content glassy" style="max-width: 350px;">
-            <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Better on Desktop </h2>
-            <p style="text-align: center; color: var(--text-muted-color); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem;">
-                While you can generate and view projects on your phone, we highly recommend switching to a PC or laptop for the full experience. The visual editor and code management tools are designed for larger screens.
-            </p>
-            <button id="mobile-warning-dismiss-btn" style="width: 100%; padding: 0.85rem; background-color: var(--accent-color); color: white; border: none; border-radius: 12px; font-weight: 600; font-size: 1rem; cursor: pointer;">
-                Got it, let's build!
-            </button>
-        </div>
-    </div>
+
     <div id="dashboard-modal" style="display: none;">
         <div class="auth-container" style="max-width: 500px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
             <button id="close-dashboard-modal" class="close-modal-btn">&times;</button>
@@ -4452,10 +4531,61 @@
             </div>
         </div>
     </div>
+    <div id="terms-modal" style="display: none;">
+        <div class="modal-content glassy">
+            <button id="close-terms-modal-btn" class="close-modal-btn">&times;</button>
+            <h2 style="margin-bottom: 0.5rem;">Terms and Conditions</h2>
+
+            <div class="terms-text-content">
+                <p><strong>1. Acceptance of Terms</strong></p>
+                <p>By accessing and using this service, you accept and agree to be bound by the terms and provision of
+                    this agreement.</p>
+                <br>
+                <p><strong>2. User License</strong></p>
+                <p>Permission is granted to temporarily use the materials on this website for personal, non-commercial
+                    transitory viewing only.</p>
+                <br>
+                <p><strong>3. Disclaimer</strong></p>
+                <p>The materials on this website are provided on an 'as is' basis. We make no warranties, expressed or
+                    implied.</p>
+            </div>
+
+            <div class="modal-buttons" style="margin-top: 1.5rem;">
+                <button id="accept-terms-btn"
+                    style="width: 100%; padding: 12px; background-color: #3B82F6; color: white; border-radius: 8px; border: none; font-weight: bold; cursor: pointer;">I
+                    Understand</button>
+            </div>
+        </div>
+    </div>
+
 
     <script type="module" src="app.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const termsModal = document.getElementById('terms-modal');
+            const closeTermsBtn = document.getElementById('close-terms-modal-btn');
+            const acceptTermsBtn = document.getElementById('accept-terms-btn');
+            const openTermsLinks = document.querySelectorAll('.open-terms-btn');
+
+            if (termsModal) {
+                openTermsLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        termsModal.style.display = 'flex';
+                    });
+                });
+
+                const closeTermsModal = () => {
+                    termsModal.style.display = 'none';
+                };
+
+                closeTermsBtn.addEventListener('click', closeTermsModal);
+                acceptTermsBtn.addEventListener('click', closeTermsModal);
+
+                termsModal.addEventListener('click', (e) => {
+                    if (e.target === termsModal) closeTermsModal();
+                });
+            }
             const toggleBtn = document.getElementById('toggle-submissions-sidebar-btn');
             const sidebar = document.getElementById('submissions-tabs');
 
