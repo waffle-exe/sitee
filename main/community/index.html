@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sitee. Community | Coming Soon</title>
-    <!-- Tailwind CSS for rapid structural styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -140,17 +138,13 @@
 </head>
 <body class="antialiased selection:bg-purple-500/30">
 
-    <!-- Backgrounds -->
     <div class="bg-floral"></div>
     <div class="bg-vignette"></div>
 
-    <!-- Centered Layout Wrapper (No Scroll Strict Height) -->
     <div class="h-[100dvh] w-full flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 overflow-hidden">
         
-        <!-- Liquid Glass Floating Container -->
         <div class="glass-container w-full h-full max-w-6xl flex flex-col justify-between p-5 sm:p-8 md:p-12 lg:p-14">
             
-            <!-- Header -->
             <header class="flex justify-between items-center animate-fade-up shrink-0">
                 <div class="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight flex items-baseline">
                     sitee<span class="text-gradient text-3xl md:text-4xl lg:text-5xl leading-[0]">.</span>
@@ -162,28 +156,23 @@
                 </a>
             </header>
 
-            <!-- Main Content -->
             <main class="flex-grow flex flex-col justify-center max-w-4xl py-4 sm:py-6">
                 
-                <!-- Badge -->
                 <div class="animate-fade-up delay-100 mb-4 sm:mb-6 inline-flex items-center px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 glass-pill text-xs md:text-sm font-medium w-max text-gray-200">
                     <span class="mr-1.5 opacity-80">Powered by</span> 
                     <span class="text-white">Sitee Community</span>
                 </div>
 
-                <!-- Headlines -->
                 <h1 class="animate-fade-up delay-200 text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.05] mb-4 sm:mb-6">
                     Connect.<br>
                     Collaborate.<br>
                     <span class="text-gradient-orange">Launch.</span>
                 </h1>
 
-                <!-- Subtitle -->
                 <p class="animate-fade-up delay-300 text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 max-w-2xl mb-6 sm:mb-8 leading-relaxed">
                     Sitee community is the new hub for <span class="text-purple-400 font-medium">vibe coders</span>, entrepreneurs, and creators. Turn your ideas into full-stack websites in minutes. Be the first to join.
                 </p>
 
-                <!-- Newsletter Form -->
                 <div class="animate-fade-up delay-300 w-full max-w-xl relative">
                     <form id="newsletterForm" class="flex flex-col sm:flex-row gap-2 sm:gap-3 relative z-20">
                         <div class="relative flex-grow">
@@ -206,7 +195,6 @@
                         </button>
                     </form>
 
-                    <!-- Success Message (Hidden by default) -->
                     <div id="successMessage" class="hidden absolute top-0 left-0 w-full h-full glass-pill bg-green-900/40 border-green-500/30 flex items-center px-4 sm:px-6 text-green-300 text-sm sm:text-base font-medium z-30 animate-fade-up">
                         <div class="flex items-center gap-2 sm:gap-3">
                             <div class="bg-green-400/20 p-1.5 sm:p-2 rounded-full">
@@ -223,7 +211,6 @@
 
             </main>
 
-            <!-- Footer -->
             <footer class="animate-fade-up delay-300 text-xs sm:text-sm text-gray-400 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 mt-2 pt-4 border-t border-white/10 text-center sm:text-left shrink-0">
                 <div>#siteeit &bull; © 2026 Sitee Community.</div>
                 <div class="flex gap-6">
@@ -238,28 +225,66 @@
         </div>
     </div>
 
-    <!-- JavaScript for Form Handling -->
-    <script>
+    <script type="module">
+        // 1. Import Firebase core and Firestore database modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // 2. Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCut-Qi7scoHnjHyE8UBuN53PHWnMMKqSE",
+            authDomain: "sitee-f6a0c.firebaseapp.com",
+            databaseURL: "https://sitee-f6a0c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "sitee-f6a0c",
+            storageBucket: "sitee-f6a0c.appspot.com",
+            messagingSenderId: "284183052545",
+            appId: "1:284183052545:web:ef85ecc7be844cede8db00",
+        };
+
+        // 3. Initialize Firebase and Firestore
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('newsletterForm');
             const successMessage = document.getElementById('successMessage');
             const emailInput = document.getElementById('emailInput');
+            const submitBtn = form.querySelector('button[type="submit"]');
 
-            form.addEventListener('submit', (e) => {
-                e.preventDefault(); // Prevent actual form submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault(); 
                 
-                const email = emailInput.value;
+                const email = emailInput.value.trim();
                 
-                // Simulate an API call to save the email
                 if(email) {
-                    // Hide form gently, show success
-                    form.style.opacity = '0';
-                    form.style.pointerEvents = 'none';
-                    
-                    setTimeout(() => {
-                        successMessage.classList.remove('hidden');
-                        successMessage.classList.add('flex');
-                    }, 300);
+                    // Disable button to prevent double submissions
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = 'Sending...';
+
+                    try {
+                        // 4. Save the email to a Firestore collection named "waitlist"
+                        await addDoc(collection(db, "waitlist"), {
+                            email: email,
+                            timestamp: serverTimestamp() // Records exactly when they signed up
+                        });
+
+                        // 5. Hide form gently, show success message
+                        form.style.opacity = '0';
+                        form.style.pointerEvents = 'none';
+                        
+                        setTimeout(() => {
+                            successMessage.classList.remove('hidden');
+                            successMessage.classList.add('flex');
+                        }, 300);
+
+                    } catch (error) {
+                        console.error("Error adding document: ", error);
+                        alert("Whoops! Something went wrong saving your email. Please try again.");
+                        
+                        // Reset button if there's an error
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Notify Me';
+                    }
                 }
             });
         });
