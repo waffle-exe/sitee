@@ -168,18 +168,24 @@ def get_user_profile(uid: str, email: str = "") -> dict:
         if "id" not in user_data:
             user_data["id"] = uid
             
-        plan_validity_str = user_data.get("plan_validity")
-        if plan_validity_str:
+        is_lifetime = user_data.get("lifetime_access", False)
+        # Support both 'plan_validity' and the new 'expiry_date' from the admin panel
+        plan_validity_str = user_data.get("expiry_date") or user_data.get("plan_validity")
+        
+        # Only expire the plan if they are NOT a lifetime user
+        if plan_validity_str and not is_lifetime:
             try:
                 expiry_date = datetime.fromisoformat(plan_validity_str)
                 if datetime.now(timezone.utc) > expiry_date:
                     user_data["subscriptionTier"] = "free"
                     user_data["credits"] = 0  # RESET TO 0
                     user_data["plan_validity"] = None
+                    user_data["expiry_date"] = None
                     user_ref.update({
                         "subscriptionTier": "free",
                         "credits": 0,         # RESET TO 0
-                        "plan_validity": None
+                        "plan_validity": None,
+                        "expiry_date": None
                     })
             except Exception as e:
                 pass
