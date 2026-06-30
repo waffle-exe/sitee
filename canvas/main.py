@@ -2,6 +2,7 @@ import os
 import re
 import asyncio
 import base64
+import urllib.parse
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Body, Request
@@ -409,8 +410,9 @@ async def delete_all_projects_endpoint(user_id: str, current_user: dict = Depend
         if doc.id != CHAT_HISTORY_PROJECT_NAME: doc.reference.delete()
     return {"status": "success"}
 
-import base64
-import requests
+
+
+
 
 @app.post("/upload-image/{project_id}")
 async def upload_image_endpoint(
@@ -420,15 +422,29 @@ async def upload_image_endpoint(
     current_user: dict = Depends(get_current_user)
 ):
     uid = current_user['uid']
-    github_token = os.getenv("GITHUB_UPLOAD_TOKEN", "YOUR_NEW_GITHUB_TOKEN") 
-    repo = "physics-gndu-sitee-uploads/uploads"
+    
+    # Ensure this token actually exists in your .env!
+    github_token = os.getenv("GITHUB_UPLOAD_TOKEN") 
+    if not github_token or github_token == "YOUR_NEW_GITHUB_TOKEN":
+        raise HTTPException(status_code=500, detail="Server missing GitHub Token")
+
+    # 1. Fix Repo Format: Must be strictly "owner/repo"
+    # (Adjust this to your actual GitHub username and repository name)
+    repo = "physics-gndu/sitee-uploads" 
+    
     file_content = await file.read()
     encoded_content = base64.b64encode(file_content).decode("utf-8")
     
-    safe_filename = f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{file.filename}"
-    file_path = f"{uid}/{project_id}/{safe_filename}"
+    # 2. Sanitize the filename to prevent URL breaks
+    safe_original_name = file.filename.replace(" ", "_")
+    safe_filename = f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{safe_original_name}"
     
-    github_api_url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
+    # 3. Add the "uploads" folder to the file path, NOT the repo name
+    file_path = f"uploads/{uid}/{project_id}/{safe_filename}"
+    
+    # URL encode the file path to be absolutely safe
+    safe_file_path = urllib.parse.quote(file_path)
+    github_api_url = f"https://api.github.com/repos/{repo}/contents/{safe_file_path}"
     
     headers = {
         "Authorization": f"Bearer {github_token}",
@@ -436,32 +452,35 @@ async def upload_image_endpoint(
     }
     
     payload = {
-        "message": f"Upload image {file.filename} via Sitee",
+        "message": f"Upload image {safe_original_name} via Sitee",
         "content": encoded_content
     }
+    
+    response = None  # 4. Initialize response to prevent UnboundLocalError
     try:
         response = requests.put(github_api_url, headers=headers, json=payload)
         response.raise_for_status()
         
-        # Extract the raw image URL from GitHub's response
         response_data = response.json()
         public_url = response_data['content']['download_url']
         
     except requests.exceptions.RequestException as e:
         print(f"GitHub API Error: {e}")
-        # Log the specific GitHub error if available
         if response is not None:
-            print(response.text)
+            print(f"GitHub Response: {response.text}")
         raise HTTPException(status_code=502, detail="Failed to upload image to GitHub.")
     
-    # 5. Update user storage stats in Firebase Firestore (Kept from your original logic)
+    # Update user storage stats
     user_ref = db.collection("users").document(uid)
     user_doc = user_ref.get().to_dict() or {}
     new_mb = user_doc.get("storage_used_mb", 0.0) + (file_size_bytes / (1024 * 1024))
     user_ref.update({"storage_used_mb": new_mb})
     
-    # 6. Return the URL so app.js can update the iframe
     return {"url": public_url, "user_profile": get_user_profile(uid)}
+
+
+
+
 # --- Deployment & Publishing ---
 @app.post("/users/{user_id}/projects/{timestamp}/publish")
 async def publish_external_endpoint(user_id: str, timestamp: str, content: dict = Body(...), current_user: dict = Depends(get_current_user)):
