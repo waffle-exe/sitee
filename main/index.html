@@ -1165,9 +1165,88 @@
                 cursor: wait;
                 color: #ffffff !important;
             }
-        </style>
 
+            /* --- TERMS & CONDITIONS STYLES --- */
+            .terms-container {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 1rem;
+                text-align: left;
+                font-size: 0.85rem;
+                color: var(--text-muted-color);
+            }
+
+            .terms-container input[type="checkbox"] {
+                accent-color: var(--accent-color);
+                cursor: pointer;
+                width: 16px;
+                height: 16px;
+                background-color: rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 4px;
+            }
+
+            .terms-link {
+                color: #60A5FA;
+                text-decoration: none;
+                transition: color 0.2s ease;
+            }
+
+            .terms-link:hover {
+                color: #3B82F6;
+                text-decoration: underline;
+            }
+
+            #terms-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(10, 11, 15, 0.7);
+                backdrop-filter: blur(10px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 25000;
+                padding: 1rem;
+            }
+
+            #terms-modal .modal-content {
+                max-width: 600px;
+                max-height: 85vh;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .terms-text-content {
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 1rem;
+                margin-top: 1rem;
+                text-align: left;
+                overflow-y: auto;
+                flex: 1;
+                color: var(--text-color);
+                font-size: 0.85rem;
+                line-height: 1.6;
+            }
+
+            .terms-text-content::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .terms-text-content::-webkit-scrollbar-thumb {
+                background: var(--accent-color);
+                border-radius: 3px;
+            }
+        </style>
     </head>
+    </style>
+
+</head>
 
 <body
     class="home wp-singular page-template page-template-elementor_header_footer page page-id-9 wp-custom-logo wp-theme-nextmind tt-magic-cursor fancy-scrollbar ai-agency elementor-default elementor-template-full-width elementor-kit-16 elementor-page elementor-page-9">
@@ -3718,6 +3797,7 @@
 
                         <p class="forgot-password-link"><a href="#" id="show-forgot-password">Forgot Password?</a>
                         </p>
+
                         <button type="submit" class="auth-btn btn-primary">Sign In</button>
 
                     </form>
@@ -3733,6 +3813,11 @@
                         <input type="email" id="signup-email" class="auth-input" placeholder="Email" required />
                         <input type="password" id="signup-password" class="auth-input"
                             placeholder="Password (min. 6 characters)" required />
+                        <div class="terms-container">
+                            <input type="checkbox" id="login-terms" required />
+                            <label for="login-terms">I agree to the <a href="#" class="terms-link open-terms-btn">Terms
+                                    & Conditions</a></label>
+                        </div>
                         <button type="submit" class="auth-btn btn-primary">Sign Up</button>
                     </form>
 
@@ -3803,6 +3888,202 @@
             </div>
         </div> -->
 
+        <div id="terms-modal" style="display: none;">
+            <div class="modal-content glassy">
+                <button id="close-terms-modal-btn" class="close-modal-btn">&times;</button>
+                <h2 style="margin-bottom: 0.5rem;">Terms and Conditions</h2>
+
+                <div class="terms-text-content">
+
+                    <p><strong>1. Acceptance of Terms</strong></p>
+                    <p>By accessing or using Sitee ("the Service"), you acknowledge that you have read, understood, and
+                        agree to be bound by these Terms & Conditions. If you do not agree with any part of these Terms,
+                        you
+                        must not use the Service.</p>
+
+                    <br>
+                    <p><strong>2. Eligibility</strong></p>
+                    <p>By creating an account, you represent that you have the legal capacity to enter into these Terms.
+                        Users under the age of 18 may use Sitee only with the consent and supervision of a parent or
+                        legal
+                        guardian. Paid subscriptions and purchases must be made by individuals who are legally permitted
+                        to
+                        enter into binding contracts under applicable law.</p>
+                    <br>
+
+                    <p><strong>3. Your Account</strong></p>
+                    <p>You are responsible for maintaining the confidentiality of your account credentials and for all
+                        activities that occur under your account. You agree to provide accurate and complete information
+                        and
+                        keep it updated.</p>
+
+                    <br>
+
+                    <p><strong>4. AI Generated Content</strong></p>
+                    <p>Sitee uses artificial intelligence to generate websites, layouts, code, images, and content.
+                        AI-generated output may contain inaccuracies, bugs, or incomplete implementations. You are
+                        solely
+                        responsible for reviewing, testing, and verifying all generated content before publishing or
+                        deploying your website.</p>
+
+                    <br>
+
+                    <p><strong>5. Ownership of Content</strong></p>
+                    <p>You retain ownership of the text, images, logos, branding, and other content you upload to Sitee.
+                        By
+                        uploading content, you grant Sitee a limited license to process, store, optimize, and display
+                        that
+                        content solely for providing the Services.</p>
+
+                    <br>
+
+                    <p><strong>6. Public Website Content</strong></p>
+                    <p>Websites created and published through Sitee are intended to be publicly accessible on the
+                        internet.
+                        Any images, text, files, videos, logos, or other content that you publish on your website may be
+                        visible to anyone visiting your website. Do not upload confidential, private, or sensitive
+                        information that you do not wish to make publicly available.</p>
+
+                    <br>
+
+                    <p><strong>7. Image Storage</strong></p>
+                    <p>To efficiently host your website, image files uploaded to your projects may be stored in a GitHub
+                        repository or GitHub-based storage infrastructure managed by Sitee. These images are used only
+                        for
+                        serving your website assets and may be publicly accessible through their direct URLs as required
+                        for
+                        website delivery. <strong>Only uploaded image assets are stored in this manner.</strong> Your AI
+                        prompts, source code, unpublished projects, account information, payment information, personal
+                        details, and other user data are <strong>never publicly stored on GitHub</strong> and remain
+                        private.</p>
+
+                    <br>
+
+                    <p><strong>8. Privacy of Your Account</strong></p>
+                    <p>Your personal account information, authentication details, billing information, payment records,
+                        AI
+                        prompts, unpublished projects, generated source code, and private project data remain
+                        confidential.
+                        Sitee does not intentionally make this information publicly available and does not sell your
+                        personal information to third parties.</p>
+
+                    <br>
+
+                    <p><strong>9. Pricing</strong></p>
+                    <p>Sitee is committed to providing affordable subscription plans while continuously improving the
+                        platform. Prices, subscription features, and AI credit allocations may change over time. Any
+                        future
+                        pricing changes will apply only to future billing periods and will be communicated in advance
+                        where
+                        required.</p>
+
+                    <br>
+
+                    <p><strong>10. Payments & Subscriptions</strong></p>
+                    <p>Paid subscriptions renew automatically unless cancelled before the next billing cycle. Payments
+                        are
+                        processed through secure third-party payment providers. Except where required by applicable law,
+                        subscription payments are non-refundable after successful processing.</p>
+
+                    <br>
+
+                    <p><strong>11. AI Credits</strong></p>
+                    <p>Certain subscription plans include AI credits that are consumed when using AI-powered features.
+                        Credits have no monetary value, cannot be exchanged for cash, transferred between users, or
+                        refunded. Unused credits may expire or reset according to your subscription plan.</p>
+
+                    <br>
+
+                    <p><strong>12. Acceptable Use</strong></p>
+                    <p>You agree not to use Sitee to create or distribute malware, phishing websites, spam, illegal
+                        content,
+                        copyrighted material without authorization, hate speech, fraudulent websites, deceptive content,
+                        or
+                        anything that violates applicable laws or the rights of others.</p>
+
+                    <br>
+
+                    <p><strong>13. Hosting & Availability</strong></p>
+                    <p>While Sitee aims to provide reliable hosting and website availability, we do not guarantee
+                        uninterrupted operation. Maintenance, infrastructure upgrades, technical failures, or
+                        third-party
+                        outages may temporarily affect the availability of the Services.</p>
+
+                    <br>
+
+                    <p><strong>14. Intellectual Property</strong></p>
+                    <p>Sitee, its software, AI systems, branding, interface, platform technology, trademarks, and logos
+                        remain the exclusive property of Sitee. These Terms do not grant you ownership of any Sitee
+                        intellectual property.</p>
+
+                    <br>
+
+                    <p><strong>15. Third-Party Services</strong></p>
+                    <p>Sitee integrates with third-party providers for services including authentication, payment
+                        processing, hosting, analytics, AI models, storage, and domain management. Your use of those
+                        services may also be governed by their respective terms and privacy policies.</p>
+
+                    <br>
+
+                    <p><strong>16. Disclaimer</strong></p>
+                    <p>The Services are provided on an "AS IS" and "AS AVAILABLE" basis without warranties of any kind.
+                        Sitee does not guarantee uninterrupted service, error-free operation, complete security, or that
+                        AI-generated content will always meet your expectations or requirements.</p>
+
+                    <br>
+
+                    <p><strong>17. Limitation of Liability</strong></p>
+                    <p>To the fullest extent permitted by law, Sitee shall not be liable for any indirect, incidental,
+                        consequential, special, or punitive damages, including loss of profits, business interruption,
+                        data
+                        loss, or damages resulting from your use of the Services or AI-generated content.</p>
+
+                    <br>
+
+                    <p><strong>18. Suspension & Termination</strong></p>
+                    <p>We reserve the right to suspend or permanently terminate accounts that violate these Terms, abuse
+                        platform resources, engage in fraudulent or illegal activities, compromise platform security, or
+                        otherwise interfere with the operation of the Services.</p>
+
+                    <br>
+
+                    <p><strong>19. Service Changes</strong></p>
+                    <p>Sitee may update, improve, remove, or modify platform features, subscription plans, AI models,
+                        pricing, storage methods, hosting infrastructure, or technical limitations at any time in order
+                        to
+                        improve the Service.</p>
+
+                    <br>
+
+                    <p><strong>20. Changes to These Terms</strong></p>
+                    <p>These Terms & Conditions may be updated periodically. Continued use of Sitee after revised Terms
+                        become effective constitutes your acceptance of those changes.</p>
+
+                    <br>
+
+                    <p><strong>21. Governing Law</strong></p>
+                    <p>These Terms shall be governed by and interpreted in accordance with the laws of India. Any
+                        disputes
+                        arising under these Terms shall be subject to the exclusive jurisdiction of the competent courts
+                        located in Punjab, India.</p>
+
+                    <br>
+
+                    <p><strong>22. Contact</strong></p>
+                    <p>If you have questions regarding these Terms & Conditions, please contact us at
+                        <strong>ask.sitee@gmail.com</strong>.
+                    </p>
+
+                </div>
+
+                <div class="modal-buttons" style="margin-top: 1.5rem;">
+                    <button id="accept-terms-btn"
+                        style="width: 100%; padding: 12px; background-color: #3B82F6; color: white; border-radius: 8px; border: none; font-weight: bold; cursor: pointer;">I
+                        Understand</button>
+                </div>
+            </div>
+        </div>
+
         <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script type="module" src="scripts/61376133393021.js"></script>
@@ -3816,7 +4097,34 @@
                         overlay.style.display = "none";
                     });
                 }
+                const termsModal = document.getElementById('terms-modal');
+                const closeTermsBtn = document.getElementById('close-terms-modal-btn');
+                const acceptTermsBtn = document.getElementById('accept-terms-btn');
+                const openTermsLinks = document.querySelectorAll('.open-terms-btn');
+
+                if (termsModal) {
+                    openTermsLinks.forEach(link => {
+                        link.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            termsModal.style.display = 'flex';
+                        });
+                    });
+
+                    const closeTermsModal = () => {
+                        termsModal.style.display = 'none';
+                    };
+
+                    if (closeTermsBtn) closeTermsBtn.addEventListener('click', closeTermsModal);
+                    if (acceptTermsBtn) acceptTermsBtn.addEventListener('click', closeTermsModal);
+
+                    termsModal.addEventListener('click', (e) => {
+                        if (e.target === termsModal) closeTermsModal();
+                    });
+                }
+
             });
+
+
         </script>
 </body>
 
