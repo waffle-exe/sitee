@@ -574,17 +574,14 @@ function populateDashboard() {
         </div>`;
     }
 
-    // --- NEW: PUBLISHED SITES LOGIC ---
-    let publishLimit = 1; // Default to free
+    let publishLimit = 1;
     if (plan.includes('creator')) {
         publishLimit = 7;
     } else if (plan.includes('pro')) {
         publishLimit = 20;
-    } else if (plan.includes('custom')) {
-        publishLimit = 9999;
     }
-
-    // Filter projects to only those with a live published_url
+    
+    publishLimit += (currentUser.custom_publish_limit || 0);
     const publishedProjects = currentUser.projects ? currentUser.projects.filter(p => p.published_url) : [];
     const publishedCount = publishedProjects.length;
     const publishesLeft = Math.max(0, publishLimit - publishedCount);
