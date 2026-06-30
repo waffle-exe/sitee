@@ -4279,22 +4279,47 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- END: Image Editor Modal Fix ---
-    // Main UI Listeners
     generateBtn.addEventListener('click', handleGenerateClick);
     promptInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerateClick(); } });
     sidebarToggle.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); setTimeout(updateThemeSelectorPosition, 300); });
-    promptInput.addEventListener('input', function () {
+    // 1. HARD STOP ON KEYDOWN
+    promptInput.addEventListener('keydown', function (e) {
+        // Only enforce if it's the free plan
         const plan = (currentUser?.subscriptionTier || 'free').toLowerCase().trim();
-        if (plan === 'free') {
-            const words = this.value.split(/\s+/).filter(word => word.length > 0);
-            const WORD_LIMIT = 350;
+        if (plan !== 'free') return;
 
-            if (words.length > WORD_LIMIT) {
-                this.value = words.slice(0, WORD_LIMIT).join(" ");
+        // Check if the key being pressed is a character (length 1) or Enter
+        // We allow backspace, delete, arrows, etc.
+        const isTypingKey = e.key.length === 1 || e.key === 'Enter';
+
+        if (isTypingKey) {
+            // Count words accurately
+            const words = this.value.split(/\s+/).filter(word => word.length > 0);
+            const WORD_LIMIT = 250;
+
+            // If they are AT the limit, AND they are pressing a space or enter, block it.
+            // If they are OVER the limit, block everything.
+            if (words.length > WORD_LIMIT || (words.length === WORD_LIMIT && /\s/.test(e.key))) {
+                e.preventDefault(); // Stop the character from appearing
                 showNotification(`Free plan limit reached (${WORD_LIMIT} words max). Upgrade to type more!`, 'error');
             }
         }
+    });
+
+
+    promptInput.addEventListener('input', function () {
+
+        const plan = (currentUser?.subscriptionTier || 'free').toLowerCase().trim();
+        if (plan === 'free') {
+            const words = this.value.split(/\s+/).filter(word => word.length > 0);
+            const WORD_LIMIT = 250;
+
+            if (words.length > WORD_LIMIT) {
+                this.value = words.slice(0, WORD_LIMIT).join(" ");
+                showNotification(`Text truncated. Free plan limit is ${WORD_LIMIT} words.`, 'error');
+            }
+        }
+
 
         const isChat = currentMode === 'chat';
         if (this.value.trim() !== '' || isChat) {
@@ -4306,8 +4331,6 @@ document.addEventListener("DOMContentLoaded", () => {
             window.openAuthModal();
             hasLoginModalBeenShown = true;
         }
-
-        // 4. Auto Resize the box
         autoResizePrompt.call(this);
     });
     document.querySelectorAll('.suggestion-card').forEach(card => card.addEventListener('click', () => { promptInput.value = card.dataset.prompt; handleGenerateClick(); }));
