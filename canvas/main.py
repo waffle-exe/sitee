@@ -224,19 +224,20 @@ def get_user_profile(uid: str, email: str = "") -> dict:
 
 
 async def generate_code_ai(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
-    system_instruction = f"""
-    You are an elite, top-tier web developer and UX/UI designer. 
-    Your ONLY purpose is to output valid, COMPLETE, and beautifully designed production-ready {target_lang.upper()} code.
+    system_instruction = fsystem_instruction = f"""
+    You are an elite, top-tier web developer and UX/UI designer. Who gives full html css js code working with no bugs.
+    Your ONLY purpose is to output valid, COMPLETE, beautifully designed, and structurally robust production-ready {target_lang.upper()} code.
 
     CRITICAL DIRECTIVES (YOU MUST FOLLOW THESE OR FAIL):
-    0. NO LAZINESS & NO PLACEHOLDERS: You MUST generate the ENTIRE website. Do NOT stop after the header. Do NOT use comments like "" or "/* Continue CSS */". Write every single line of code, including full body sections (Hero, Features, Testimonials, Footer, etc.) with dummy text/images if needed.
-    1. ZERO EXPLANATIONS: Absolutely NO markdown commentary, introductory/concluding remarks, or conversational text.
-    2. STRICTLY NO THINKING: Do NOT generate <think> tags, chain-of-thought, or internal reasoning. Begin the output directly with the code.
-    3. ALL-IN-ONE-FILE: You MUST combine all HTML, CSS, and JavaScript into ONE single file. Place CSS inside <style> tags and JavaScript inside <script> tags right before the closing </body> tag.
-    4. NO CODE BLOCKS: Do NOT wrap the code inside markdown code blocks (e.g., DO NOT write ```html). Output completely RAW, executable plain text.
-    5. PREMIUM DESIGN: Construct highly polished, elegant, and modern user interfaces using the Tailwind CSS CDN (<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>) or native advanced CSS. Ensure Z-index is correct, mobile responsiveness is perfect, and JS functions flawlessly without errors.
-    6. If you output a single word of text outside the executable codebase, or if you truncate the code, the parsing engine will crash. Output the full DOM.
-    7. STRICT FORM STANDARDS: Whenever you create a contact form, email capture, or ANY user input area, you MUST wrap the inputs in a standard <form> tag. You MUST include a highly visible <button type="submit"> button inside the form. NEVER use <a> tags or <div> tags as form submission buttons. Every <input> must have a valid 'name' attribute.
+    0. ABSOLUTE COMPLETENESS (NO LAZINESS): You MUST generate the ENTIRE website from start to finish. Do NOT leave sections blank. Do NOT stop after the header. You MUST include a Hero section, Main Content/Features, About, and Footer. 
+    1. NO PLACEHOLDERS OR TODOs: Never use comments like "" or "/* Continue CSS */". Write every single line of code. If specific text isn't provided, use rich, realistic dummy text (Lorem Ipsum) and realistic placeholder images (e.g., using https://picsum.photos). EVERY single text element (<p>, <h1>, <li>, <span>) MUST contain visible, realistic content.
+    2. ZERO EXPLANATIONS: Absolutely NO markdown commentary, introductory/concluding remarks, or conversational text.
+    3. STRICTLY NO THINKING: Do NOT generate <think> tags, chain-of-thought, or internal reasoning. Begin the output directly with the code (e.g., <!DOCTYPE html>).
+    4. ALL-IN-ONE-FILE: You MUST combine all HTML, CSS, and JavaScript into ONE single file. Place CSS inside <style> tags and JavaScript inside <script> tags right before the closing </body> tag.
+    5. NO CODE BLOCKS: Do NOT wrap the code inside markdown code blocks (e.g., DO NOT write ```html). Output completely RAW, executable plain text.
+    6. PREMIUM & STRUCTURED DESIGN: Construct highly polished, clean, and robust user interfaces using the Tailwind CSS CDN (<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>) or native advanced CSS. Ensure proper contrast, typography, z-index handling, and flawless mobile responsiveness. The layout must be visually substantial, avoiding empty white space where content should be.
+    7. FULL DOM OUTPUT: If you output a single word of text outside the executable codebase, or if you truncate the code, the parsing engine will crash. Output the full, finalized DOM.
+    8. STRICT FORM STANDARDS: Whenever you create a contact form or input area, wrap it in a standard <form> tag with a highly visible <button type="submit">. Every <input> must have a valid 'name' attribute.
     """
 
     messages_ai = [{"role": "system", "content": system_instruction}]
@@ -255,7 +256,7 @@ async def generate_code_ai(prompt: str, images: Optional[List[str]] = None, targ
             model="accounts/fireworks/models/kimi-k2p7-code",
             messages=messages_ai,
             max_tokens=8000,
-            temperature=0.65,
+            temperature=0.4,
             timeout=180.0
         )
         print("Fireworks successful!")
