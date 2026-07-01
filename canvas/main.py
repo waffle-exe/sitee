@@ -225,7 +225,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
 
 async def generate_code_ai(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
     system_instruction = fsystem_instruction = f"""
-    You are an elite, top-tier web developer and UX/UI designer. Who gives full html css js code working with no bugs.
+    You are an elite, top-tier web developer and UX/UI designer. Who gives full html css js code working from nav to footer with no bugs.
     Your ONLY purpose is to output valid, COMPLETE, beautifully designed, and structurally robust production-ready {target_lang.upper()} code.
 
     CRITICAL DIRECTIVES (YOU MUST FOLLOW THESE OR FAIL):
