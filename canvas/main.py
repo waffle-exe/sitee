@@ -224,32 +224,36 @@ def get_user_profile(uid: str, email: str = "") -> dict:
 
 
 async def generate_code_ai(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
-    system_instruction = fsystem_instruction = f"""
-    Your name is *Sitee LLM*. Fined tuned over different models.
-    You are an elite, top-tier web developer and UX/UI designer. Who gives full html css js code working from nav to footer with no bugs.
+    system_instruction = f"""
+    Your name is Sitee LLM. You are an elite web developer.
     Your ONLY purpose is to output valid, COMPLETE, beautifully designed, and structurally robust production-ready {target_lang.upper()} code.
 
-    CRITICAL DIRECTIVES (YOU MUST FOLLOW THESE OR FAIL):
-    0. ABSOLUTE COMPLETENESS (NO LAZINESS): You MUST generate the ENTIRE website from start to finish. Do NOT leave sections blank. Do NOT stop after the header. You MUST include a Hero section, Main Content/Features, About, and Footer. 
-    1. NO PLACEHOLDERS OR TODOs: Never use comments like "" or "/* Continue CSS */". Write every single line of code. If specific text isn't provided, use rich, realistic dummy text (Lorem Ipsum) and realistic placeholder images (e.g., using https://picsum.photos). EVERY single text element (<p>, <h1>, <li>, <span>) MUST contain visible, realistic content.
-    2. ZERO EXPLANATIONS: Absolutely NO markdown commentary, introductory/concluding remarks, or conversational text.
-    3. STRICTLY NO THINKING: Do NOT generate <think> tags, chain-of-thought, or internal reasoning. Begin the output directly with the code (e.g., <!DOCTYPE html>).
-    4. ALL-IN-ONE-FILE: You MUST combine all HTML, CSS, and JavaScript into ONE single file. Place CSS inside <style> tags and JavaScript inside <script> tags right before the closing </body> tag.
-    5. NO CODE BLOCKS: Do NOT wrap the code inside markdown code blocks (e.g., DO NOT write ```html). Output completely RAW, executable plain text.
-    6. PREMIUM & STRUCTURED DESIGN: Construct highly polished, clean, and robust user interfaces using the Tailwind CSS CDN (<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>) or native advanced CSS. Ensure proper contrast, typography, z-index handling, and flawless mobile responsiveness. The layout must be visually substantial, avoiding empty white space where content should be.
-    7. FULL DOM OUTPUT: If you output a single word of text outside the executable codebase, or if you truncate the code, the parsing engine will crash. Output the full, finalized DOM.
-    8. STRICT FORM STANDARDS: Whenever you create a contact form or input area, wrap it in a standard <form> tag with a highly visible <button type="submit">. Every <input> must have a valid 'name' attribute.
+    CRITICAL DIRECTIVES:
+    1. MANDATORY STRUCTURE: You MUST generate a full, multi-section website. Your output MUST follow this exact HTML skeleton:
+       <body>
+         <nav>...</nav>
+         <header>...</header>
+         <section id="features">...</section>
+         <section id="about">...</section>
+         <section id="contact">...</section>
+         <footer>...</footer>
+       </body>
+    2. NO PLACEHOLDERS: If specific text isn't provided, use rich Lorem Ipsum and realistic placeholder images (https://picsum.photos). EVERY element must have content.
+    3. NO EXPLANATIONS OR THINKING: Do not use <think> tags. Output ONLY raw code starting with <!DOCTYPE html>.
+    4. ALL-IN-ONE: Combine HTML, CSS (<style>), and JS (<script>) into ONE file.
+    5. FULL DOM OUTPUT: Do not truncate.
     """
+    enhanced_prompt = prompt + "\n\nCRITICAL: If reference images are provided, use them as stylistic inspiration for the ENTIRE website. Do not just build the header. You MUST invent and design the remaining page sections (Hero, Features, Content, Footer) to match this aesthetic."
 
     messages_ai = [{"role": "system", "content": system_instruction}]
     if images:
-        content = [{"type": "text", "text": prompt}]
+        content = [{"type": "text", "text": enhanced_prompt}]
         for b64_img in images:
             if "," in b64_img: b64_img = b64_img.split(",")[1]
             content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}})
         messages_ai.append({"role": "user", "content": content})
     else:
-        messages_ai.append({"role": "user", "content": prompt})
+        messages_ai.append({"role": "user", "content": enhanced_prompt})
 
     try:
         print("Attempting generation with Fireworks API...")
