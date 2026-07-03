@@ -225,7 +225,7 @@ def get_user_profile(uid: str, email: str = "") -> dict:
 
 async def generate_code_ai(prompt: str, images: Optional[List[str]] = None, target_lang: str = "html") -> dict:
     system_instruction = f"""
-    Your name is Sitee LLM. You are an elite web developer.
+    Your name is Sitee LLM. You are an elite web developer. Always give *full code* till footer and working javascript. 
     Your ONLY purpose is to output valid, COMPLETE, beautifully designed, and structurally robust production-ready {target_lang.upper()} code.
 
     CRITICAL DIRECTIVES:
