@@ -2620,97 +2620,8 @@
                     max-width: none;
                 }
             }
-            /* --- CLEAN NAVBAR & MOBILE MENU FIX --- */
 
-/* 1. Unset accidental button styles on menu items */
-.elementskit-navbar-nav > li,
-.elementskit-navbar-nav > li > a {
-    background: transparent !important;
-    background-color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-}
-
-/* 2. Desktop Nav Styling */
-@media (min-width: 1025px) {
-    .elementskit-navbar-nav {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        gap: 35px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        list-style: none !important;
-    }
-
-    .elementskit-navbar-nav > li > a {
-        color: #ffffff !important;
-        font-weight: 500 !important;
-        font-size: 1rem !important;
-        text-decoration: none !important;
-        padding: 5px 0 !important;
-    }
-
-    .elementskit-navbar-nav > li > a:hover {
-        color: #3B82F6 !important;
-    }
-
-    .elementskit-menu-hamburger {
-        display: none !important;
-    }
-}
-
-/* 3. Mobile & Tablet Drawer Styling */
-@media (max-width: 1024px) {
-    .elementskit-menu-container.elementskit-menu-offcanvas-elements {
-        background: #121215 !important;
-        position: fixed !important;
-        top: 0 !important;
-        right: 0 !important;
-        width: 280px !important;
-        height: 100vh !important;
-        padding: 90px 25px 30px !important;
-        box-shadow: -15px 0 40px rgba(0, 0, 0, 0.9) !important;
-        z-index: 99999 !important;
-    }
-
-    .elementskit-navbar-nav {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 12px !important;
-        list-style: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    .elementskit-navbar-nav > li > a {
-        color: #ffffff !important;
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-        text-decoration: none !important;
-        display: block !important;
-        padding: 10px 0 !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    }
-
-    /* Clean up stray list bullets in mobile drawer */
-    .elementskit-navbar-nav li::marker {
-        content: "" !important;
-    }
-
-    .elementskit-menu-close {
-        position: absolute !important;
-        top: 20px !important;
-        right: 20px !important;
-        color: #ffffff !important;
-        font-size: 26px !important;
-        background: transparent !important;
-        border: none !important;
-        cursor: pointer !important;
-    }
-}
+            
             @media (max-width: 767px) {
 
                 /* Create breathing room around the table section */
@@ -2759,6 +2670,138 @@
                     padding: 12px 20px !important;
                 }
             }
+            /* --- ULTIMATE NAVBAR OVERRIDE FIX --- */
+
+/* 1. Force the main header container to stay at the top and not overlap content */
+.elementor-element-66f64d7 {
+    position: relative !important;
+    width: 100% !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    z-index: 9999 !important;
+}
+
+.elementor-element-66f64d7 .e-con-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+    padding: 15px 30px !important;
+}
+
+/* 2. Desktop Navigation Layout */
+@media (min-width: 1025px) {
+    .elementskit-navbar-nav {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 40px !important;
+        list-style: none !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+    }
+
+    .elementskit-navbar-nav > li,
+    .elementskit-navbar-nav > li > a {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        color: #ffffff !important;
+        font-size: 1rem !important;
+        font-weight: 500 !important;
+        text-decoration: none !important;
+    }
+
+    .elementskit-navbar-nav > li > a:hover {
+        color: #60A5FA !important;
+    }
+
+    .elementskit-menu-hamburger,
+    .elementskit-menu-close,
+    .elementskit-menu-identity-panel {
+        display: none !important;
+    }
+}
+
+/* 3. Mobile & Tablet Offcanvas Menu Layout */
+@media (max-width: 1024px) {
+    /* Show mobile toggle */
+    .elementskit-menu-hamburger {
+        display: flex !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 10px !important;
+        padding: 8px 12px !important;
+        cursor: pointer;
+    }
+
+    .elementskit-menu-hamburger i {
+        color: #ffffff !important;
+        font-size: 22px !important;
+    }
+
+    /* Offcanvas Drawer */
+    .elementskit-menu-container.elementskit-menu-offcanvas-elements {
+        background: #111115 !important;
+        position: fixed !important;
+        top: 0 !important;
+        right: 0 !important;
+        width: 300px !important;
+        height: 100vh !important;
+        padding: 80px 30px 30px !important;
+        box-shadow: -20px 0 50px rgba(0, 0, 0, 0.9) !important;
+        z-index: 999999 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .elementskit-navbar-nav {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px !important;
+        list-style: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .elementskit-navbar-nav > li,
+    .elementskit-navbar-nav > li > a {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        color: #ffffff !important;
+        font-size: 1.2rem !important;
+        font-weight: 600 !important;
+        text-decoration: none !important;
+        display: block !important;
+        padding: 10px 0 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    /* Fix Mobile Close Button Position */
+    .elementskit-menu-close,
+    .elementskit-nav-identity-panel button {
+        position: absolute !important;
+        top: 20px !important;
+        right: 20px !important;
+        color: #ffffff !important;
+        font-size: 24px !important;
+        background: transparent !important;
+        border: none !important;
+        cursor: pointer !important;
+        display: block !important;
+        z-index: 1000000 !important;
+    }
+}
         </style>
         <section class="comparison-section">
             <button id="toggle-comparison" class="choose-plan-btn"
