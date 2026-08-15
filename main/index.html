@@ -2620,35 +2620,26 @@
                     max-width: none;
                 }
             }
-/* --- FIXED DESKTOP & MOBILE NAVBAR STYLING --- */
+            /* --- CLEAN NAVBAR & MOBILE MENU FIX --- */
 
-/* 1. Ensure the header container acts as a proper flex row */
-.elementor-element-66f64d7 .e-con-inner {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    width: 100% !important;
-    max-width: 1400px !important;
-    margin: 0 auto !important;
-    padding: 15px 20px !important;
-    position: relative !important;
-    z-index: 1000 !important;
+/* 1. Unset accidental button styles on menu items */
+.elementskit-navbar-nav > li,
+.elementskit-navbar-nav > li > a {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
-/* 2. Fix Desktop Navigation Menu Alignment */
+/* 2. Desktop Nav Styling */
 @media (min-width: 1025px) {
-    .elementor-element-66f64d7 .e-con-child {
-        flex: unset !important;
-        width: auto !important;
-    }
-
-    /* Force horizontal layout for menu links */
     .elementskit-navbar-nav {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        gap: 30px !important;
+        gap: 35px !important;
         margin: 0 !important;
         padding: 0 !important;
         list-style: none !important;
@@ -2659,84 +2650,62 @@
         font-weight: 500 !important;
         font-size: 1rem !important;
         text-decoration: none !important;
-        padding: 8px 0 !important;
-        border-bottom: none !important;
-        background: transparent !important;
+        padding: 5px 0 !important;
     }
 
     .elementskit-navbar-nav > li > a:hover {
         color: #3B82F6 !important;
     }
 
-    /* Hide mobile hamburger toggle on desktop */
     .elementskit-menu-hamburger {
         display: none !important;
     }
 }
 
-/* 3. Fix Mobile & Tablet Navbar & Offcanvas Menu */
+/* 3. Mobile & Tablet Drawer Styling */
 @media (max-width: 1024px) {
-    .elementor-element-66f64d7 .e-con-inner {
-        justify-content: space-between !important;
-    }
-
-    /* Style the hamburger button properly */
-    .elementskit-menu-hamburger {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        border-radius: 10px !important;
-        padding: 8px 12px !important;
-        cursor: pointer;
-    }
-
-    .elementskit-menu-hamburger i {
-        display: block !important;
-        color: #ffffff !important;
-        font-size: 24px !important;
-    }
-
-    /* Mobile Dropdown drawer */
     .elementskit-menu-container.elementskit-menu-offcanvas-elements {
-        background: rgba(18, 18, 22, 0.98) !important;
-        backdrop-filter: blur(20px) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
+        background: #121215 !important;
         position: fixed !important;
         top: 0 !important;
         right: 0 !important;
-        width: 80% !important;
-        max-width: 320px !important;
+        width: 280px !important;
         height: 100vh !important;
-        padding: 80px 30px 30px !important;
-        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8) !important;
+        padding: 90px 25px 30px !important;
+        box-shadow: -15px 0 40px rgba(0, 0, 0, 0.9) !important;
         z-index: 99999 !important;
     }
 
     .elementskit-navbar-nav {
         display: flex !important;
         flex-direction: column !important;
-        gap: 15px !important;
-        align-items: flex-start !important;
+        gap: 12px !important;
+        list-style: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     .elementskit-navbar-nav > li > a {
         color: #ffffff !important;
-        font-size: 1.2rem !important;
+        font-size: 1.1rem !important;
         font-weight: 600 !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-        width: 100% !important;
-        padding-bottom: 10px !important;
+        text-decoration: none !important;
+        display: block !important;
+        padding: 10px 0 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 
-    /* Close button inside mobile menu */
+    /* Clean up stray list bullets in mobile drawer */
+    .elementskit-navbar-nav li::marker {
+        content: "" !important;
+    }
+
     .elementskit-menu-close {
         position: absolute !important;
         top: 20px !important;
         right: 20px !important;
         color: #ffffff !important;
-        font-size: 24px !important;
+        font-size: 26px !important;
         background: transparent !important;
         border: none !important;
         cursor: pointer !important;
