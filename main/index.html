@@ -2670,15 +2670,15 @@
                     padding: 12px 20px !important;
                 }
             }
-            /* --- ULTIMATE NAVBAR OVERRIDE FIX --- */
+            /* --- FINAL POLISHED NAVBAR FIX --- */
 
-/* 1. Force the main header container to stay at the top and not overlap content */
+/* 1. Make header transparent and overlay smoothly on the hero image */
 .elementor-element-66f64d7 {
-    position: relative !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
     width: 100% !important;
-    background: rgba(0, 0, 0, 0.4) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
+    background: transparent !important;
     z-index: 9999 !important;
 }
 
@@ -2689,18 +2689,32 @@
     justify-content: space-between !important;
     max-width: 1400px !important;
     margin: 0 auto !important;
-    padding: 15px 30px !important;
+    padding: 20px 30px !important;
 }
 
-/* 2. Desktop Navigation Layout */
+/* 2. Perfectly Center Desktop Menu Links Inside Glass Pill */
 @media (min-width: 1025px) {
+    /* Target the container wrapping the links to make it a neat pill */
+    #ekit-megamenu-header-menu {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 9999px !important;
+        padding: 6px 20px !important;
+    }
+
     .elementskit-navbar-nav {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        gap: 40px !important;
+        justify-content: center !important;
+        gap: 25px !important;
         list-style: none !important;
-        margin: 0 auto !important;
+        margin: 0 !important;
         padding: 0 !important;
     }
 
@@ -2710,28 +2724,28 @@
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
         color: #ffffff !important;
-        font-size: 1rem !important;
+        font-size: 0.95rem !important;
         font-weight: 500 !important;
         text-decoration: none !important;
+        padding: 6px 10px !important;
+        line-height: 1.2 !important;
     }
 
     .elementskit-navbar-nav > li > a:hover {
         color: #60A5FA !important;
     }
 
+    /* Hide mobile elements on desktop */
     .elementskit-menu-hamburger,
     .elementskit-menu-close,
-    .elementskit-menu-identity-panel {
+    .elementskit-nav-identity-panel {
         display: none !important;
     }
 }
 
-/* 3. Mobile & Tablet Offcanvas Menu Layout */
+/* 3. Mobile & Tablet Menu State & Drawer Fix */
 @media (max-width: 1024px) {
-    /* Show mobile toggle */
     .elementskit-menu-hamburger {
         display: flex !important;
         background: rgba(255, 255, 255, 0.1) !important;
@@ -2746,25 +2760,31 @@
         font-size: 22px !important;
     }
 
-    /* Offcanvas Drawer */
-    .elementskit-menu-container.elementskit-menu-offcanvas-elements {
+    /* Keep mobile menu hidden by default until toggled open by Elementor JS */
+    .elementskit-menu-container.elementskit-menu-offcanvas-elements:not(.active):not(.elementskit-menu-open) {
+        display: none !important;
+    }
+
+    /* When open, style as a clean slide-in drawer */
+    .elementskit-menu-container.elementskit-menu-offcanvas-elements.active,
+    .elementskit-menu-container.elementskit-menu-offcanvas-elements.elementskit-menu-open {
+        display: flex !important;
+        flex-direction: column !important;
         background: #111115 !important;
         position: fixed !important;
         top: 0 !important;
         right: 0 !important;
-        width: 300px !important;
+        width: 280px !important;
         height: 100vh !important;
-        padding: 80px 30px 30px !important;
+        padding: 80px 25px 25px !important;
         box-shadow: -20px 0 50px rgba(0, 0, 0, 0.9) !important;
         z-index: 999999 !important;
-        display: flex !important;
-        flex-direction: column !important;
     }
 
     .elementskit-navbar-nav {
         display: flex !important;
         flex-direction: column !important;
-        gap: 15px !important;
+        gap: 10px !important;
         list-style: none !important;
         padding: 0 !important;
         margin: 0 !important;
@@ -2773,13 +2793,8 @@
     .elementskit-navbar-nav > li,
     .elementskit-navbar-nav > li > a {
         background: transparent !important;
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
         color: #ffffff !important;
-        font-size: 1.2rem !important;
+        font-size: 1.1rem !important;
         font-weight: 600 !important;
         text-decoration: none !important;
         display: block !important;
@@ -2787,7 +2802,7 @@
         border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 
-    /* Fix Mobile Close Button Position */
+    /* Mobile Close Button Alignment */
     .elementskit-menu-close,
     .elementskit-nav-identity-panel button {
         position: absolute !important;
