@@ -2816,6 +2816,12 @@
         display: block !important;
         z-index: 1000000 !important;
     }
+}/* --- HIDE HEADER DURING PRELOADER --- */
+.preloader:not(.hidden) ~ * .elementor-element-66f64d7,
+body:has(.preloader:not(.hidden)) .elementor-element-66f64d7 {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
         </style>
         <section class="comparison-section">
